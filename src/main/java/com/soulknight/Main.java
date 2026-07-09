@@ -3,6 +3,7 @@ package com.soulknight;
 import com.soulknight.engine.GameLoop;
 import com.soulknight.engine.GameWorld;
 import com.soulknight.engine.InputHandler;
+import com.soulknight.ui.UIManager;
 import com.soulknight.utils.Constants;
 import javafx.application.Application;
 import javafx.scene.Scene;
@@ -19,6 +20,7 @@ public final class Main extends Application {
         canvas.setFocusTraversable(true);
         GraphicsContext graphicsContext = canvas.getGraphicsContext2D();
 
+        // 1. Tạo Layout gốc và kết nối Input
         StackPane root = new StackPane(canvas);
         Scene scene = new Scene(root, Constants.WINDOW_WIDTH, Constants.WINDOW_HEIGHT);
         scene.setOnMouseClicked(event -> canvas.requestFocus());
@@ -30,11 +32,13 @@ public final class Main extends Application {
         inputHandler.bind(scene);
 
         GameWorld world = new GameWorld(inputHandler);
+        UIManager uiManager = new UIManager(root);
+        world.setGameStateListener(uiManager::handleStateChange);
         GameLoop gameLoop = new GameLoop(delta -> {
             world.update(delta, canvas.getWidth(), canvas.getHeight());
             world.render(graphicsContext, canvas.getWidth(), canvas.getHeight());
+            uiManager.updateHUD(world);
         });
-
         stage.setTitle(Constants.GAME_TITLE);
         stage.setScene(scene);
         stage.setMinWidth(Constants.WINDOW_WIDTH);

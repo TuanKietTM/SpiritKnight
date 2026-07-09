@@ -32,4 +32,7 @@ public final class GameLoop {
     public void stop() {
         animationTimer.stop();
     }
+
+    public void changeState(GameState gameState) {
+    }
 }
