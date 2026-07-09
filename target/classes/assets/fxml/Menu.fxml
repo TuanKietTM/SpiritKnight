@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox xmlns="http://javafx.com/javafx/17"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.soulknight.ui.Menu"
+      stylesheets="@../CSS/Menu.css"
+      styleClass="menu-container"
+      alignment="CENTER"
+      spacing="20">
+
+    <Label text="Soul Knight" styleClass="menu-title"/>
+
+    <Label text="Press ENTER or Click anywhere to start" styleClass="menu-prompt"/>
+
+    <Label text="WASD to move | Mouse to aim | Hold Left Click to fire" styleClass="menu-instructions"/>
+
+</VBox>

@@ -1,6 +1,5 @@
 package com.soulknight.engine;
 
-import com.soulknight.entity.Boss;
 import com.soulknight.entity.Enemy;
 import com.soulknight.entity.EnemyFactory;
 import com.soulknight.entity.Player;
@@ -9,11 +8,6 @@ import com.soulknight.item.Item;
 import com.soulknight.level.LevelManager;
 import com.soulknight.map.MapManager;
 import com.soulknight.mission.MissionManager;
-import com.soulknight.ui.GameOverScreen;
-import com.soulknight.ui.HUD;
-import com.soulknight.ui.LevelClearScreen;
-import com.soulknight.ui.Menu;
-import com.soulknight.ui.VictoryScreen;
 import com.soulknight.utils.Constants;
 import com.soulknight.utils.Vector2D;
 import com.soulknight.weapon.Bullet;
@@ -32,11 +26,8 @@ public final class GameWorld {
     private final LevelManager levelManager = new LevelManager();
     private final MissionManager missionManager = new MissionManager();
     private final EnemyFactory enemyFactory = new EnemyFactory(levelManager, missionManager);
-    private final HUD hud = new HUD();
-    private final Menu menu = new Menu();
-    private final GameOverScreen gameOverScreen = new GameOverScreen();
-    private final LevelClearScreen levelClearScreen = new LevelClearScreen();
-    private final VictoryScreen victoryScreen = new VictoryScreen();
+
+    private GameStateListener stateListener;
 
     private MapManager mapManager;
     private Player player;
@@ -47,9 +38,30 @@ public final class GameWorld {
     private double enemySpawnTimer;
     private Vector2D pendingPortalPosition;
 
+    public interface GameStateListener {
+        void onStateChanged(GameState newState);
+    }
+
     public GameWorld(InputHandler inputHandler) {
         this.inputHandler = inputHandler;
         startNewRun();
+    }
+
+    public void setGameStateListener(GameStateListener listener) {
+        this.stateListener = listener;
+        // Kích hoạt trạng thái ban đầu cho giao diện
+        if (this.stateListener != null) {
+            this.stateListener.onStateChanged(this.state);
+        }
+    }
+
+    public void changeState(GameState newState) {
+        if (this.state != newState) {
+            this.state = newState;
+            if (stateListener != null) {
+                stateListener.onStateChanged(newState);
+            }
+        }
     }
 
     public void update(double deltaSeconds, double viewportWidth, double viewportHeight) {
@@ -57,7 +69,7 @@ public final class GameWorld {
             case MAIN_MENU -> {
                 if (inputHandler.consumeConfirmRequest()) {
                     startNewRun();
-                    state = GameState.PLAYING;
+                    changeState(GameState.PLAYING);
                 }
             }
             case PLAYING -> updatePlaying(deltaSeconds, viewportWidth, viewportHeight, true);
@@ -65,7 +77,7 @@ public final class GameWorld {
             case GAME_OVER, GAME_VICTORY -> {
                 if (inputHandler.consumeConfirmRequest()) {
                     startNewRun();
-                    state = GameState.PLAYING;
+                    changeState(GameState.PLAYING);
                 }
             }
         }
@@ -73,22 +85,8 @@ public final class GameWorld {
 
     public void render(GraphicsContext graphicsContext, double renderWidth, double renderHeight) {
         graphicsContext.clearRect(0.0, 0.0, renderWidth, renderHeight);
-
-        switch (state) {
-            case MAIN_MENU -> menu.render(graphicsContext, renderWidth, renderHeight);
-            case PLAYING -> renderWorld(graphicsContext, renderWidth, renderHeight);
-            case LEVEL_CLEAR -> {
-                renderWorld(graphicsContext, renderWidth, renderHeight);
-                levelClearScreen.render(graphicsContext, renderWidth, renderHeight, levelManager, missionManager);
-            }
-            case GAME_OVER -> {
-                renderWorld(graphicsContext, renderWidth, renderHeight);
-                gameOverScreen.render(graphicsContext, renderWidth, renderHeight);
-            }
-            case GAME_VICTORY -> {
-                renderWorld(graphicsContext, renderWidth, renderHeight);
-                victoryScreen.render(graphicsContext, renderWidth, renderHeight);
-            }
+        if (state != GameState.MAIN_MENU) {
+            renderWorld(graphicsContext, renderWidth, renderHeight);
         }
     }
 
@@ -109,15 +107,16 @@ public final class GameWorld {
         camera.follow(player.getPosition(), viewportWidth, viewportHeight, mapManager.getWorldWidth(), mapManager.getWorldHeight());
 
         if (!player.isAlive()) {
-            state = GameState.GAME_OVER;
+            inputHandler.consumeConfirmRequest();
+            changeState(GameState.GAME_OVER);
             return;
         }
 
         if (missionManager.isMissionComplete()) {
             if (levelManager.getCurrentLevel().bossLevel()) {
-                state = GameState.GAME_VICTORY;
+                changeState(GameState.GAME_VICTORY);
             } else {
-                state = GameState.LEVEL_CLEAR;
+                changeState(GameState.LEVEL_CLEAR);
                 mapManager.openExitPortal(pendingPortalPosition);
             }
         }
@@ -216,7 +215,6 @@ public final class GameWorld {
         }
 
         player.render(graphicsContext, camera);
-        hud.render(graphicsContext, player, levelManager, missionManager, enemies.size(), items.size(), renderWidth, renderHeight);
     }
 
     private void startNewRun() {
@@ -288,39 +286,24 @@ public final class GameWorld {
 
         if (levelManager.advanceLevel()) {
             loadCurrentLevel(false);
-            state = GameState.PLAYING;
+            changeState(GameState.PLAYING);
         } else {
-            state = GameState.GAME_VICTORY;
+            changeState(GameState.GAME_VICTORY);
         }
     }
 
-    public InputHandler getInputHandler() {
-        return inputHandler;
-    }
+    public GameState getState() { return state; }
+    public InputHandler getInputHandler() { return inputHandler; }
+    public MapManager getMapManager() { return mapManager; }
+    public Player getPlayer() { return player; }
+    public List<Enemy> getEnemies() { return enemies; }
+    public List<Item> getItems() { return items; }
 
-    public MapManager getMapManager() {
-        return mapManager;
-    }
-
-    public Player getPlayer() {
-        return player;
-    }
-
-    public List<Enemy> getEnemies() {
-        return enemies;
-    }
-
-    public void addBullet(Bullet bullet) {
-        bullets.add(bullet);
-    }
-
-    public List<Bullet> getBullets() {
-        return bullets;
-    }
-
-    public Camera getCamera() {
-        return camera;
-    }
+    public void addBullet(Bullet bullet) { bullets.add(bullet); }
+    public List<Bullet> getBullets() { return bullets; }
+    public Camera getCamera() { return camera; }
+    public LevelManager getLevelManager() { return levelManager; }
+    public MissionManager getMissionManager() { return missionManager; }
 
     public Vector2D getMouseWorldPosition() {
         return camera.screenToWorld(inputHandler.getMousePosition());

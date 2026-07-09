@@ -1,0 +1,22 @@
+
+.hud-container {
+    -fx-background-color: rgba(0, 0, 0, 0.55);
+        -fx-min-width: 1024px;
+        -fx-pref-width: 1024px;
+        -fx-min-height: 86px;
+        -fx-pref-height: 86px;
+    -fx-alignment: bottom-center;
+}
+
+.hud-text-important {
+    -fx-font-family: "Consolas", "Monospace", sans-serif;
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #ffffff;
+}
+
+.hud-text-secondary {
+    -fx-font-family: "Consolas", "Monospace", sans-serif;
+    -fx-font-size: 16px;
+    -fx-text-fill: #d1d5db;
+}
