@@ -36,7 +36,7 @@
 }
 
 .pause-button:hover {
-    -fx-background-color: #00ffff; 
+    -fx-background-color: #00ffff;
     -fx-border-color: #ffffff;
     -fx-text-fill: #0d0d13;
     -fx-scale-x: 1.04;
