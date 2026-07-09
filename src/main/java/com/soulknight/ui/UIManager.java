@@ -18,12 +18,14 @@ public final class UIManager {
     private LevelClearScreen levelClearController;
     private VictoryScreen victoryController;
     private GameOverScreen gameOverController;
+    private PauseScreen pauseController;
 
     private Parent hudRoot;
     private Parent menuRoot;
     private Parent levelClearRoot;
     private Parent victoryRoot;
     private Parent gameOverRoot;
+    private Parent pauseRoot;
 
     public UIManager(StackPane rootNode) {
         this.rootNode = rootNode;
@@ -65,25 +67,33 @@ public final class UIManager {
             gameOverController = gameOverLoader.getController();
             configFullRegion(gameOverRoot);
 
+            FXMLLoader pauseLoader = new FXMLLoader(com.soulknight.Main.class.getResource("/assets/fxml/PauseScreen.fxml"));
+            pauseRoot = pauseLoader.load();
+            pauseController = pauseLoader.getController();
+            configFullRegion(pauseRoot);
+            pauseRoot.setPickOnBounds(false);
+
             menuRoot.setPickOnBounds(false);
             hudRoot.setPickOnBounds(false);
             levelClearRoot.setPickOnBounds(false);
             victoryRoot.setPickOnBounds(false);
             gameOverRoot.setPickOnBounds(false);
 
-            rootNode.getChildren().addAll(menuRoot, hudRoot, levelClearRoot, victoryRoot, gameOverRoot);
+            rootNode.getChildren().addAll(menuRoot, hudRoot, levelClearRoot, victoryRoot, gameOverRoot, pauseRoot);
 
             menuRoot.setVisible(true);
             hudRoot.setVisible(false);
             levelClearRoot.setVisible(false);
             victoryRoot.setVisible(false);
             gameOverRoot.setVisible(false);
+            pauseRoot.setVisible(false);
 
             StackPane.setAlignment(menuRoot, Pos.CENTER);
             StackPane.setAlignment(hudRoot, Pos.BOTTOM_CENTER);
             StackPane.setAlignment(levelClearRoot, Pos.CENTER);
             StackPane.setAlignment(victoryRoot, Pos.CENTER);
             StackPane.setAlignment(gameOverRoot, Pos.CENTER);
+            StackPane.setAlignment(pauseRoot, Pos.CENTER);
 
 
             handleStateChange(GameState.MAIN_MENU);
@@ -95,7 +105,8 @@ public final class UIManager {
     }
 
     public void handleStateChange(GameState state) {
-        if (menuRoot == null || hudRoot == null || levelClearRoot == null || victoryRoot == null || gameOverRoot == null) return;
+        if (menuRoot == null || hudRoot == null || levelClearRoot == null || victoryRoot == null || gameOverRoot == null)
+            return;
 
         Platform.runLater(() -> {
             switch (state) {
@@ -113,11 +124,17 @@ public final class UIManager {
                     levelClearRoot.setVisible(false);
                     victoryRoot.setVisible(false);
                     gameOverRoot.setVisible(false);
+                    pauseRoot.setVisible(false);
                     hudRoot.toFront();
-
-                    if (!rootNode.getChildren().isEmpty()) {
-                        rootNode.getChildren().get(0).requestFocus();
-                    }
+                    Platform.runLater(() -> {
+                        for (javafx.scene.Node node : rootNode.getChildren()) {
+                            if (node instanceof javafx.scene.canvas.Canvas) {
+                                node.setFocusTraversable(true);
+                                node.requestFocus();
+                                break;
+                            }
+                        }
+                    });
                 }
                 case LEVEL_CLEAR -> {
                     menuRoot.setVisible(false);
@@ -142,6 +159,15 @@ public final class UIManager {
                     victoryRoot.setVisible(false);
                     gameOverRoot.setVisible(true);
                     gameOverRoot.toFront();
+                }
+                case PAUSED -> {
+                    menuRoot.setVisible(false);
+                    hudRoot.setVisible(true);
+                    levelClearRoot.setVisible(false);
+                    victoryRoot.setVisible(false);
+                    gameOverRoot.setVisible(false);
+                    pauseRoot.setVisible(true);
+                    pauseRoot.toFront();
                 }
             }
         });
@@ -169,6 +195,40 @@ public final class UIManager {
             region.setMinHeight(Constants.WINDOW_HEIGHT);
             region.setPrefWidth(Constants.WINDOW_WIDTH);
             region.setPrefHeight(Constants.WINDOW_HEIGHT);
+        }
+    }
+
+    public void bindGameWorld(GameWorld world) {
+        if (menuController != null) {
+            menuController.setOnPlayRequested(() -> {
+                world.changeState(com.soulknight.engine.GameState.PLAYING);
+            });
+        }
+    }
+
+    public void bindGameActions(GameWorld world) {
+        if (menuController != null) {
+            menuController.setOnPlayRequested(() -> world.changeState(GameState.PLAYING));
+        }
+        if (hudController != null) {
+            hudController.setOnPauseRequested(() -> {
+                if (world.getState() == GameState.PLAYING) {
+                    world.changeState(GameState.PAUSED);
+                }
+            });
+        }
+        if (pauseController != null) {
+            pauseController.setCallbacks(
+//                     resume game
+                    () -> world.changeState(GameState.PLAYING),
+//                    restart game
+                    () -> {
+                        world.changeState(GameState.PLAYING);
+//                        tam thoi chua reset lai game duoc dung tam chu nut nay tac dung van giong nut resume
+                    },
+//                    return to main menu
+                    () -> world.changeState(GameState.MAIN_MENU)
+            );
         }
     }
 }
