@@ -1,0 +1,49 @@
+@font-face {
+    font-family: "Almendra";
+    src: url("../fonts/Almendra-Regular.ttf");
+}
+
+.pause-container {
+    -fx-background-color: rgba(10, 10, 15, 0.8);
+    -fx-alignment: center;
+}
+
+.pause-title {
+    -fx-font-family: "Almendra";
+    -fx-font-size: 42px;
+    -fx-text-fill: #00ffff;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.9), 12, 0, 0, 0);
+    -fx-font-weight: bold;
+}
+
+.button-container {
+    -fx-max-width: 300px;
+}
+
+.pause-button {
+    -fx-background-color: #1a1525;
+    -fx-text-fill: #ffffff;
+    -fx-font-family: "Almendra";
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 4px;
+    -fx-padding: 10px 25px;
+    -fx-cursor: hand;
+    -fx-pref-width: 240px;
+    -fx-border-color: #4a3b5c;
+    -fx-border-radius: 4px;
+    -fx-border-width: 2px;
+}
+
+.pause-button:hover {
+    -fx-background-color: #00ffff;
+    -fx-border-color: #ffffff;
+    -fx-text-fill: #0d0d13;
+    -fx-scale-x: 1.04;
+    -fx-scale-y: 1.04;
+}
+
+.pause-button:pressed {
+    -fx-scale-x: 0.97;
+    -fx-scale-y: 0.97;
+}

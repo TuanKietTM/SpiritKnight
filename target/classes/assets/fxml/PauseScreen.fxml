@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox xmlns="http://javafx.com/javafx/17"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.soulknight.ui.PauseScreen"
+      stylesheets="@../CSS/PauseScreen.css"
+      styleClass="pause-container"
+      alignment="CENTER"
+      spacing="35">
+
+    <Label text="GAME PAUSED" styleClass="pause-title"/>
+
+    <VBox alignment="CENTER" spacing="15" styleClass="button-container">
+        <Button text="RESUME" onAction="#onResumeClicked" styleClass="pause-button" focusTraversable="false"/>
+        <Button text="RESTART" onAction="#onRestartClicked" styleClass="pause-button" focusTraversable="false"/>
+        <Button text="MAIN MENU" onAction="#onMainMenuClicked" styleClass="pause-button" focusTraversable="false"/>
+    </VBox>
+
+</VBox>
