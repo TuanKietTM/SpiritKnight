@@ -93,6 +93,7 @@ public final class GameWorld {
     private void updatePlaying(double deltaSeconds, double viewportWidth, double viewportHeight, boolean allowSpawns) {
         player.update(this, deltaSeconds);
 
+
         for (Enemy enemy : enemies) {
             enemy.update(this, deltaSeconds);
         }
@@ -222,12 +223,15 @@ public final class GameWorld {
         loadCurrentLevel(true);
     }
 
+    //(vitdung) chỉnh lại hàm này để test loadMap từ txt
     private void loadCurrentLevel(boolean freshRun) {
-        mapManager = new MapManager(Constants.MAP_WIDTH, Constants.MAP_HEIGHT, Constants.TILE_SIZE, random);
-        mapManager.closeExitPortal();
-        pendingPortalPosition = mapManager.findRandomWalkablePosition(random, Constants.PORTAL_RADIUS);
-        if (pendingPortalPosition == null) {
-            pendingPortalPosition = mapManager.getSpawnPoint();
+        String mapPath = "/maps/level1_1.txt";
+        this.mapManager = new MapManager(mapPath, Constants.TILE_SIZE);
+        this.mapManager.closeExitPortal();
+        // đoạn portal chưa rõ lắm
+        this.pendingPortalPosition = mapManager.getExitPortalPosition();
+        if (this.pendingPortalPosition == null) {
+            this.pendingPortalPosition = mapManager.getSpawnPoint();
         }
 
         if (player == null || freshRun) {
@@ -240,19 +244,29 @@ public final class GameWorld {
             player.equipWeapon(new Gun("Blaster", 12, 0.18, 580.0, 0.0));
         }
 
+        // reset lại các object
         enemies.clear();
         bullets.clear();
         items.clear();
         enemySpawnTimer = 0.0;
 
+        // chỗ nhiệm vụ này chưa cho vào chế độ thường
         missionManager.setMission(levelManager.createMissionForCurrentLevel());
 
         if (levelManager.getCurrentLevel().number() == 2) {
             spawnEnergyCrystals(3);
         }
 
-        List<Vector2D> spawnPoints = createSpawnPoints(levelManager.getCurrentLevel().baseEnemyCount());
-        enemies.addAll(enemyFactory.createInitialEnemies(random, player.getPosition(), spawnPoints));
+        // lấy danh sách các điểm enemy từ Mapmanager để cho quái xuất hiện ở vị trí đó trên bản đồ
+        List<Vector2D> enemySpawnPoints = mapManager.getEnemySpawnPoints();
+
+        if (!enemySpawnPoints.isEmpty()) {
+            enemies.addAll(enemyFactory.createInitialEnemies(random, player.getPosition(), enemySpawnPoints));
+        }
+        // nếu là màn có boss
+        if (levelManager.getCurrentLevel().bossLevel() && mapManager.getBossSpawnPoint() != null) {
+            enemies.add(enemyFactory.createGrandKnight(mapManager.getBossSpawnPoint()));
+        }
     }
 
     private void spawnEnergyCrystals(int count) {

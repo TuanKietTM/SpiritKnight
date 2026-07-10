@@ -20,15 +20,21 @@ public final class Tile {
 
     public Color getFillColor() {
         return switch (type) {
-            case FLOOR -> Color.web("#1f2630");
-            case WALL -> Color.web("#0d1117");
-            case SPAWN -> Color.web("#223d2f");
+            case FLOOR -> Color.web("#1f2630");  // Màu nền tối
+            case WALL -> Color.web("#0d1117");   // Màu tường đen kịt
+            case SPAWN -> Color.web("#223d2f");  // Màu khu vực xuất phát
+            case DOOR -> Color.web("#5c4033");   // Màu nâu của cửa gỗ
+            case PORTAL -> Color.web("#ffd700"); // Màu vàng của cổng dịch chuyển
+            case BOSS -> Color.BLUE;
         };
     }
 
     public enum TileType {
         FLOOR,
         WALL,
-        SPAWN
+        SPAWN,
+        DOOR,
+        PORTAL,
+        BOSS
     }
 }
