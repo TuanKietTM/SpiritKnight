@@ -5,6 +5,7 @@ import com.soulknight.level.LevelManager;
 import com.soulknight.mission.MissionManager;
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
+import javafx.event.ActionEvent;
 
 public final class HUD {
 
@@ -25,6 +26,18 @@ public final class HUD {
 
     @FXML
     private Label weaponLabel;
+    private Runnable onPauseRequested;
+    public void setOnPauseRequested(Runnable callback) {
+        this.onPauseRequested = callback;
+    }
+
+    @FXML
+    private void onPauseButtonClicked(ActionEvent event) {
+        if (onPauseRequested != null) {
+            onPauseRequested.run();
+        }
+    }
+
 
     public void updateData(Player player, LevelManager levelManager, MissionManager missionManager,
                            int enemyCount, int itemCount) {
