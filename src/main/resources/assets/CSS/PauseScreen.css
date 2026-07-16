@@ -55,7 +55,6 @@
     -fx-effect: dropshadow(one-pass-box, #330000, 2, 2, 0, 0);
 }
 
-/* LƯỚI BUFF */
 .buff-grid {
     -fx-padding: 10px 0;
 }
@@ -72,7 +71,6 @@
     -fx-border-color: #0c0e12 #344152 #344152 #0c0e12;
 }
 
-/* Ô đã chứa Buff */
 .slot-filled {
     -fx-border-color: #4f5f73;
 }
@@ -95,10 +93,9 @@
     -fx-max-height: 42px;
 }
 
-/* HỆ THỐNG NÚT BẤM GỖ MÀU VÀNG ĐẤT (FOOTER) */
 .action-button {
-    -fx-background-color: #ab8552; /* Màu vàng gỗ sáng */
-    -fx-border-color: #634b2d; /* Màu nâu đất của viền gỗ */
+    -fx-background-color: #ab8552;
+    -fx-border-color: #634b2d;
     -fx-border-width: 3px;
     -fx-border-radius: 6px;
     -fx-background-radius: 6px;
@@ -107,21 +104,14 @@
     -fx-font-weight: bold;
     -fx-cursor: hand;
     -fx-transition: 0.1s;
-    /* Viền nổi (Bevel): Viền trên-trái cực sáng (#d9b684), viền dưới-phải màu nâu tối (#634b2d) tạo khối lồi 3D */
-        -fx-border-color: #d9b684 #634b2d #634b2d #d9b684;
-
-        /* Bóng đổ đổ xuống chân nút bấm */
-        -fx-effect: dropshadow(one-pass-box, rgba(0, 0, 0, 0.4), 4, 0, 0, 4);
+     -fx-border-color: #d9b684 #634b2d #634b2d #d9b684;
+     -fx-effect: dropshadow(one-pass-box, rgba(0, 0, 0, 0.4), 4, 0, 0, 4);
 }
-
-/* Kích thước nút Home & Restart */
 .btn-home, .btn-setting {
     -fx-min-width: 100px;
     -fx-pref-width: 100px;
     -fx-min-height: 65px;
 }
-
-/* Nút Resume ở giữa to hơn */
 .btn-resume {
     -fx-min-width: 150px;
     -fx-pref-width: 150px;
@@ -129,7 +119,6 @@
     -fx-font-size: 28px;
 }
 
-/* Hiệu ứng tương tác */
 .action-button:hover {
     -fx-background-color: #c9a372;
     -fx-border-color: #7d5e38;
@@ -139,15 +128,10 @@
 
 .action-button:pressed {
     -fx-background-color: #8c6a3f;
-        /* Đảo ngược viền: Viền trên-trái tối đi, dưới-phải sáng lên tạo hiệu ứng lún nút */
-        -fx-border-color: #4d3a23 #ebd1aa #ebd1aa #4d3a23;
-
-        /* Nút lún xuống (dịch chuyển trục Y xuống) và triệt tiêu gần hết bóng đổ */
-        -fx-translate-y: 2px;
-        -fx-effect: dropshadow(one-pass-box, rgba(0, 0, 0, 0.2), 1, 0, 0, 1);
+    -fx-border-color: #4d3a23 #ebd1aa #ebd1aa #4d3a23;
+    -fx-translate-y: 2px;
+    -fx-effect: dropshadow(one-pass-box, rgba(0, 0, 0, 0.2), 1, 0, 0, 1);
 }
-/* --- PHẦN CSS SETTING SCREEN --- */
-
 .settings-body {
     -fx-padding: 0 10px;
 }
@@ -155,12 +139,10 @@
 .slider-row {
     -fx-max-width: 320px;
 }
-
-/* Label tiêu đề các mục cài đặt */
 .setting-label {
     -fx-font-family: "Press Start 2P", sans-serif;
     -fx-font-size: 14px;
-    -fx-text-fill: #ab8552; /* Màu vàng gỗ sáng */
+    -fx-text-fill: #ab8552;
     -fx-font-weight: bold;
     -fx-effect: dropshadow(one-pass-box, #11151b, 0, 0, 1, 1);
 }
@@ -176,8 +158,6 @@
     -fx-min-width: 45px;
     -fx-alignment: center-right;
 }
-
-/* Nút Close gỗ (nhỏ hơn nút Resume một chút) */
 .btn-close {
 -fx-font-family: "Press Start 2P", sans-serif;
     -fx-min-width: 140px;
@@ -186,9 +166,6 @@
     -fx-font-size: 18px;
 }
 
-/* TÙY BIẾN SLIDER PHONG CÁCH PIXEL ART */
-
-/* 1. Đường rãnh chạy dọc (Track) */
 .pixel-slider .track {
     -fx-background-color: #11151b;
     -fx-background-radius: 0px;
@@ -197,7 +174,6 @@
     -fx-pref-height: 12px;
 }
 
-/* 2. Cục kéo hình vuông (Thumb) */
 .pixel-slider .thumb {
     -fx-background-color: #ab8552;
     -fx-background-radius: 0px;
@@ -207,11 +183,9 @@
     -fx-pref-height: 20px;
     -fx-cursor: hand;
 }
-
 .pixel-slider .thumb:hover {
     -fx-background-color: #bc9865;
 }
-
 .pixel-slider .thumb:pressed {
     -fx-background-color: #8c6a3f;
     -fx-border-color: #634b2d #ebd1aa #ebd1aa #634b2d;

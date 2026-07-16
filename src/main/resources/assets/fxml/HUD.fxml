@@ -15,11 +15,7 @@
             stylesheets="@../CSS/HUD.css"
             styleClass="hud-fullscreen-container"
             pickOnBounds="false">
-
-    <!-- 1. GÓC TRÊN BÊN TRÁI: BẢNG TRẠNG THÁI (Máu, Giáp, Năng lượng) -->
-    <!-- Đổi spacing thành 2 để các dòng khít chặt vào nhau -->
     <VBox layoutX="20.0" layoutY="20.0" styleClass="status-board" spacing="2">
-        <!-- Thanh HP (Máu) -->
         <HBox spacing="4" alignment="CENTER_LEFT">
             <Label text="❤" styleClass="status-icon-hp"/>
             <StackPane alignment="CENTER_LEFT">
@@ -27,8 +23,6 @@
                 <Label fx:id="hpLabel" text="11/11" styleClass="status-bar-text"/>
             </StackPane>
         </HBox>
-
-        <!-- Thanh Shield (Giáp) -->
         <HBox spacing="4" alignment="CENTER_LEFT">
             <Label text="🛡" styleClass="status-icon-shield"/>
             <StackPane alignment="CENTER_LEFT">
@@ -36,8 +30,6 @@
                 <Label fx:id="shieldLabel" text="6/6" styleClass="status-bar-text"/>
             </StackPane>
         </HBox>
-
-        <!-- Thanh Mana (Năng lượng) -->
         <HBox spacing="4" alignment="CENTER_LEFT">
             <Label text="✦" styleClass="status-icon-mana"/>
             <StackPane alignment="CENTER_LEFT">
@@ -47,7 +39,6 @@
         </HBox>
     </VBox>
 
-    <!-- 2. TRÊN CÙNG Ở GIỮA: THÔNG TIN LEVEL & NHIỆM VỤ (Thu gọn lại gọn gàng) -->
     <VBox AnchorPane.topAnchor="15.0" AnchorPane.leftAnchor="350.0" AnchorPane.rightAnchor="350.0"
           alignment="CENTER" spacing="2" pickOnBounds="false">
         <Label fx:id="levelBannerLabel" text="LEVEL 1-1" styleClass="level-banner-text"/>
@@ -55,21 +46,15 @@
         <Label fx:id="missionProgressLabel" text="Progress: 0%" styleClass="mission-subtext"/>
     </VBox>
 
-    <!-- 3. GÓC TRÊN BÊN PHẢI: TIỀN VÀ NÚT PAUSE -->
     <HBox layoutY="20.0" AnchorPane.rightAnchor="20.0" spacing="20" alignment="CENTER_RIGHT">
-        <!-- Hiển thị tiền vàng -->
         <HBox spacing="5" alignment="CENTER" styleClass="coin-container">
             <Label text="🪙" styleClass="coin-icon"/>
             <Label fx:id="entitiesLabel" text="145" styleClass="coin-text"/>
         </HBox>
-        <!-- Nút Pause vuông cổ điển -->
         <Button text="⏸" onAction="#onPauseButtonClicked" styleClass="hud-pause-button" focusTraversable="false"/>
     </HBox>
-
-    <!-- 4. GÓC DƯỚI BÊN PHẢI: VÒNG TRÒN VŨ KHÍ -->
     <StackPane layoutX="860.0" layoutY="450.0" AnchorPane.bottomAnchor="30.0" AnchorPane.rightAnchor="30.0"
                styleClass="weapon-ring-container">
-        <!-- Vòng tròn nền giả lập xoay đổi vũ khí -->
         <Circle radius="55" styleClass="weapon-ring-bg"/>
         <VBox alignment="CENTER" spacing="3" pickOnBounds="false">
             <Label text="⚔" styleClass="weapon-icon"/>

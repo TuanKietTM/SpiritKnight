@@ -9,7 +9,6 @@
     -fx-min-height: 576px;
 }
 
-/* LOGO CHÍNH */
 .menu-title {
     -fx-font-family: "Press Start 2P";
     -fx-font-size: 50px;
@@ -23,9 +22,8 @@
     -fx-effect: dropshadow(three-pass-box, black, 0, 0, 2, 2);
 }
 
-/* NÚT BẤM PHONG CÁCH RETRO */
 .menu-button, .menu-button-exit {
-    -fx-background-color: #3a225c; /* Màu tím nho */
+    -fx-background-color: #3a225c;
     -fx-text-fill: #ffe3a8;
     -fx-font-family: "Press Start 2P", monospace;
     -fx-font-size: 14px;
@@ -33,8 +31,6 @@
     -fx-padding: 14px 0px;
     -fx-cursor: hand;
     -fx-pref-width: 250px;
-
-    /* Viền đậm phong cách 8-bit */
     -fx-border-color: #1e1130;
     -fx-border-width: 4px;
     -fx-border-radius: 4px;
@@ -44,20 +40,17 @@
     -fx-background-color: #4a4e69;
 }
 
-/* Hiệu ứng rê chuột (Hover) */
 .menu-button:hover, .menu-button-exit:hover {
-    -fx-background-color: #00b4d8; /* Màu xanh băng đổi gió */
+    -fx-background-color: #00b4d8;
     -fx-text-fill: #ffffff;
     -fx-border-color: #0077b6;
-    -fx-translate-y: -2px; /* Nhấc nhẹ nút lên */
+    -fx-translate-y: -2px;
 }
 
-/* Hiệu ứng khi click */
 .menu-button:pressed, .menu-button-exit:pressed {
     -fx-translate-y: 1px;
 }
 
-/* KIỂU DÁNG SPRITE VÀ ĐỔ BÓNG DƯỚI CHÂN CHÂN THỰC */
 .menu-sprite {
     -fx-smooth: false;
 }
@@ -67,5 +60,5 @@
     -fx-max-width: 90px;
     -fx-max-height: 12px;
     -fx-background-color: rgba(0, 0, 0, 0.5);
-    -fx-background-radius: 50%; /* Tạo bóng elip dẹt dưới chân Knight */
+    -fx-background-radius: 50%;
 }

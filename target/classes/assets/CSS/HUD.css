@@ -6,76 +6,69 @@
     font-family: "Press Start 2P";
     src: url("../fonts/PressStart2P-Regular.ttf");
 }
-/* Thùng chứa chiếm toàn màn hình nhưng cho phép bấm xuyên qua (bắn súng/di chuyển bên dưới HUD) */
 .hud-fullscreen-container {
     -fx-background-color: transparent;
     -fx-min-width: 1024px;
-    -fx-min-height: 576px; /* Thay đổi theo chiều cao thực tế của game */
+    -fx-min-height: 576px;
 }
 
-/* KHUNG TRẠNG THÁI VIỀN GỖ CỔ ĐIỂN */
 .status-board {
-    -fx-background-color: #5c3a21; /* Nền gỗ tối */
+    -fx-background-color: #5c3a21;
     -fx-border-color: #311b0b;
-    -fx-border-width: 3px;         /* Giảm nhẹ độ dày viền */
-    -fx-border-radius: 0px;        /* KHÔNG BO GÓC - Giữ nguyên pixel vuông */
-    -fx-background-radius: 0px;    /* KHÔNG BO GÓC */
-    -fx-padding: 5px 6px 4px 6px;  /* Thu gọn tối đa khoảng trống viền */
-    -fx-spacing: 2px;              /* Ép các hàng sát khít nhau */
+    -fx-border-width: 3px;
+    -fx-border-radius: 0px;
+    -fx-background-radius: 0px;
+    -fx-padding: 5px 6px 4px 6px;
+    -fx-spacing: 2px;
     -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.6), 5, 0.0, 0, 3);
 }
 
-/* Định dạng chung các thanh Progress Bar */
 .status-bar-hp .track, .status-bar-shield .track, .status-bar-mana .track {
     -fx-background-color: #1a1a1a;
-    -fx-background-radius: 0px;    /* Đưa thanh rãnh về góc vuông */
+    -fx-background-radius: 0px;
 }
 
 .status-bar-hp, .status-bar-shield, .status-bar-mana {
-    -fx-pref-width: 125px;         /* Thu ngắn chiều rộng một chút cho cân đối */
-    -fx-pref-height: 16px;         /* Giảm chiều cao từ 18px xuống 16px để khít hơn */
+    -fx-pref-width: 125px;
+    -fx-pref-height: 16px;
     -fx-min-height: 16px;
 }
 
-/* Màu đỏ của Máu */
 .status-bar-hp .bar {
     -fx-background-color: #e63946;
-    -fx-background-radius: 0px;    /* Đưa thanh bar bên trong về góc vuông */
+    -fx-background-radius: 0px;
 }
 .status-icon-hp {
     -fx-text-fill: #e63946;
-    -fx-font-size: 14px;           /* Giảm nhẹ size icon để cân bằng thanh 16px */
+    -fx-font-size: 14px;
 }
 
-/* Màu xám bạc của Giáp */
 .status-bar-shield .bar {
     -fx-background-color: #b5c2c9;
-    -fx-background-radius: 0px;    /* Đưa thanh bar bên trong về góc vuông */
+    -fx-background-radius: 0px;
 }
 .status-icon-shield {
     -fx-text-fill: #b5c2c9;
     -fx-font-size: 14px;
 }
 
-/* Màu xanh dương của Năng lượng */
 .status-bar-mana .bar {
     -fx-background-color: #00b4d8;
-    -fx-background-radius: 0px;    /* Đưa thanh bar bên trong về góc vuông */
+    -fx-background-radius: 0px;
 }
 .status-icon-mana {
     -fx-text-fill: #00b4d8;
     -fx-font-size: 14px;
 }
 
-/* Chữ số đè lên trên thanh máu */
 .status-bar-text {
     -fx-font-family: "Press Start 2P", monospace;
-    -fx-font-size: 9px;            /* Đưa cỡ chữ về 9px để nằm khít hoàn hảo trong thanh 16px */
+    -fx-font-size: 9px;
     -fx-font-weight: bold;
     -fx-text-fill: #ffffff;
-    -fx-padding: 0 0 0 6px;        /* Căn lề trái của chữ số */
+    -fx-padding: 0 0 0 6px;
 }
-/* THÔNG TIN LEVEL */
+
 .level-banner-text {
     -fx-font-family: "Press Start 2P";
     -fx-font-size:  8px;
@@ -94,7 +87,6 @@
     -fx-text-fill: #d1d5db;
 }
 
-/* BẢNG TIỀN VÀNG */
 .coin-container {
     -fx-background-color: rgba(0, 0, 0, 0.4);
     -fx-padding: 6px 15px;
@@ -108,7 +100,6 @@
     -fx-text-fill: #ffcc00;
 }
 
-/* NÚT PAUSE KIỂU CHỮ NHẬT GỖ */
 .hud-pause-button {
     -fx-background-color: #5c3a21;
     -fx-border-color: #311b0b;
@@ -126,7 +117,6 @@
     -fx-text-fill: #ffffff;
 }
 
-/* VÒNG TRÒN CHỨA VŨ KHÍ GÓC PHẢI */
 .weapon-ring-container {
     -fx-cursor: hand;
 }

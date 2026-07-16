@@ -28,7 +28,7 @@ public final class Menu {
     private static final int TOTAL_FRAMES = 3;
     private static final int FRAME_WIDTH = 32;
     private static final int FRAME_HEIGHT = 32;
-    private static final double SCALE_FACTOR = 4.0; // Tăng nhẹ kích cỡ nhân vật cho nổi bật
+    private static final double SCALE_FACTOR = 4.0;
 
     private int currentFrameIndex = 0;
 
@@ -38,14 +38,13 @@ public final class Menu {
             Image spriteSheet = new Image(getClass().getResourceAsStream(SPRITE_PATH));
             imgCharacter.setImage(spriteSheet);
 
-            // Tắt chế độ Smooth giúp ảnh giữ nguyên chất Pixel Art thô ráp, sắc nét
             imgCharacter.setSmooth(false);
             imgCharacter.setFitWidth(FRAME_WIDTH * SCALE_FACTOR);
             imgCharacter.setFitHeight(FRAME_HEIGHT * SCALE_FACTOR);
             imgCharacter.setViewport(new Rectangle2D(0, 0, FRAME_WIDTH, FRAME_HEIGHT));
 
             spriteAnimation = new Timeline(
-                    new KeyFrame(Duration.millis(200), event -> { // Tần suất 200ms giúp nhịp "thở" tự nhiên hơn
+                    new KeyFrame(Duration.millis(200), event -> {
                         double xOffset = currentFrameIndex * FRAME_WIDTH;
                         imgCharacter.setViewport(new Rectangle2D(xOffset, 0, FRAME_WIDTH, FRAME_HEIGHT));
                         currentFrameIndex = (currentFrameIndex + 1) % TOTAL_FRAMES;
@@ -55,12 +54,10 @@ public final class Menu {
             spriteAnimation.play();
 
         } catch (Exception e) {
-            System.err.println("❌ Menu Controller: Không thể nạp được ảnh Sprite nhân vật!");
+            System.err.println("Khong the tai ");
             e.printStackTrace();
         }
     }
-
-    // --- Các phương thức gán hành động từ UIManager ---
 
     public void setOnPlayRequested(Runnable callback) {
         this.onPlayCallback = callback;
@@ -74,7 +71,6 @@ public final class Menu {
         this.onShopCallback = callback;
     }
 
-    // --- Các nút xử lý sự kiện click chuột ---
 
     @FXML
     private void onPlayClicked(ActionEvent event) {
@@ -87,14 +83,14 @@ public final class Menu {
     @FXML
     private void onSettingsClicked(ActionEvent event) {
         if (onSettingsCallback != null) {
-            onSettingsCallback.run(); // Kích hoạt mở bảng Settings
+            onSettingsCallback.run();
         }
     }
 
     @FXML
     private void onShopClicked(ActionEvent event) {
         if (onShopCallback != null) {
-            onShopCallback.run(); // Kích hoạt mở cửa hàng
+            onShopCallback.run();
         }
     }
 

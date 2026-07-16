@@ -40,7 +40,6 @@ public final class UIManager {
 
     private void initViews() {
         try {
-            // Đồng bộ sử dụng com.soulknight.Main.class để tránh lỗi đường dẫn null
             FXMLLoader introLoader = new FXMLLoader(com.soulknight.Main.class.getResource("/assets/fxml/Intro.fxml"));
             introRoot = introLoader.load();
             introController = introLoader.getController();
@@ -83,7 +82,7 @@ public final class UIManager {
             configFullRegion(settingRoot);
             settingRoot.setPickOnBounds(false);
 
-            // Tối ưu hóa click xuyên thấu
+
             menuRoot.setPickOnBounds(false);
             hudRoot.setPickOnBounds(false);
             levelClearRoot.setPickOnBounds(false);
@@ -101,7 +100,6 @@ public final class UIManager {
             StackPane.setAlignment(pauseRoot, Pos.CENTER);
             StackPane.setAlignment(settingRoot, Pos.CENTER);
 
-            // Giao diện khởi tạo ban đầu tuân thủ nghiêm ngặt trạng thái mặc định của GameWorld (INTRO)
             hideAllScreens();
             introRoot.setVisible(true);
             introRoot.toFront();
@@ -127,7 +125,6 @@ public final class UIManager {
                 }
                 case MAIN_MENU -> {
                     hideAllScreens();
-                    // Hiển thị Menu chính rõ ràng
                     menuRoot.setOpacity(1.0);
                     menuRoot.setVisible(true);
                     menuRoot.toFront();
@@ -137,7 +134,6 @@ public final class UIManager {
                     hudRoot.setVisible(true);
                     hudRoot.toFront();
 
-                    // Focus vào Canvas để xử lý sự kiện phím di chuyển không bị kẹt ở các thành phần UI khác
                     Platform.runLater(() -> {
                         for (javafx.scene.Node node : rootNode.getChildren()) {
                             if (node instanceof javafx.scene.canvas.Canvas) {
@@ -150,7 +146,7 @@ public final class UIManager {
                 }
                 case LEVEL_CLEAR -> {
                     hideAllScreens();
-                    hudRoot.setVisible(true); // Vẫn giữ HUD hiển thị làm nền mờ phía dưới
+                    hudRoot.setVisible(true);
                     levelClearRoot.setVisible(true);
                     levelClearRoot.toFront();
                 }
@@ -166,7 +162,7 @@ public final class UIManager {
                 }
                 case PAUSED -> {
                     hideAllScreens();
-                    hudRoot.setVisible(true); // Giữ HUD ở dưới màn hình tạm dừng
+                    hudRoot.setVisible(true);
                     pauseRoot.setVisible(true);
                     pauseRoot.toFront();
                 }
@@ -199,25 +195,20 @@ public final class UIManager {
         }
     }
 
-    // Gán liên kết từ Main GameWorld sang UIManager
     public void bindGameWorld(GameWorld world) {
-        // ĐĂNG KÝ: Cho phép GameWorld tự động bắn sự kiện thay đổi trạng thái sang UIManager
         world.setGameStateListener(this::handleStateChange);
 
         if (introController != null) {
             introController.setOnIntroFinished(() -> {
                 Platform.runLater(() -> {
-                    // 1. Tạo hiệu ứng Fade Out Intro mượt mà trước
                     FadeTransition fadeIntro = new FadeTransition(Duration.seconds(0.5), introRoot);
                     fadeIntro.setFromValue(1.0);
                     fadeIntro.setToValue(0.0);
                     fadeIntro.setOnFinished(event -> {
                         introRoot.setVisible(false);
 
-                        // 2. Yêu cầu GameWorld chuyển sang MAIN_MENU (báo cáo đồng bộ)
+//                        chuyen sang main menu
                         world.changeState(GameState.MAIN_MENU);
-
-                        // 3. Hiệu ứng Fade In cho Main Menu nhẹ nhàng xuất hiện cùng lúc
                         menuRoot.setOpacity(0.0);
                         menuRoot.setVisible(true);
                         FadeTransition fadeInMenu = new FadeTransition(Duration.seconds(0.6), menuRoot);
@@ -229,20 +220,16 @@ public final class UIManager {
                 });
             });
         }
-
-        // Đăng ký các sự kiện tương tác giữa các nút bấm UI và thế giới GameWorld
         bindGameActions(world);
     }
 
     public void bindGameActions(GameWorld world) {
-        double currentBgm = 0.5; // Ví dụ minh họa, nên lấy từ SoundManager.getInstance().getBgmVolume()
-        double currentSfx = 0.7; // Ví dụ minh họa, nên lấy từ SoundManager.getInstance().getSfxVolume()
+        double currentBgm = 0.5;
+        double currentSfx = 0.7;
 
         if (menuController != null) {
-            // Nhấn chơi game -> chuyển trạng thái GameWorld thành PLAYING
             menuController.setOnPlayRequested(() -> world.changeState(GameState.PLAYING));
 
-            // Mở cài đặt từ màn hình Menu chính
             menuController.setOnSettingsRequested(() -> {
                 menuRoot.setVisible(false);
                 settingRoot.setVisible(true);
@@ -250,20 +237,20 @@ public final class UIManager {
 
                 if (settingController != null) {
                     settingController.setup(
-                            () -> { // Nút Close quay về Menu chính
+                            () -> { // close quay lai man hinh chinh
                                 settingRoot.setVisible(false);
                                 menuRoot.setVisible(true);
                                 menuRoot.toFront();
                             },
-                            (bgm) -> System.out.println("Menu BGM: " + bgm),
-                            (sfx) -> System.out.println("Menu SFX: " + sfx),
+                            (bgm) -> {},
+                            (sfx) -> {},
                             currentBgm, currentSfx
                     );
                 }
             });
 
             menuController.setOnShopRequested(() -> {
-                System.out.println("🛒 Đang chuyển đến màn hình Shop...");
+                System.out.println(" ");
             });
         }
 
@@ -277,15 +264,15 @@ public final class UIManager {
 
         if (pauseController != null) {
             pauseController.setCallbacks(
-                    () -> world.changeState(GameState.PLAYING), // Tiếp tục chơi
-                    () -> { // Mở Cài đặt từ màn hình Pause
+                    () -> world.changeState(GameState.PLAYING), // tiep tuc choi
+                    () -> {
                         pauseRoot.setVisible(false);
                         settingRoot.setVisible(true);
                         settingRoot.toFront();
 
                         if (settingController != null) {
                             settingController.setup(
-                                    () -> { // Nút Close quay lại màn hình Pause
+                                    () -> { // Nut Close quay lai Pause
                                         settingRoot.setVisible(false);
                                         pauseRoot.setVisible(true);
                                         pauseRoot.toFront();
@@ -296,7 +283,7 @@ public final class UIManager {
                             );
                         }
                     },
-                    () -> { // Quay lại màn hình Menu chính
+                    () -> { // back  Menu
                         world.changeState(GameState.MAIN_MENU);
                     }
             );

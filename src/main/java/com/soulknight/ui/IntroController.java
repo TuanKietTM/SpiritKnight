@@ -1,6 +1,6 @@
 package com.soulknight.ui;
 
-import com.soulknight.utils.Constants; // Import Constants để lấy kích thước chuẩn của Game
+import com.soulknight.utils.Constants;
 import javafx.animation.Animation;
 import javafx.animation.AnimationTimer;
 import javafx.animation.TranslateTransition;
@@ -31,7 +31,6 @@ public final class IntroController {
     @FXML private Pane fogLayer;
     @FXML private Pane ribbonLayer;
 
-    // LẤY TRỰC TIẾP TỪ CONSTANTS ĐỂ ĐỒNG BỘ KÍCH THƯỚC TOÀN GAME
     private static final double WIDTH = Constants.WINDOW_WIDTH;
     private static final double HEIGHT = Constants.WINDOW_HEIGHT;
     private static final double CLOUD_SPEED = 0.5;
@@ -80,7 +79,7 @@ public final class IntroController {
 
     @FXML
     public void initialize() {
-        // ---- 1. LAYER 1: BẦU TRỜI ----
+//       Layer 1 bau troi
         try {
             Image skyImage = new Image(getClass().getResourceAsStream("/assets/intro/sky.png"));
             ImageView skyView = new ImageView(skyImage);
@@ -92,7 +91,7 @@ public final class IntroController {
             System.err.println("Không tìm thấy file sky.png!");
         }
 
-        // ---- 2. LAYER 2: MÂY TRÔI ----
+//       Layer 2 may troi
         try {
             Image cloudImage = new Image(getClass().getResourceAsStream("/assets/intro/cloud.png"));
             cloudImg1 = new ImageView(cloudImage);
@@ -128,7 +127,7 @@ public final class IntroController {
             System.err.println("Không tìm thấy file cloud.png!");
         }
 
-        // ---- 3. LAYER 3: LÂU ĐÀI ----
+//   Layer 3 Lau dai
         try {
             Image spriteSheet = new Image(getClass().getResourceAsStream("/assets/intro/castle (1).png"));
             ImageView castleView = new ImageView(spriteSheet);
@@ -144,7 +143,7 @@ public final class IntroController {
             castleView.setFitWidth(WIDTH);
             castleView.setFitHeight(HEIGHT);
 
-            // Tự động căn chỉnh vị trí lâu đài theo chiều cao màn hình
+//           can chinh tu dong
             castleView.setTranslateY(HEIGHT * 0.09);
             castleLayer.getChildren().add(castleView);
 
@@ -171,9 +170,8 @@ public final class IntroController {
             System.err.println("Không tìm thấy file castle (1).png!");
         }
 
-        // ---- 4. LAYER 4: SƯƠNG MÙ ----
+//        Layer 4 suong mu
         for (int i = 0; i < 3; i++) {
-            // Động hóa vị trí sương mù theo chiều cao thực tế
             double fogY = HEIGHT - 70 + (i * 15);
             Ellipse fog = new Ellipse(WIDTH / 2.0, fogY, WIDTH * 0.65, 50);
             fog.setFill(Color.web("#d1dbed", 0.1));
@@ -189,7 +187,7 @@ public final class IntroController {
             tt.play();
         }
 
-        // ---- 5. LAYER 5: TÀN LỬA ----
+//Layer 5 tan lua
         List<FireParticle> particles = new ArrayList<>();
         Random random = new Random();
         AnimationTimer fireSystem = new AnimationTimer() {
@@ -197,7 +195,6 @@ public final class IntroController {
             public void handle(long now) {
                 if (random.nextDouble() < 0.45) {
                     double spawnX = random.nextDouble() * WIDTH;
-                    // Tận cùng bên dưới màn hình thực tế
                     double spawnY = (HEIGHT - 60) + random.nextInt(50);
                     FireParticle p = new FireParticle(spawnX, spawnY);
                     particles.add(p);
@@ -215,14 +212,13 @@ public final class IntroController {
         };
         fireSystem.start();
 
-        // ---- 6. LAYER 6: RUY BĂNG TIỀN CẢNH ----
+//       layer 6 ruy bang
         try {
             if (ribbonLayer != null) {
                 Image ribbonImage = new Image(getClass().getResourceAsStream("/assets/intro/ribbon.png"));
                 ImageView ribbonView = new ImageView(ribbonImage);
                 ribbonView.setSmooth(false);
-
-                // Ribbon scale động theo chiều rộng màn hình
+//                tu dong scale theo kich thuoc man hinh
                 double ribbonWidth = WIDTH * 0.8;
                 ribbonView.setFitWidth(ribbonWidth);
                 ribbonView.setPreserveRatio(true);
@@ -241,24 +237,22 @@ public final class IntroController {
             System.err.println("Không tìm thấy file ribbon.png!");
         }
 
-        // ---- 7. LAYER INTERACTIVE: HIỆU ỨNG KIẾM & CHỮ START ----
+//        Layer 7 kiem
         try {
             Image swordImg = new Image(getClass().getResourceAsStream("/assets/intro/sword.png"));
             Image startImg = new Image(getClass().getResourceAsStream("/assets/intro/start.png"));
 
             ImageView swordView = new ImageView(swordImg);
             swordView.setSmooth(false);
-            double swordWidth = WIDTH * 0.38; // Tỷ lệ động 38% chiều rộng
+            double swordWidth = WIDTH * 0.38;
             swordView.setFitWidth(swordWidth);
             swordView.setPreserveRatio(true);
 
             ImageView startView = new ImageView(startImg);
             startView.setSmooth(false);
-            double startWidth = WIDTH * 0.13; // Tỷ lệ động 13% chiều rộng
+            double startWidth = WIDTH * 0.13;
             startView.setFitWidth(startWidth);
             startView.setPreserveRatio(true);
-
-            // Căn chỉnh vị trí kiếm và nút Start theo chiều cao thực tế
             double centerY = HEIGHT * 0.53;
 
             swordView.setTranslateX(-WIDTH * 0.4);

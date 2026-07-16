@@ -11,22 +11,15 @@
             fx:controller="com.soulknight.ui.Menu"
             stylesheets="@../CSS/Menu.css"
             styleClass="menu-container">
-
-    <!-- TIÊU ĐỀ LOGO (Đặt chính giữa phía trên) -->
     <VBox alignment="CENTER" spacing="5"
           AnchorPane.topAnchor="60.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0">
         <Label text="SOUL KNIGHT" styleClass="menu-title"/>
     </VBox>
-
-    <!-- KHU VỰC NHÂN VẬT (Bên trái, tạo cảm giác giống sảnh chờ Dungeon) -->
     <VBox alignment="BOTTOM_CENTER" spacing="10"
           AnchorPane.bottomAnchor="100.0" AnchorPane.leftAnchor="150.0">
         <ImageView fx:id="imgCharacter" styleClass="menu-sprite"/>
-        <!-- Thêm một bóng đen dưới chân nhân vật cho chân thực -->
         <VBox styleClass="shadow-ellipse"/>
     </VBox>
-
-    <!-- KHU VỰC NÚT ĐIỀU HƯỚNG (Nằm bên phải, gọn gàng) -->
     <VBox alignment="CENTER" spacing="16" styleClass="button-container"
           AnchorPane.bottomAnchor="80.0" AnchorPane.rightAnchor="120.0">
         <Button fx:id="btnPlay" text="START GAME" onAction="#onPlayClicked" styleClass="menu-button" focusTraversable="false"/>

@@ -18,22 +18,21 @@ public final class SettingScreen {
 
     private Runnable onCloseCallback;
 
-    // Các hàm lắng nghe sự kiện thay đổi âm lượng bên ngoài (Ví dụ lớp quản lý âm thanh của game)
     private java.util.function.Consumer<Double> onBgmChanged;
     private java.util.function.Consumer<Double> onSfxChanged;
 
     @FXML
     public void initialize() {
-        // Lắng nghe thay đổi của thanh cuộn Music và cập nhật nhãn % tương ứng
+//         thay doi am thanh
         bgmSlider.valueProperty().addListener((observable, oldValue, newValue) -> {
             int percentage = newValue.intValue();
             lblBgmValue.setText(percentage + "%");
             if (onBgmChanged != null) {
-                onBgmChanged.accept(newValue.doubleValue() / 100.0); // Trả về khoảng 0.0 -> 1.0
+                onBgmChanged.accept(newValue.doubleValue() / 100.0); //  0.0 -> 1.0
             }
         });
 
-        // Lắng nghe thay đổi của thanh cuộn SFX
+        //  SFX
         sfxSlider.valueProperty().addListener((observable, oldValue, newValue) -> {
             int percentage = newValue.intValue();
             lblSfxValue.setText(percentage + "%");
@@ -51,7 +50,6 @@ public final class SettingScreen {
         this.onBgmChanged = bgmListener;
         this.onSfxChanged = sfxListener;
 
-        // Gán các giá trị hiện tại của game lên thanh trượt
         bgmSlider.setValue(currentBgm * 100);
         sfxSlider.setValue(currentSfx * 100);
     }
