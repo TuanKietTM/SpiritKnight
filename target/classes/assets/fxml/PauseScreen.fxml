@@ -2,22 +2,94 @@
 
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
-<VBox xmlns="http://javafx.com/javafx/17"
-      xmlns:fx="http://javafx.com/fxml/1"
-      fx:controller="com.soulknight.ui.PauseScreen"
-      stylesheets="@../CSS/PauseScreen.css"
-      styleClass="pause-container"
-      alignment="CENTER"
-      spacing="35">
+<StackPane prefHeight="600.0" prefWidth="1024.0" styleClass="pause-screen-overlay" stylesheets="@../CSS/PauseScreen.css" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.soulknight.ui.PauseScreen">
 
-    <Label text="GAME PAUSED" styleClass="pause-title"/>
+    <!-- Hộp thoại Menu Pause chính ở giữa -->
+    <VBox alignment="TOP_CENTER" maxHeight="380" maxWidth="480" spacing="20" styleClass="pause-dialog">
 
-    <VBox alignment="CENTER" spacing="15" styleClass="button-container">
-        <Button text="RESUME" onAction="#onResumeClicked" styleClass="pause-button" focusTraversable="false"/>
-        <Button text="RESTART" onAction="#onRestartClicked" styleClass="pause-button" focusTraversable="false"/>
-        <Button text="MAIN MENU" onAction="#onMainMenuClicked" styleClass="pause-button" focusTraversable="false"/>
+        <!-- HEADER: Chứa Avatar và dải băng đỏ chữ PAUSE -->
+        <HBox alignment="CENTER_LEFT" spacing="15" styleClass="header-container">
+            <!-- Ô chứa avatar nhân vật (Pixel Art Border) -->
+            <StackPane styleClass="avatar-box">
+                <!-- Thay src bằng đường dẫn ảnh nhân vật của bạn khi có -->
+                <ImageView fx:id="imgCharacterAvatar" fitHeight="54.0" fitWidth="54.0" pickOnBounds="true" preserveRatio="true" />
+            </StackPane>
+
+            <!-- Dải băng đỏ chữ PAUSE -->
+            <StackPane styleClass="pause-banner" HBox.hgrow="ALWAYS">
+                <Label styleClass="pause-title" text="PAUSE" />
+            </StackPane>
+        </HBox>
+
+        <!-- BODY: Lưới hiển thị các Buff/Nội tại đã nhặt được -->
+        <GridPane alignment="CENTER" hgap="10" styleClass="buff-grid" vgap="10">
+            <!-- Hàng 1 -->
+            <StackPane styleClass="buff-slot, slot-filled" GridPane.columnIndex="0" GridPane.rowIndex="0">
+                <Label styleClass="buff-placeholder-icon" text="🎯" /> <!-- Thay bằng ImageView tương ứng -->
+            </StackPane>
+            <StackPane styleClass="buff-slot, slot-filled" GridPane.columnIndex="1" GridPane.rowIndex="0">
+                <Label styleClass="buff-placeholder-icon" text="🛡" />
+            </StackPane>
+            <StackPane styleClass="buff-slot, slot-filled" GridPane.columnIndex="2" GridPane.rowIndex="0">
+                <Label styleClass="buff-placeholder-icon" text="💥" />
+            </StackPane>
+            <StackPane styleClass="buff-slot" GridPane.columnIndex="3" GridPane.rowIndex="0">
+                <Label styleClass="buff-plus" text="+" />
+            </StackPane>
+            <StackPane styleClass="buff-slot" GridPane.columnIndex="4" GridPane.rowIndex="0">
+                <Label styleClass="buff-plus" text="+" />
+            </StackPane>
+            <StackPane styleClass="buff-slot, slot-filled" GridPane.columnIndex="5" GridPane.rowIndex="0">
+                <Label styleClass="buff-placeholder-icon" text="💠" />
+            </StackPane>
+
+            <!-- Hàng 2 -->
+            <StackPane styleClass="buff-slot, slot-filled" GridPane.columnIndex="0" GridPane.rowIndex="1">
+                <Label styleClass="buff-placeholder-icon" text="❤️" />
+            </StackPane>
+            <StackPane styleClass="buff-slot, slot-filled" GridPane.columnIndex="1" GridPane.rowIndex="1">
+                <Label styleClass="buff-placeholder-icon" text="🟢" />
+            </StackPane>
+            <StackPane styleClass="buff-slot, slot-filled" GridPane.columnIndex="2" GridPane.rowIndex="1">
+                <Label styleClass="buff-placeholder-icon" text="⚔️" />
+            </StackPane>
+            <!-- Các ô trống còn lại -->
+            <StackPane styleClass="buff-slot-empty" GridPane.columnIndex="3" GridPane.rowIndex="1" />
+            <StackPane styleClass="buff-slot-empty" GridPane.columnIndex="4" GridPane.rowIndex="1" />
+            <StackPane styleClass="buff-slot-empty" GridPane.columnIndex="5" GridPane.rowIndex="1" />
+         <columnConstraints>
+            <ColumnConstraints />
+            <ColumnConstraints />
+            <ColumnConstraints />
+            <ColumnConstraints />
+            <ColumnConstraints />
+            <ColumnConstraints />
+         </columnConstraints>
+         <rowConstraints>
+            <RowConstraints />
+            <RowConstraints />
+         </rowConstraints>
+        </GridPane>
+
+        <!-- FOOTER: 3 Nút chức năng gỗ vuông dẹt -->
+        <HBox alignment="CENTER" spacing="20" styleClass="footer-container">
+            <!-- Nút MAIN MENU (Icon Ngôi nhà) -->
+            <Button focusTraversable="false" onAction="#onMainMenuClicked" styleClass="action-button, btn-home" text="🏠" />
+
+            <!-- Nút RESUME (Icon Tiếp tục lớn ở giữa) -->
+            <Button focusTraversable="false" onAction="#onResumeClicked" styleClass="action-button, btn-resume" text="▶" />
+
+            <!-- Nút RESTART/SETTING (Icon Bánh răng/Mũi tên xoay) -->
+            <Button focusTraversable="false" onAction="#onSettingClicked" styleClass="action-button, btn-setting" text="⚙" />
+        </HBox>
+
     </VBox>
-
-</VBox>
+</StackPane>

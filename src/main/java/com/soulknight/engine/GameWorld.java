@@ -34,7 +34,7 @@ public final class GameWorld {
     private final List<Enemy> enemies = new ArrayList<>();
     private final List<Bullet> bullets = new ArrayList<>();
     private final List<Item> items = new ArrayList<>();
-    private GameState state = GameState.MAIN_MENU;
+    private GameState state = GameState.INTRO;
     private double enemySpawnTimer;
     private Vector2D pendingPortalPosition;
 
@@ -44,7 +44,7 @@ public final class GameWorld {
 
     public GameWorld(InputHandler inputHandler) {
         this.inputHandler = inputHandler;
-        startNewRun();
+//        startNewRun();
     }
 
     public void setGameStateListener(GameStateListener listener) {
@@ -56,6 +56,12 @@ public final class GameWorld {
     }
 
     public void changeState(GameState newState) {
+// thay doi trang thai
+        if ((this.state == GameState.MAIN_MENU || this.state == GameState.GAME_OVER || this.state == GameState.GAME_VICTORY)
+                && newState == GameState.PLAYING) {
+            startNewRun();
+        }
+
         if (this.state != newState) {
             this.state = newState;
             if (stateListener != null) {
@@ -66,14 +72,18 @@ public final class GameWorld {
 
     public void update(double deltaSeconds, double viewportWidth, double viewportHeight) {
         switch (state) {
-            case MAIN_MENU -> {
+            case INTRO -> {
                 if (inputHandler.consumeConfirmRequest()) {
-                    startNewRun();
-                    changeState(GameState.PLAYING);
+                    changeState(GameState.MAIN_MENU);
                 }
+            }
+            case MAIN_MENU -> {
+                inputHandler.consumeConfirmRequest();
             }
             case PLAYING -> updatePlaying(deltaSeconds, viewportWidth, viewportHeight, true);
             case LEVEL_CLEAR -> updateLevelClear(deltaSeconds, viewportWidth, viewportHeight);
+            case PAUSED -> {
+            }
             case GAME_OVER, GAME_VICTORY -> {
                 if (inputHandler.consumeConfirmRequest()) {
                     startNewRun();
@@ -85,7 +95,7 @@ public final class GameWorld {
 
     public void render(GraphicsContext graphicsContext, double renderWidth, double renderHeight) {
         graphicsContext.clearRect(0.0, 0.0, renderWidth, renderHeight);
-        if (state != GameState.MAIN_MENU) {
+        if (state != GameState.INTRO && state != GameState.MAIN_MENU && mapManager != null && player != null) {
             renderWorld(graphicsContext, renderWidth, renderHeight);
         }
     }

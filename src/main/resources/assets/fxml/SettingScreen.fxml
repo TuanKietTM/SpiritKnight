@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Slider?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<StackPane prefHeight="600.0" prefWidth="1024.0" styleClass="pause-screen-overlay" stylesheets="@../CSS/PauseScreen.css" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.soulknight.ui.SettingScreen">
+
+    <!-- Hộp thoại Settings ở giữa, dùng chung style với Pause Dialog nhưng hẹp và cao hơn chút -->
+    <VBox alignment="TOP_CENTER" maxHeight="320" maxWidth="400" spacing="25" styleClass="pause-dialog">
+
+        <!-- HEADER: Tiêu đề SETTINGS cách điệu băng đỏ -->
+        <HBox alignment="CENTER" styleClass="header-container">
+            <StackPane style="-fx-background-radius: 0px;" styleClass="pause-banner" HBox.hgrow="ALWAYS">
+                <Label styleClass="pause-title" text="SETTINGS" />
+            </StackPane>
+        </HBox>
+
+        <!-- BODY: Khu vực điều chỉnh âm thanh -->
+        <VBox alignment="CENTER" spacing="15" styleClass="settings-body">
+
+            <!-- Hàng Volume 1: Nhạc nền (BGM) -->
+            <VBox alignment="CENTER_LEFT" spacing="5" styleClass="slider-row">
+                <Label styleClass="setting-label" text="MUSIC VOLUME" />
+                <HBox alignment="CENTER" spacing="10">
+                    <Label styleClass="setting-icon" text="🎵" />
+                    <Slider fx:id="bgmSlider" max="100" min="0" styleClass="pixel-slider" value="50" HBox.hgrow="ALWAYS" />
+                    <Label fx:id="lblBgmValue" styleClass="setting-value-label" text="50%" />
+                </HBox>
+            </VBox>
+
+            <!-- Hàng Volume 2: Hiệu ứng (SFX) -->
+            <VBox alignment="CENTER_LEFT" spacing="5" styleClass="slider-row">
+                <Label styleClass="setting-label" text="SFX VOLUME" />
+                <HBox alignment="CENTER" spacing="10">
+                    <Label styleClass="setting-icon" text="⚔" />
+                    <Slider fx:id="sfxSlider" max="100" min="0" prefHeight="20.0" prefWidth="184.0" styleClass="pixel-slider" value="70" HBox.hgrow="ALWAYS" />
+                    <Label fx:id="lblSfxValue" styleClass="setting-value-label" text="70%" />
+                </HBox>
+            </VBox>
+
+        </VBox>
+
+        <!-- FOOTER: Nút Close gỗ quay lại -->
+        <HBox alignment="CENTER" styleClass="footer-container">
+            <Button focusTraversable="false" onAction="#onCloseClicked" styleClass="action-button, btn-close" text="CLOSE" />
+        </HBox>
+
+    </VBox>
+</StackPane>

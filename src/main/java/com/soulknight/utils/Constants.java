@@ -3,8 +3,8 @@ package com.soulknight.utils;
 public final class Constants {
 
     public static final String GAME_TITLE = "Soul Knight";
-    public static final int WINDOW_WIDTH = 1280;
-    public static final int WINDOW_HEIGHT = 720;
+    public static final int WINDOW_WIDTH = 1000;
+    public static final int WINDOW_HEIGHT = 600;
     public static final int TILE_SIZE = 48;
     public static final int MAP_WIDTH = 28;
     public static final int MAP_HEIGHT = 18;

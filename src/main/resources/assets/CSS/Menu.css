@@ -2,52 +2,70 @@
     font-family: "Press Start 2P";
     src: url("../fonts/PressStart2P-Regular.ttf");
 }
+
 .menu-container {
-    -fx-background-color: #0f0f1a;
-    -fx-alignment: center;
+    -fx-background-color: #0d0a14;
+    -fx-min-width: 1024px;
+    -fx-min-height: 576px;
 }
 
+/* LOGO CHÍNH */
 .menu-title {
     -fx-font-family: "Press Start 2P";
-    -fx-font-size: 41px;
-    -fx-text-fill: #ff3333;
-    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.8), 15, 0, 0, 4);
+    -fx-font-size: 50px;
+    -fx-text-fill: #e63946;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.9), 0, 0, 4, 4); /* Bóng đổ đổ cứng phong cách Retro */
+}
+.menu-subtitle {
+    -fx-font-family: "Press Start 2P";
+    -fx-font-size: 14px;
+    -fx-text-fill: #ffb703;
+    -fx-effect: dropshadow(three-pass-box, black, 0, 0, 2, 2);
 }
 
-.button-container {
-    -fx-max-width: 300px;
-}
-
-.menu-button {
-    -fx-background-color: #1f1f3a;
-    -fx-text-fill: #ffffff;
-     -fx-font-family: "Press Start 2P", sans-serif;
-    -fx-font-size: 16px;
-    -fx-font-weight: bold;
-    -fx-background-radius: 8px;
-    -fx-padding: 12px 40px;
+/* NÚT BẤM PHONG CÁCH RETRO */
+.menu-button, .menu-button-exit {
+    -fx-background-color: #3a225c; /* Màu tím nho */
+    -fx-text-fill: #ffe3a8;
+    -fx-font-family: "Press Start 2P", monospace;
+    -fx-font-size: 14px;
+    -fx-background-radius: 4px;
+    -fx-padding: 14px 0px;
     -fx-cursor: hand;
-    -fx-pref-width: 260px;
-    -fx-border-color: #3f3f6a;
-    -fx-border-radius: 8px;
-    -fx-border-width: 2px;
-    -fx-transition: 0.2s;
+    -fx-pref-width: 250px;
+
+    /* Viền đậm phong cách 8-bit */
+    -fx-border-color: #1e1130;
+    -fx-border-width: 4px;
+    -fx-border-radius: 4px;
 }
 
-.menu-button:hover {
-    -fx-background-color: #ff3333;
-    -fx-border-color: #ff9999;
+.menu-button-exit {
+    -fx-background-color: #4a4e69;
+}
+
+/* Hiệu ứng rê chuột (Hover) */
+.menu-button:hover, .menu-button-exit:hover {
+    -fx-background-color: #00b4d8; /* Màu xanh băng đổi gió */
     -fx-text-fill: #ffffff;
-    -fx-scale-x: 1.05;
-    -fx-scale-y: 1.05;
+    -fx-border-color: #0077b6;
+    -fx-translate-y: -2px; /* Nhấc nhẹ nút lên */
 }
 
-.menu-button:pressed {
-    -fx-background-color: #b32424;
-    -fx-scale-x: 0.98;
-    -fx-scale-y: 0.98;
+/* Hiệu ứng khi click */
+.menu-button:pressed, .menu-button-exit:pressed {
+    -fx-translate-y: 1px;
 }
+
+/* KIỂU DÁNG SPRITE VÀ ĐỔ BÓNG DƯỚI CHÂN CHÂN THỰC */
 .menu-sprite {
-    -fx-image-view-order: 1;
     -fx-smooth: false;
+}
+.shadow-ellipse {
+    -fx-min-width: 90px;
+    -fx-min-height: 12px;
+    -fx-max-width: 90px;
+    -fx-max-height: 12px;
+    -fx-background-color: rgba(0, 0, 0, 0.5);
+    -fx-background-radius: 50%; /* Tạo bóng elip dẹt dưới chân Knight */
 }
