@@ -15,16 +15,20 @@ public final class Menu {
 
     @FXML private Button btnPlay;
     @FXML private Button btnSettings;
+    @FXML private Button btnShop;
     @FXML private Button btnExit;
     @FXML private ImageView imgCharacter;
 
     private Runnable onPlayCallback;
+    private Runnable onSettingsCallback;
+    private Runnable onShopCallback;
+
     private Timeline spriteAnimation;
     private static final String SPRITE_PATH = "/assets/sprites/Knight.png";
     private static final int TOTAL_FRAMES = 3;
     private static final int FRAME_WIDTH = 32;
     private static final int FRAME_HEIGHT = 32;
-    private static final double SCALE_FACTOR = 3.0;
+    private static final double SCALE_FACTOR = 4.0;
 
     private int currentFrameIndex = 0;
 
@@ -33,26 +37,24 @@ public final class Menu {
         try {
             Image spriteSheet = new Image(getClass().getResourceAsStream(SPRITE_PATH));
             imgCharacter.setImage(spriteSheet);
+
+            imgCharacter.setSmooth(false);
             imgCharacter.setFitWidth(FRAME_WIDTH * SCALE_FACTOR);
             imgCharacter.setFitHeight(FRAME_HEIGHT * SCALE_FACTOR);
             imgCharacter.setViewport(new Rectangle2D(0, 0, FRAME_WIDTH, FRAME_HEIGHT));
+
             spriteAnimation = new Timeline(
-                    new KeyFrame(Duration.millis(150), event -> { // Cứ mỗi 150ms nhảy sang frame tiếp theo
-                        // Tính toán tọa độ X của frame tiếp theo trên tấm ảnh dài
+                    new KeyFrame(Duration.millis(200), event -> {
                         double xOffset = currentFrameIndex * FRAME_WIDTH;
-
-                        // Cắt và cập nhật Viewport hiển thị
                         imgCharacter.setViewport(new Rectangle2D(xOffset, 0, FRAME_WIDTH, FRAME_HEIGHT));
-
-                        // Tăng frame hoặc quay vòng về 0
                         currentFrameIndex = (currentFrameIndex + 1) % TOTAL_FRAMES;
                     })
             );
-            spriteAnimation.setCycleCount(Timeline.INDEFINITE); // Chạy lặp vô hạn
-            spriteAnimation.play(); // Kích hoạt chạy luôn khi vào Menu
+            spriteAnimation.setCycleCount(Timeline.INDEFINITE);
+            spriteAnimation.play();
 
         } catch (Exception e) {
-            System.err.println("❌ Menu Controller: Không thể nạp được ảnh Sprite nhân vật!");
+            System.err.println("Khong the tai ");
             e.printStackTrace();
         }
     }
@@ -61,12 +63,18 @@ public final class Menu {
         this.onPlayCallback = callback;
     }
 
+    public void setOnSettingsRequested(Runnable callback) {
+        this.onSettingsCallback = callback;
+    }
+
+    public void setOnShopRequested(Runnable callback) {
+        this.onShopCallback = callback;
+    }
+
+
     @FXML
     private void onPlayClicked(ActionEvent event) {
-        // Khi bấm chơi game, dừng Timeline animation của Menu lại để giải phóng RAM tối ưu FPS cho game
-        if (spriteAnimation != null) {
-            spriteAnimation.stop();
-        }
+        stopAnimation();
         if (onPlayCallback != null) {
             onPlayCallback.run();
         }
@@ -74,15 +82,28 @@ public final class Menu {
 
     @FXML
     private void onSettingsClicked(ActionEvent event) {
-        System.out.println("🔧 Đã bấm Settings!");
+        if (onSettingsCallback != null) {
+            onSettingsCallback.run();
+        }
+    }
+
+    @FXML
+    private void onShopClicked(ActionEvent event) {
+        if (onShopCallback != null) {
+            onShopCallback.run();
+        }
     }
 
     @FXML
     private void onExitClicked(ActionEvent event) {
+        stopAnimation();
+        Platform.exit();
+        System.exit(0);
+    }
+
+    private void stopAnimation() {
         if (spriteAnimation != null) {
             spriteAnimation.stop();
         }
-        Platform.exit();
-        System.exit(0);
     }
 }

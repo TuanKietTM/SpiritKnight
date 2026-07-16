@@ -27,10 +27,12 @@ public final class Main extends Application {
         canvas.heightProperty().bind(scene.heightProperty());
         InputHandler inputHandler = new InputHandler();
         inputHandler.bind(scene);
+
         GameWorld world = new GameWorld(inputHandler);
         UIManager uiManager = new UIManager(root);
-        uiManager.bindGameActions(world);
+
         world.setGameStateListener(uiManager::handleStateChange);
+        uiManager.bindGameActions(world);
         scene.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, event -> {
             if (event.getCode() == javafx.scene.input.KeyCode.ESCAPE) {
                 if (world.getState() == com.soulknight.engine.GameState.PLAYING) {
