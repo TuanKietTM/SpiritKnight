@@ -225,8 +225,8 @@ public final class GameWorld {
 
     //(vitdung) chỉnh lại hàm này để test loadMap từ txt
     private void loadCurrentLevel(boolean freshRun) {
-        String mapPath = "/maps/level1_1.txt";
-        this.mapManager = new MapManager(mapPath, Constants.TILE_SIZE);
+        String mapPath = "/maps/level1_1.json";
+        this.mapManager = new MapManager(mapPath);
         this.mapManager.closeExitPortal();
         // đoạn portal chưa rõ lắm
         this.pendingPortalPosition = mapManager.getExitPortalPosition();
@@ -338,4 +338,5 @@ public final class GameWorld {
     public boolean isPlaying() {
         return state == GameState.PLAYING;
     }
+
 }
