@@ -5,6 +5,16 @@ import javafx.scene.paint.Color;
 public final class Tile {
 
     private final TileType type;
+    private double x;
+    private double y;
+    private double size;
+
+    public Tile(double x, double y, double size, TileType type) {
+        this.x = x;
+        this.y = y;
+        this.size = size;
+        this.type = type;
+    }
 
     public Tile(TileType type) {
         this.type = type;
@@ -13,6 +23,9 @@ public final class Tile {
     public TileType getType() {
         return type;
     }
+    public double getX() { return x; }
+    public double getY() { return y; }
+    public double getSize() { return size; }
 
     public boolean isWalkable() {
         return type != TileType.WALL;
@@ -20,7 +33,7 @@ public final class Tile {
 
     public Color getFillColor() {
         return switch (type) {
-            case FLOOR -> Color.web("#1f2630");  // Màu nền tối
+            case FLOOR -> Color.ORANGE;  // Màu nền tối
             case WALL -> Color.web("#0d1117");   // Màu tường đen kịt
             case SPAWN -> Color.web("#223d2f");  // Màu khu vực xuất phát
             case DOOR -> Color.web("#5c4033");   // Màu nâu của cửa gỗ
