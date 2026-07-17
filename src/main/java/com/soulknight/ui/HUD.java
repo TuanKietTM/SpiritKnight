@@ -82,6 +82,6 @@ public final class HUD {
         entitiesLabel.setText(String.valueOf(itemCount));
 
 //        vu khi va ten trong vong tron
-        weaponLabel.setText(player.getWeaponName().toUpperCase());
+       weaponLabel.setText(player.getWeaponName().toUpperCase());
     }
 }
