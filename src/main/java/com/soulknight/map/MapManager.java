@@ -41,6 +41,7 @@ public final class MapManager {
     //(vitdung) viết constructor này để cho GameWorld load map lên
     public MapManager(String JsonPath) {
         loadMapFromJson(JsonPath);
+//        this.tileSize = Constants.TILE_SIZE;
         generateWorldTiles();
     }
 
@@ -76,13 +77,57 @@ public final class MapManager {
         }
     }
 
+    // 🎯 THAY THẾ TOÀN BỘ HÀM isWalkable CŨ BẰNG THUẬT TOÁN HÌNH TRÒN NÀY
     public boolean isWalkable(double worldX, double worldY, double radius) {
-        double left = worldX - radius;
-        double right = worldX + radius;
-        double top = worldY - radius;
-        double bottom = worldY + radius;
-        return isWalkablePoint(left, top) && isWalkablePoint(right, top) && isWalkablePoint(left, bottom)
-                && isWalkablePoint(right, bottom) && isWalkablePoint(worldX, worldY);
+        // 1. Xác định phạm vi các ô gạch xung quanh Player dựa trên khung bao của hình tròn
+        int minTileX = (int) Math.floor((worldX - radius) / tileSize);
+        int maxTileX = (int) Math.floor((worldX + radius) / tileSize);
+        int minTileY = (int) Math.floor((worldY - radius) / tileSize);
+        int maxTileY = (int) Math.floor((worldY + radius) / tileSize);
+
+        // 2. Duyệt qua toàn bộ các ô gạch trong vùng lân cận Player
+        for (int ty = minTileY; ty <= maxTileY; ty++) {
+            for (int tx = minTileX; tx <= maxTileX; tx++) {
+
+                // Nếu ô gạch nằm ngoài biên bản đồ -> Coi như đó là tường cứng
+                if (tx < 0 || ty < 0 || tx >= width || ty >= height) {
+                    if (isCircleCollidingWithTile(worldX, worldY, radius, tx, ty)) {
+                        return false;
+                    }
+                    continue;
+                }
+
+                Tile tile = tiles[ty][tx];
+                // Nếu ô gạch là Tường (hoặc ô rỗng null) -> Kiểm tra va chạm tròn với ô vuông này
+                if (tile == null || !tile.isWalkable()) {
+                    if (isCircleCollidingWithTile(worldX, worldY, radius, tx, ty)) {
+                        return false; // Phát hiện va chạm thực sự với ô tường!
+                    }
+                }
+            }
+        }
+        return true; // Không va chạm với bất kỳ ô tường nào, di chuyển an toàn!
+    }
+
+    // 🎯 HÀM TRỢ GIÚP: Tính khoảng cách chính xác từ tâm hình tròn tới cạnh của ô gạch
+    private boolean isCircleCollidingWithTile(double cx, double cy, double radius, int tx, int ty) {
+        // Xác định biên giới hạn (trái, phải, trên, dưới) của ô gạch mục tiêu
+        double tileLeft = tx * tileSize;
+        double tileRight = (tx + 1) * tileSize;
+        double tileTop = ty * tileSize;
+        double tileBottom = (ty + 1) * tileSize;
+
+        // Tìm điểm gần nhất nằm trên biên của ô gạch đối với tâm hình tròn (cx, cy)
+        double closestX = Math.max(tileLeft, Math.min(cx, tileRight));
+        double closestY = Math.max(tileTop, Math.min(cy, tileBottom));
+
+        // Tính khoảng cách từ tâm hình tròn tới điểm gần nhất đó
+        double distX = cx - closestX;
+        double distY = cy - closestY;
+        double distanceSquared = (distX * distX) + (distY * distY);
+
+        // Nếu khoảng cách nhỏ hơn bình phương bán kính -> Có va chạm sạt mép
+        return distanceSquared < (radius * radius);
     }
 
     //(vitdung) hàm đọc dữ liệu từ file Json
