@@ -7,11 +7,10 @@ public final class Camera {
     private double offsetX;
     private double offsetY;
 
-    // 🎯 Gợi ý: Chỉnh zoom xuống 1.5 hoặc 1.8 nếu muốn góc nhìn rộng hơn và bớt nhạy cảm bước đi
+
     private double zoom = 1.5;
 
     public void follow(Vector2D target, double viewportWidth, double viewportHeight, double worldWidth, double worldHeight) {
-        // 1. Tính toán kích thước màn hình ảo sau khi tính tỉ lệ zoom
         double zoomedViewportWidth = viewportWidth / zoom;
         double zoomedViewportHeight = viewportHeight / zoom;
 
@@ -57,7 +56,6 @@ public final class Camera {
         return Math.max(min, Math.min(max, value));
     }
 
-    // --- GETTER & SETTER ---
     public double getZoom() {
         return zoom;
     }
