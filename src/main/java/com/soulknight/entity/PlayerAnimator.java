@@ -28,7 +28,7 @@ public class PlayerAnimator {
     private void loadSpriteSheets() {
         try {
             idleSpriteSheet = new Image(getClass().getResourceAsStream("/assets/sprites/IDLE_32.png"));
-            runSpriteSheet = new Image(getClass().getResourceAsStream("/assets/sprites/RUN_32.png"));
+            runSpriteSheet = new Image(getClass().getResourceAsStream("/assets/sprites/run1_32.png"));
         } catch (Exception e) {
             System.err.println("Loi tai ");
         }
