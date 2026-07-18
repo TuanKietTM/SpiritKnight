@@ -78,8 +78,8 @@ public final class Player extends Entity {
 
     @Override
     public void render(javafx.scene.canvas.GraphicsContext graphicsContext, com.soulknight.engine.Camera camera) {
-        double worldWidth = 24.0;
-        double worldHeight = 32.0;
+        double worldWidth = 32;
+        double worldHeight = 43.0;
         animator.render(
                 graphicsContext,
                 camera,

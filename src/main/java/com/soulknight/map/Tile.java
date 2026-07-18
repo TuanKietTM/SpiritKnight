@@ -1,6 +1,8 @@
 package com.soulknight.map;
 
-import javafx.scene.paint.Color;
+
+import javafx.scene.image.Image;
+import javafx.scene.paint.Paint;
 
 public final class Tile {
 
@@ -8,6 +10,8 @@ public final class Tile {
     private double x;
     private double y;
     private double size;
+    private static final Image FLOOR_IMAGE = new Image(Tile.class.getResourceAsStream("/assets/maps/floor.png"));
+    private static final Image WALL_IMAGE = new Image(Tile.class.getResourceAsStream("/assets/maps/wall.png"));
 
     public Tile(double x, double y, double size, TileType type) {
         this.x = x;
@@ -31,14 +35,11 @@ public final class Tile {
         return type != TileType.WALL;
     }
 
-    public Color getFillColor() {
+    public Image getTexture() {
         return switch (type) {
-            case FLOOR -> Color.ORANGE;  // Màu nền tối
-            case WALL -> Color.web("#0d1117");   // Màu tường đen kịt
-            case SPAWN -> Color.web("#223d2f");  // Màu khu vực xuất phát
-            case DOOR -> Color.web("#5c4033");   // Màu nâu của cửa gỗ
-            case PORTAL -> Color.web("#ffd700"); // Màu vàng của cổng dịch chuyển
-            case BOSS -> Color.BLUE;
+            case FLOOR -> FLOOR_IMAGE;
+            case WALL -> WALL_IMAGE;
+            default -> null; // Các ô khác tạm thời chưa có ảnh, trả về null
         };
     }
 

@@ -224,39 +224,53 @@ public final class UIManager {
     }
 
     public void bindGameActions(GameWorld world) {
-        double currentBgm = 0.5;
-        double currentSfx = 0.7;
+        // Lấy cấu hình âm lượng mặc định hoặc hiện tại từ SoundManager làm gốc
+        final com.soulknight.utils.SoundManager sound = com.soulknight.utils.SoundManager.getInstance();
 
         if (menuController != null) {
-            menuController.setOnPlayRequested(() -> world.changeState(GameState.PLAYING));
+            menuController.setOnPlayRequested(() -> {
+                sound.playSFX("button"); // Tiếng ấn nút
+                world.changeState(GameState.PLAYING);
+            });
 
             menuController.setOnSettingsRequested(() -> {
+                sound.playSFX("button");
                 menuRoot.setVisible(false);
                 settingRoot.setVisible(true);
                 settingRoot.toFront();
 
                 if (settingController != null) {
                     settingController.setup(
-                            () -> { // close quay lai man hinh chinh
+                            () -> { // Nút Close quay lại màn hình chính
+                                sound.playSFX("button");
                                 settingRoot.setVisible(false);
                                 menuRoot.setVisible(true);
                                 menuRoot.toFront();
                             },
-                            (bgm) -> {},
-                            (sfx) -> {},
-                            currentBgm, currentSfx
+                            (bgmValue) -> {
+                                // Đồng bộ âm lượng nhạc nền khi kéo Slider
+                                sound.setBGMVolume(bgmValue);
+                            },
+                            (sfxValue) -> {
+                                // Đồng bộ âm lượng hiệu ứng khi kéo Slider
+                                sound.setSFXVolume(sfxValue);
+                            },
+                            // Truyền giá trị thực tế đang có trong SoundManager lên thanh Slider giao diện
+                            sound.getBgmVolume(), sound.getSfxVolume()
                     );
                 }
             });
 
             menuController.setOnShopRequested(() -> {
-                System.out.println(" ");
+                sound.playSFX("button");
+                System.out.println("Open Shop");
             });
         }
 
         if (hudController != null) {
             hudController.setOnPauseRequested(() -> {
                 if (world.getState() == GameState.PLAYING) {
+                    sound.playSFX("button");
                     world.changeState(GameState.PAUSED);
                 }
             });
@@ -264,26 +278,33 @@ public final class UIManager {
 
         if (pauseController != null) {
             pauseController.setCallbacks(
-                    () -> world.changeState(GameState.PLAYING), // tiep tuc choi
                     () -> {
+                        sound.playSFX("button");
+                        world.changeState(GameState.PLAYING); // tiếp tục chơi
+                    },
+                    () -> {
+                        sound.playSFX("button");
                         pauseRoot.setVisible(false);
                         settingRoot.setVisible(true);
                         settingRoot.toFront();
 
                         if (settingController != null) {
                             settingController.setup(
-                                    () -> { // Nut Close quay lai Pause
+                                    () -> { // Nút Close quay lại Pause
+                                        sound.playSFX("button");
                                         settingRoot.setVisible(false);
                                         pauseRoot.setVisible(true);
                                         pauseRoot.toFront();
                                     },
-                                    (bgm) -> {},
-                                    (sfx) -> {},
-                                    currentBgm, currentSfx
+                                    (bgmValue) -> sound.setBGMVolume(bgmValue),
+                                    (sfxValue) -> sound.setSFXVolume(sfxValue),
+                                    sound.getBgmVolume(), sound.getSfxVolume()
                             );
                         }
                     },
-                    () -> { // back  Menu
+                    () -> { // Quay lại Menu chính
+                        sound.playSFX("button");
+                        sound.stopBGM(); // Dừng nhạc nền màn chơi khi thoát ra ngoài
                         world.changeState(GameState.MAIN_MENU);
                     }
             );

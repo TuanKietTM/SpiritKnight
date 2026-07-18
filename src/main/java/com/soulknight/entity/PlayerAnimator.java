@@ -18,8 +18,8 @@ public class PlayerAnimator {
     private double frameTimer = 0.0;
     private static final double FRAME_DURATION = 0.15;
 
-    private static final double SPRITE_FRAME_WIDTH = 32;
-    private static final double SPRITE_FRAME_HEIGHT = 32;
+    private static final double SPRITE_FRAME_WIDTH = 64;
+    private static final double SPRITE_FRAME_HEIGHT = 64;
 
     public PlayerAnimator() {
         loadSpriteSheets();
@@ -27,8 +27,8 @@ public class PlayerAnimator {
 
     private void loadSpriteSheets() {
         try {
-            idleSpriteSheet = new Image(getClass().getResourceAsStream("/assets/sprites/IDLE_32.png"));
-            runSpriteSheet = new Image(getClass().getResourceAsStream("/assets/sprites/run1_32.png"));
+            idleSpriteSheet = new Image(getClass().getResourceAsStream("/assets/sprites/IDLE64.png"));
+            runSpriteSheet = new Image(getClass().getResourceAsStream("/assets/sprites/RUN64.png"));
         } catch (Exception e) {
             System.err.println("Loi tai ");
         }

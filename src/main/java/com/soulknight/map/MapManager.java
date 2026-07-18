@@ -41,7 +41,6 @@ public final class MapManager {
     //(vitdung) viết constructor này để cho GameWorld load map lên
     public MapManager(String JsonPath) {
         loadMapFromJson(JsonPath);
-//        this.tileSize = Constants.TILE_SIZE;
         generateWorldTiles();
     }
 
@@ -60,8 +59,7 @@ public final class MapManager {
                 double screenX = camera.worldToScreenX(worldX);
                 double screenY = camera.worldToScreenY(worldY);
 
-                graphicsContext.setFill(tile.getFillColor());
-                graphicsContext.fillRect(screenX, screenY, tileSize * zoom, tileSize * zoom);
+                graphicsContext.drawImage(tile.getTexture(), screenX, screenY, tileSize * zoom, tileSize * zoom);
 
             }
         }
@@ -75,10 +73,29 @@ public final class MapManager {
             graphicsContext.setLineWidth(2.0);
             graphicsContext.strokeOval(screenX - 18.0, screenY - 18.0, 36.0, 36.0);
         }
+        for (Room room : rooms) {
+            if (room.isDoorClosed()) {
+                graphicsContext.setFill(Color.DARKRED); // Hoặc bạn dùng graphicsContext.drawImage(wallTexture, ...) để vẽ ảnh tường đè lên
+                for (javafx.geometry.BoundingBox door : room.getDoors()) {
+                    double screenX = camera.worldToScreenX(door.getMinX());
+                    double screenY = camera.worldToScreenY(door.getMinY());
+
+                    // Vẽ một khối màu đỏ đậm (hoặc ảnh cửa gỗ/đá) che kín lối đi khi phòng hoạt động
+                    graphicsContext.fillRect(screenX, screenY, door.getWidth() * zoom, door.getHeight() * zoom);
+                }
+            }
+        }
     }
 
+//Xu li va cham cua player coi tuong
     // 🎯 THAY THẾ TOÀN BỘ HÀM isWalkable CŨ BẰNG THUẬT TOÁN HÌNH TRÒN NÀY
     public boolean isWalkable(double worldX, double worldY, double radius) {
+        // 1. KIỂM TRA VA CHẠM VỚI CỬA ĐANG ĐÓNG TRƯỚC
+        for (Room room : rooms) {
+            if (room.isHitClosedDoor(worldX, worldY, radius)) {
+                return false; // Nếu va vào cửa đang đóng của bất kỳ phòng nào -> Chặn lại luôn!
+            }
+        }
         // 1. Xác định phạm vi các ô gạch xung quanh Player dựa trên khung bao của hình tròn
         int minTileX = (int) Math.floor((worldX - radius) / tileSize);
         int maxTileX = (int) Math.floor((worldX + radius) / tileSize);
@@ -168,6 +185,20 @@ public final class MapManager {
                             rooms.add(room);
                         }
                         // Bạn có thể xử lý thêm Door và EnemySpawn tại đây...
+                        else if (type.equals("Door") || name.startsWith("Door")){
+                            String belongToRoom = "";
+                            for (com.soulknight.map.json.PropertyData prop : obj.properties) {
+                                if ("belongToRoom".equals(prop.name)) {
+                                    belongToRoom = prop.value.toString().trim();
+                                    break;
+                                }
+                            }
+                            final String targetRoomName = belongToRoom;
+                            rooms.stream()
+                                    .filter(r -> r.getName().equals(targetRoomName))
+                                    .findFirst()
+                                    .ifPresent(r -> r.addDoorCoordinate(obj.x, obj.y, obj.width, obj.height));
+                        }
                     }
                 }
             }
@@ -288,6 +319,10 @@ public final class MapManager {
     public Tile[][] getTiles() { return tiles; }
     public double getPlayerSpawnX() { return playerSpawnX; }
     public double getPlayerSpawnY() { return playerSpawnY; }
-
-
+    public List<Room> getRooms() {
+        return rooms;
+    }
 }
+
+
+
