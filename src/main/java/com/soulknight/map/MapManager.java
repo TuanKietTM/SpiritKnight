@@ -41,7 +41,6 @@ public final class MapManager {
     //(vitdung) viết constructor này để cho GameWorld load map lên
     public MapManager(String JsonPath) {
         loadMapFromJson(JsonPath);
-//        this.tileSize = Constants.TILE_SIZE;
         generateWorldTiles();
     }
 
@@ -60,8 +59,7 @@ public final class MapManager {
                 double screenX = camera.worldToScreenX(worldX);
                 double screenY = camera.worldToScreenY(worldY);
 
-                graphicsContext.setFill(tile.getFillColor());
-                graphicsContext.fillRect(screenX, screenY, tileSize * zoom, tileSize * zoom);
+                graphicsContext.drawImage(tile.getTexture(), screenX, screenY, tileSize * zoom, tileSize * zoom);
 
             }
         }
@@ -77,6 +75,7 @@ public final class MapManager {
         }
     }
 
+//Xu li va cham cua player coi tuong
     // 🎯 THAY THẾ TOÀN BỘ HÀM isWalkable CŨ BẰNG THUẬT TOÁN HÌNH TRÒN NÀY
     public boolean isWalkable(double worldX, double worldY, double radius) {
         // 1. Xác định phạm vi các ô gạch xung quanh Player dựa trên khung bao của hình tròn
