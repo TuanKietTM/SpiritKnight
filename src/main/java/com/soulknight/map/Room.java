@@ -1,81 +1,82 @@
 package com.soulknight.map;
-//(vitdung) viết class này để xác định trạng thái của các phòng một
-import javafx.geometry.BoundingBox;
 
+import javafx.geometry.BoundingBox;
 import java.util.ArrayList;
 import java.util.List;
 
 public class Room {
     private String name;
     private BoundingBox bound;
-    private boolean isActived = false; //biến check main đã vào room chưa
-    private boolean isCleared = false; // biến check tiêu diện quái
+    private boolean isActived = false; // Check xem người chơi đã vào phòng và kích hoạt trận đấu chưa
+    private boolean isCleared = false; // Check xem phòng đã dọn sạch quái chưa
+    private boolean isDoorClosed = false; // Trạng thái cửa hiện tại của phòng
     private List<BoundingBox> doors = new ArrayList<>();
 
     public Room(String name, double x, double y, double width, double height) {
         this.name = name;
         this.bound = new BoundingBox(x, y, width, height);
     }
-    //(vitdung) hàm nhận tọa độ cửa từ Json
-    public void addDoorCoordinate(double x,double y, double width, double height) {
+
+    public void addDoorCoordinate(double x, double y, double width, double height) {
         this.doors.add(new BoundingBox(x, y, width, height));
     }
 
-    public void update(double playerX, double playerY) {
+    // Thêm deltaSeconds vào hàm update của Room
+    public void update(com.soulknight.engine.GameWorld gameWorld, double playerX, double playerY, List<com.soulknight.entity.Enemy> globalEnemies, double deltaSeconds) {
         if (isCleared) return;
-        //kiểm tra player vào room
+
+        // Kiểm tra player vào room
         if (!isActived && bound.contains(playerX, playerY)) {
-            activeRoom();
+            activeRoom(gameWorld);
         }
-        //kiểm tra kill hết enemy chưa
+
         if (isActived) {
-            checkRoomClear();
+            checkRoomClear(globalEnemies);
         }
     }
 
-    //hàm activeRoom để kích hoạt trạng thái chiến đấu trong room: đóng cửa, enemy di chuyển.
-    private void activeRoom() {
+    private void activeRoom(com.soulknight.engine.GameWorld gameWorld) {
         this.isActived = true;
-        System.out.println(name + " is actived");
+        this.isDoorClosed = true;
+        System.out.println("[ROOM LOG] Người chơi đã vào " + name + " -> Đóng cửa và gọi quái!");
 
-        closeDoors();
+        // Gọi GameWorld sinh quái RIÊNG cho căn phòng này dựa vào phạm vi bound của nó
+        gameWorld.spawnEnemiesInRoom(this);
     }
 
-    private void checkRoomClear() {
-        boolean enemiesAllDead = false;
+    private void checkRoomClear(List<com.soulknight.entity.Enemy> globalEnemies) {
+        // Đếm số lượng quái vật còn sống nằm trong phạm vi (bound) của căn phòng này
+        long aliveEnemiesInRoom = globalEnemies.stream()
+                .filter(enemy -> enemy.isAlive() && bound.contains(enemy.getPosition().getX(), enemy.getPosition().getY()))
+                .count();
 
-        if(enemiesAllDead) {
+        // Nếu không còn con quái nào sống sót trong phòng này
+        if (aliveEnemiesInRoom == 0) {
             this.isActived = false;
             this.isCleared = true;
-            System.out.println(name + " clear all enemies");
-            openDoors();
+            this.isDoorClosed = false; // Mở cửa ra cho người chơi đi tiếp
+            System.out.println("[ROOM LOG] Chúc mừng! Đã dọn sạch " + name + " | Mở toàn bộ cửa!");
         }
     }
-    private void closeDoors() {
-        // code close doors ở đây.
-        System.out.println("Close the door");
+
+    // Hàm kiểm tra xem một vị trí bất kỳ có đang bị cửa đóng chặn lại không
+    public boolean isHitClosedDoor(double worldX, double worldY, double radius) {
+        if (!isDoorClosed) return false; // Cửa đang mở thì cho đi qua thoải mái
+
+        // Kiểm tra xem vòng tròn của player có giao cắt với bất kỳ ô cửa nào của phòng không
+        for (BoundingBox door : doors) {
+            if (door.intersects(worldX - radius, worldY - radius, radius * 2, radius * 2)) {
+                return true; // Đang đâm đầu vào cửa đóng!
+            }
+        }
+        return false;
     }
 
-    private void openDoors() {
-        System.out.println("Open the door");
-    }
-
-
-
-    //getter và setter
-    public String getName() {
-        return name;
-    }
-    public BoundingBox getBound() {
-        return bound;
-    }
-    public boolean isActived() {
-        return isActived;
-    }
-    public boolean isCleared() {
-        return isCleared;
-    }
-    public List<BoundingBox> getDoors() {
-        return doors;
-    }
+    // Getter & Setter
+    public String getName() { return name; }
+    public BoundingBox getBound() { return bound; }
+    public boolean isActived() { return isActived; }
+    public boolean isCleared() { return isCleared; }
+    public boolean isDoorClosed() { return isDoorClosed; }
+    public List<BoundingBox> getDoors() { return doors; }
 }

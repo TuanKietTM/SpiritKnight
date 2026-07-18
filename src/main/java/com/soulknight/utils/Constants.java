@@ -9,11 +9,11 @@ public final class Constants {
     public static final int MAP_WIDTH = 28;
     public static final int MAP_HEIGHT = 18;
     public static final int PLAYER_RADIUS = 8;
-    public static final int PLAYER_HEALTH = 100;
+    public static final int PLAYER_HEALTH = 500;
     public static final double PLAYER_SPEED = 200.0;
     public static final int ENEMY_RADIUS = 14;
     public static final int ENEMY_HEALTH = 30;
-    public static final double ENEMY_SPEED = 120.0;
+    public static final double ENEMY_SPEED = 10.0;
     public static final int ENEMY_DAMAGE = 10;
     public static final double ENEMY_ATTACK_RANGE = 26.0;
     public static final double ENEMY_ATTACK_COOLDOWN = 0.9;

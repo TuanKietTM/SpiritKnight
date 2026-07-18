@@ -2,6 +2,7 @@ package com.soulknight.weapon;
 
 import com.soulknight.engine.GameWorld;
 import com.soulknight.entity.Entity;
+import com.soulknight.utils.SoundManager;
 import com.soulknight.utils.Vector2D;
 import javafx.scene.paint.Color;
 
@@ -22,6 +23,7 @@ public final class Gun extends Weapon {
             return;
         }
 
+        SoundManager.getInstance().playSFX("Bullet");
         Vector2D direction = targetPosition.copy().subtract(owner.getPosition());
         if (direction.length() == 0.0) {
             direction.setX(1.0);

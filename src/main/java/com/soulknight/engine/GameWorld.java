@@ -9,6 +9,7 @@ import com.soulknight.level.LevelManager;
 import com.soulknight.map.MapManager;
 import com.soulknight.mission.MissionManager;
 import com.soulknight.utils.Constants;
+import com.soulknight.utils.SoundManager;
 import com.soulknight.utils.Vector2D;
 import com.soulknight.weapon.Bullet;
 import com.soulknight.weapon.Gun;
@@ -102,6 +103,12 @@ public final class GameWorld {
 
     private void updatePlaying(double deltaSeconds, double viewportWidth, double viewportHeight, boolean allowSpawns) {
         player.update(this, deltaSeconds);
+        if (mapManager != null && mapManager.getRooms() != null) {
+            for (com.soulknight.map.Room room : mapManager.getRooms()) {
+                // Truyền vị trí Player và danh sách kẻ địch hiện tại vào để Room tự xử lý logic
+                room.update(this, player.getPosition().getX(), player.getPosition().getY(), enemies,deltaSeconds);
+            }
+        }
 
 
         for (Enemy enemy : enemies) {
@@ -231,6 +238,7 @@ public final class GameWorld {
     private void startNewRun() {
         levelManager.startNewRun();
         loadCurrentLevel(true);
+        SoundManager.getInstance().playBGM("/assets/Audio/StartGame.mp3");
     }
 
     //(vitdung) chỉnh lại hàm này để test loadMap từ txt
@@ -347,6 +355,44 @@ public final class GameWorld {
 
     public boolean isPlaying() {
         return state == GameState.PLAYING;
+    }
+    public void spawnEnemiesInRoom(com.soulknight.map.Room room) {
+        List<Vector2D> roomSpawnPoints = new ArrayList<>();
+        javafx.geometry.BoundingBox bound = room.getBound();
+
+        // Khoảng cách an toàn tối thiểu giữa quái và Player khi xuất hiện (tính bằng pixel)
+        final double MIN_SAFE_DISTANCE = 150.0;
+
+        // Thử tìm 4 vị trí hợp lệ nằm TRONG PHÒNG và XA PLAYER
+        for (int i = 0; i < 4; i++) {
+            Vector2D point = null;
+            boolean validPointFound = false;
+
+            // Thử tối đa 10 lần để tìm được một điểm vừa trong phòng vừa an toàn
+            for (int attempt = 0; attempt < 10; attempt++) {
+                Vector2D randomPoint = mapManager.findRandomWalkablePosition(random, com.soulknight.utils.Constants.ENEMY_RADIUS);
+
+                if (randomPoint != null && bound.contains(randomPoint.getX(), randomPoint.getY())) {
+                    // Kiểm tra xem khoảng cách từ điểm ngẫu nhiên này tới Player có lớn hơn khoảng cách an toàn không
+                    if (randomPoint.distance(player.getPosition()) >= MIN_SAFE_DISTANCE) {
+                        point = randomPoint;
+                        validPointFound = true;
+                        break; // Tìm thấy điểm hoàn hảo, thoát vòng lặp thử
+                    }
+                }
+            }
+
+            // Trường hợp dự phòng (Nếu thử 10 lần vẫn không tìm được điểm xa player do phòng quá nhỏ)
+            if (!validPointFound) {
+                // Lấy tạm tâm của phòng làm điểm sinh quái
+                point = new Vector2D(bound.getMinX() + bound.getWidth() / 2, bound.getMinY() + bound.getHeight() / 2);
+            }
+
+            roomSpawnPoints.add(point);
+        }
+
+        // Tiến hành tạo quái tại các điểm an toàn vừa quét được
+        enemies.addAll(enemyFactory.createInitialEnemies(random, player.getPosition(), roomSpawnPoints));
     }
 
 }
