@@ -3,22 +3,29 @@
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.VBox?>
 
-<VBox xmlns="http://javafx.com/javafx/17"
-      xmlns:fx="http://javafx.com/fxml/1"
-      fx:controller="com.soulknight.ui.Menu"
-      stylesheets="@../CSS/Menu.css"
-      styleClass="menu-container"
-      alignment="CENTER"
-      spacing="30"> <ImageView fx:id="imgCharacter" styleClass="menu-sprite"/>
-
-    <Label text="SOUL KNIGHT" styleClass="menu-title"/>
-
-    <VBox alignment="CENTER" spacing="15" styleClass="button-container">
+<AnchorPane xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.soulknight.ui.Menu"
+            stylesheets="@../CSS/Menu.css"
+            styleClass="menu-container">
+    <VBox alignment="CENTER" spacing="5"
+          AnchorPane.topAnchor="60.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0">
+        <Label text="SOUL KNIGHT" styleClass="menu-title"/>
+    </VBox>
+    <VBox alignment="BOTTOM_CENTER" spacing="10"
+          AnchorPane.bottomAnchor="100.0" AnchorPane.leftAnchor="150.0">
+        <ImageView fx:id="imgCharacter" styleClass="menu-sprite"/>
+        <VBox styleClass="shadow-ellipse"/>
+    </VBox>
+    <VBox alignment="CENTER" spacing="16" styleClass="button-container"
+          AnchorPane.bottomAnchor="80.0" AnchorPane.rightAnchor="120.0">
         <Button fx:id="btnPlay" text="START GAME" onAction="#onPlayClicked" styleClass="menu-button" focusTraversable="false"/>
+        <Button fx:id="btnShop" text="SHOP" onAction="#onShopClicked" styleClass="menu-button" focusTraversable="false"/>
         <Button fx:id="btnSettings" text="SETTINGS" onAction="#onSettingsClicked" styleClass="menu-button" focusTraversable="false"/>
-        <Button fx:id="btnExit" text="EXIT GAME" onAction="#onExitClicked" styleClass="menu-button" focusTraversable="false"/>
+        <Button fx:id="btnExit" text="EXIT GAME" onAction="#onExitClicked" styleClass="menu-button-exit" focusTraversable="false"/>
     </VBox>
 
-</VBox>
+</AnchorPane>

@@ -2,32 +2,64 @@
 
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ProgressBar?>
+<?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.shape.Circle?>
 
-<HBox xmlns="http://javafx.com/javafx/17"
-      xmlns:fx="http://javafx.com/fxml/1"
-      fx:controller="com.soulknight.ui.HUD"
-      stylesheets="@../CSS/HUD.css"
-      styleClass="hud-container"
-      alignment="CENTER_LEFT"
-      spacing="30">
-
-    <VBox spacing="8" HBox.hgrow="ALWAYS">
-        <Label fx:id="hpLabel" text="HP: 0/0" styleClass="hud-text-important"/>
-        <Label fx:id="missionTitleLabel" text="Mission: N/A" styleClass="hud-text-secondary"/>
+<AnchorPane xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.soulknight.ui.HUD"
+            stylesheets="@../CSS/HUD.css"
+            styleClass="hud-fullscreen-container"
+            pickOnBounds="false">
+    <VBox layoutX="20.0" layoutY="20.0" styleClass="status-board" spacing="2">
+        <HBox spacing="4" alignment="CENTER_LEFT">
+            <Label text="❤" styleClass="status-icon-hp"/>
+            <StackPane alignment="CENTER_LEFT">
+                <ProgressBar fx:id="hpBar" progress="1.0" styleClass="status-bar-hp"/>
+                <Label fx:id="hpLabel" text="11/11" styleClass="status-bar-text"/>
+            </StackPane>
+        </HBox>
+        <HBox spacing="4" alignment="CENTER_LEFT">
+            <Label text="🛡" styleClass="status-icon-shield"/>
+            <StackPane alignment="CENTER_LEFT">
+                <ProgressBar fx:id="shieldBar" progress="1.0" styleClass="status-bar-shield"/>
+                <Label fx:id="shieldLabel" text="6/6" styleClass="status-bar-text"/>
+            </StackPane>
+        </HBox>
+        <HBox spacing="4" alignment="CENTER_LEFT">
+            <Label text="✦" styleClass="status-icon-mana"/>
+            <StackPane alignment="CENTER_LEFT">
+                <ProgressBar fx:id="manaBar" progress="1.0" styleClass="status-bar-mana"/>
+                <Label fx:id="manaLabel" text="200/200" styleClass="status-bar-text"/>
+            </StackPane>
+        </HBox>
     </VBox>
 
-    <VBox spacing="8" HBox.hgrow="ALWAYS" alignment="CENTER">
-        <Label fx:id="levelBannerLabel" text="LEVEL 1-1" styleClass="hud-text-important"/>
-        <Label fx:id="missionProgressLabel" text="Progress: 0%" styleClass="hud-text-secondary"/>
+    <VBox AnchorPane.topAnchor="15.0" AnchorPane.leftAnchor="350.0" AnchorPane.rightAnchor="350.0"
+          alignment="CENTER" spacing="2" pickOnBounds="false">
+        <Label fx:id="levelBannerLabel" text="LEVEL 1-1" styleClass="level-banner-text"/>
+        <Label fx:id="missionTitleLabel" text="Mission: Clear Room" styleClass="mission-text"/>
+        <Label fx:id="missionProgressLabel" text="Progress: 0%" styleClass="mission-subtext"/>
     </VBox>
 
-    <VBox spacing="8" HBox.hgrow="ALWAYS" alignment="CENTER_RIGHT">
-        <Label fx:id="weaponLabel" text="Weapon: None" styleClass="hud-text-important"/>
-        <Label fx:id="entitiesLabel" text="Enemies: 0 | Items: 0" styleClass="hud-text-secondary"/>
-    </VBox>
+    <HBox layoutY="20.0" AnchorPane.rightAnchor="20.0" spacing="20" alignment="CENTER_RIGHT">
+        <HBox spacing="5" alignment="CENTER" styleClass="coin-container">
+            <Label text="🪙" styleClass="coin-icon"/>
+            <Label fx:id="entitiesLabel" text="145" styleClass="coin-text"/>
+        </HBox>
+        <Button text="⏸" onAction="#onPauseButtonClicked" styleClass="hud-pause-button" focusTraversable="false"/>
+    </HBox>
+    <StackPane layoutX="860.0" layoutY="450.0" AnchorPane.bottomAnchor="30.0" AnchorPane.rightAnchor="30.0"
+               styleClass="weapon-ring-container">
+        <Circle radius="55" styleClass="weapon-ring-bg"/>
+        <VBox alignment="CENTER" spacing="3" pickOnBounds="false">
+            <Label text="⚔" styleClass="weapon-icon"/>
+            <Label fx:id="weaponLabel" text="BAD PISTOL" styleClass="weapon-text-hud"/>
+        </VBox>
+    </StackPane>
 
-    <Button text="⏸" onAction="#onPauseButtonClicked" styleClass="hud-pause-button" focusTraversable="false"/>
-
-</HBox>
+</AnchorPane>

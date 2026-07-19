@@ -9,6 +9,7 @@ import com.soulknight.level.LevelManager;
 import com.soulknight.map.MapManager;
 import com.soulknight.mission.MissionManager;
 import com.soulknight.utils.Constants;
+import com.soulknight.utils.SoundManager;
 import com.soulknight.utils.Vector2D;
 import com.soulknight.weapon.Bullet;
 import com.soulknight.weapon.Gun;
@@ -34,7 +35,7 @@ public final class GameWorld {
     private final List<Enemy> enemies = new ArrayList<>();
     private final List<Bullet> bullets = new ArrayList<>();
     private final List<Item> items = new ArrayList<>();
-    private GameState state = GameState.MAIN_MENU;
+    private GameState state = GameState.INTRO;
     private double enemySpawnTimer;
     private Vector2D pendingPortalPosition;
 
@@ -44,7 +45,7 @@ public final class GameWorld {
 
     public GameWorld(InputHandler inputHandler) {
         this.inputHandler = inputHandler;
-        startNewRun();
+//        startNewRun();
     }
 
     public void setGameStateListener(GameStateListener listener) {
@@ -56,6 +57,12 @@ public final class GameWorld {
     }
 
     public void changeState(GameState newState) {
+// thay doi trang thai
+        if ((this.state == GameState.MAIN_MENU || this.state == GameState.GAME_OVER || this.state == GameState.GAME_VICTORY)
+                && newState == GameState.PLAYING) {
+            startNewRun();
+        }
+
         if (this.state != newState) {
             this.state = newState;
             if (stateListener != null) {
@@ -66,14 +73,18 @@ public final class GameWorld {
 
     public void update(double deltaSeconds, double viewportWidth, double viewportHeight) {
         switch (state) {
-            case MAIN_MENU -> {
+            case INTRO -> {
                 if (inputHandler.consumeConfirmRequest()) {
-                    startNewRun();
-                    changeState(GameState.PLAYING);
+                    changeState(GameState.MAIN_MENU);
                 }
+            }
+            case MAIN_MENU -> {
+                inputHandler.consumeConfirmRequest();
             }
             case PLAYING -> updatePlaying(deltaSeconds, viewportWidth, viewportHeight, true);
             case LEVEL_CLEAR -> updateLevelClear(deltaSeconds, viewportWidth, viewportHeight);
+            case PAUSED -> {
+            }
             case GAME_OVER, GAME_VICTORY -> {
                 if (inputHandler.consumeConfirmRequest()) {
                     startNewRun();
@@ -85,13 +96,19 @@ public final class GameWorld {
 
     public void render(GraphicsContext graphicsContext, double renderWidth, double renderHeight) {
         graphicsContext.clearRect(0.0, 0.0, renderWidth, renderHeight);
-        if (state != GameState.MAIN_MENU) {
+        if (state != GameState.INTRO && state != GameState.MAIN_MENU && mapManager != null && player != null) {
             renderWorld(graphicsContext, renderWidth, renderHeight);
         }
     }
 
     private void updatePlaying(double deltaSeconds, double viewportWidth, double viewportHeight, boolean allowSpawns) {
         player.update(this, deltaSeconds);
+        if (mapManager != null && mapManager.getRooms() != null) {
+            for (com.soulknight.map.Room room : mapManager.getRooms()) {
+                // Truyền vị trí Player và danh sách kẻ địch hiện tại vào để Room tự xử lý logic
+                room.update(this, player.getPosition().getX(), player.getPosition().getY(), enemies,deltaSeconds);
+            }
+        }
 
 
         for (Enemy enemy : enemies) {
@@ -221,12 +238,13 @@ public final class GameWorld {
     private void startNewRun() {
         levelManager.startNewRun();
         loadCurrentLevel(true);
+        SoundManager.getInstance().playBGM("/assets/Audio/StartGame.mp3");
     }
 
     //(vitdung) chỉnh lại hàm này để test loadMap từ txt
     private void loadCurrentLevel(boolean freshRun) {
-        String mapPath = "/maps/level1_1.txt";
-        this.mapManager = new MapManager(mapPath, Constants.TILE_SIZE);
+        String mapPath = "/maps/level1_1.json";
+        this.mapManager = new MapManager(mapPath);
         this.mapManager.closeExitPortal();
         // đoạn portal chưa rõ lắm
         this.pendingPortalPosition = mapManager.getExitPortalPosition();
@@ -338,4 +356,43 @@ public final class GameWorld {
     public boolean isPlaying() {
         return state == GameState.PLAYING;
     }
+    public void spawnEnemiesInRoom(com.soulknight.map.Room room) {
+        List<Vector2D> roomSpawnPoints = new ArrayList<>();
+        javafx.geometry.BoundingBox bound = room.getBound();
+
+        // Khoảng cách an toàn tối thiểu giữa quái và Player khi xuất hiện (tính bằng pixel)
+        final double MIN_SAFE_DISTANCE = 150.0;
+
+        // Thử tìm 4 vị trí hợp lệ nằm TRONG PHÒNG và XA PLAYER
+        for (int i = 0; i < 4; i++) {
+            Vector2D point = null;
+            boolean validPointFound = false;
+
+            // Thử tối đa 10 lần để tìm được một điểm vừa trong phòng vừa an toàn
+            for (int attempt = 0; attempt < 10; attempt++) {
+                Vector2D randomPoint = mapManager.findRandomWalkablePosition(random, com.soulknight.utils.Constants.ENEMY_RADIUS);
+
+                if (randomPoint != null && bound.contains(randomPoint.getX(), randomPoint.getY())) {
+                    // Kiểm tra xem khoảng cách từ điểm ngẫu nhiên này tới Player có lớn hơn khoảng cách an toàn không
+                    if (randomPoint.distance(player.getPosition()) >= MIN_SAFE_DISTANCE) {
+                        point = randomPoint;
+                        validPointFound = true;
+                        break; // Tìm thấy điểm hoàn hảo, thoát vòng lặp thử
+                    }
+                }
+            }
+
+            // Trường hợp dự phòng (Nếu thử 10 lần vẫn không tìm được điểm xa player do phòng quá nhỏ)
+            if (!validPointFound) {
+                // Lấy tạm tâm của phòng làm điểm sinh quái
+                point = new Vector2D(bound.getMinX() + bound.getWidth() / 2, bound.getMinY() + bound.getHeight() / 2);
+            }
+
+            roomSpawnPoints.add(point);
+        }
+
+        // Tiến hành tạo quái tại các điểm an toàn vừa quét được
+        enemies.addAll(enemyFactory.createInitialEnemies(random, player.getPosition(), roomSpawnPoints));
+    }
+
 }
