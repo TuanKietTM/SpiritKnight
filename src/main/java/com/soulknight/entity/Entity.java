@@ -31,7 +31,7 @@ public abstract class Entity {
         graphicsContext.fillOval(screenX - radius, screenY - radius, radius * 2.0, radius * 2.0);
     }
 
-    protected void move(GameWorld world, double deltaX, double deltaY) {
+    public void move(GameWorld world, double deltaX, double deltaY) {
         Vector2D nextPosition = position.copy().add(deltaX, deltaY);
         if (world.canMoveTo(nextPosition, radius)) {
             position.set(nextPosition);
