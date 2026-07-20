@@ -62,9 +62,12 @@ public final class GameWorld {
                 && newState == GameState.PLAYING) {
             startNewRun();
         }
-
         if (this.state != newState) {
             this.state = newState;
+            // xpa sach trang thai phim
+            if (inputHandler != null) {
+                inputHandler.clearState();
+            }
             if (stateListener != null) {
                 stateListener.onStateChanged(newState);
             }
@@ -72,6 +75,10 @@ public final class GameWorld {
     }
 
     public void update(double deltaSeconds, double viewportWidth, double viewportHeight) {
+//        (cuong) khi pause thi dung render
+        if (state == GameState.PAUSED) {
+            return;
+        }
         switch (state) {
             case INTRO -> {
                 if (inputHandler.consumeConfirmRequest()) {
@@ -86,6 +93,7 @@ public final class GameWorld {
             case PAUSED -> {
             }
             case GAME_OVER, GAME_VICTORY -> {
+//                nhap chuot confirm
                 if (inputHandler.consumeConfirmRequest()) {
                     startNewRun();
                     changeState(GameState.PLAYING);
@@ -310,7 +318,9 @@ public final class GameWorld {
     }
 
     public GameState getState() { return state; }
-    public InputHandler getInputHandler() { return inputHandler; }
+    public InputHandler getInputHandler() {
+//        goi trong player de dieu khien nhan vat tu ban phim ,ngam ban tu chuot
+        return inputHandler; }
     public MapManager getMapManager() { return mapManager; }
     public Player getPlayer() { return player; }
     public List<Enemy> getEnemies() { return enemies; }
@@ -323,6 +333,7 @@ public final class GameWorld {
     public MissionManager getMissionManager() { return missionManager; }
 
     public Vector2D getMouseWorldPosition() {
+//        xu li ngam ban tu chuot
         return camera.screenToWorld(inputHandler.getMousePosition());
     }
 
@@ -445,4 +456,23 @@ private void resolvePlayerEnemyCollisions(double deltaSeconds) {
         }
     }
 }
+    /**
+     * (cuong)Xu li he thong ESC, Mute
+     * goi lien tuc o moi frame de tranh bi fxml button de len
+     */
+    public void handleGlobalInput() {
+//        Kiem tra phim mute
+        if (inputHandler.consumeToggleMuteRequest()) {
+            SoundManager.getInstance().toggleMute();
+        }
+
+//       Kiem tra ESC de pause va resume
+        if (inputHandler.consumeEscapeRequest()) {
+            if (state == GameState.PLAYING) {
+                changeState(GameState.PAUSED);
+            } else if (state == GameState.PAUSED) {
+                changeState(GameState.PLAYING);
+            }
+        }
+    }
 }
