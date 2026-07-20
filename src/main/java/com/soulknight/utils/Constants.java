@@ -8,7 +8,7 @@ public final class Constants {
     public static final int TILE_SIZE = 48;
     public static final int MAP_WIDTH = 28;
     public static final int MAP_HEIGHT = 18;
-    public static final int PLAYER_RADIUS = 8;
+    public static final int PLAYER_RADIUS = 12;
     public static final int PLAYER_HEALTH = 500;
     public static final double PLAYER_SPEED = 200.0;
     public static final int ENEMY_RADIUS = 14;
