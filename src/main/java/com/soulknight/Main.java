@@ -2,6 +2,7 @@ package com.soulknight;
 
 import com.soulknight.engine.GameLoop;
 import com.soulknight.engine.GameWorld;
+import com.soulknight.engine.GameState;
 import com.soulknight.engine.InputHandler;
 import com.soulknight.ui.UIManager;
 import com.soulknight.utils.Constants;
@@ -22,31 +23,22 @@ public final class Main extends Application {
 
         StackPane root = new StackPane(canvas);
         Scene scene = new Scene(root, Constants.WINDOW_WIDTH, Constants.WINDOW_HEIGHT);
-
         canvas.widthProperty().bind(scene.widthProperty());
         canvas.heightProperty().bind(scene.heightProperty());
+
+        //Khoi tao  InputHandler va lang nghe tat ca su kien chuot , ban phim
         InputHandler inputHandler = new InputHandler();
         inputHandler.bind(scene);
 
         GameWorld world = new GameWorld(inputHandler);
         UIManager uiManager = new UIManager(root);
-
         world.setGameStateListener(uiManager::handleStateChange);
         uiManager.bindGameActions(world);
-        scene.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, event -> {
-            if (event.getCode() == javafx.scene.input.KeyCode.ESCAPE) {
-                if (world.getState() == com.soulknight.engine.GameState.PLAYING) {
-                    world.changeState(com.soulknight.engine.GameState.PAUSED);
-                } else if (world.getState() == com.soulknight.engine.GameState.PAUSED) {
-                    world.changeState(com.soulknight.engine.GameState.PLAYING);
-                }
-                event.consume();
-            }
-        });
-
-
+        // GameLoop
         GameLoop gameLoop = new GameLoop(delta -> {
-            if (world.getState() == com.soulknight.engine.GameState.PAUSED) {
+//            Phim bam toan cuc  ESC / Mute o moi frame
+            world.handleGlobalInput();
+            if (world.getState() == GameState.PAUSED) {
                 world.render(graphicsContext, canvas.getWidth(), canvas.getHeight());
             } else {
                 world.update(delta, canvas.getWidth(), canvas.getHeight());
@@ -55,6 +47,7 @@ public final class Main extends Application {
             }
         });
 
+        //  Stage
         stage.setTitle(Constants.GAME_TITLE);
         stage.setScene(scene);
         stage.setMinWidth(Constants.WINDOW_WIDTH);
