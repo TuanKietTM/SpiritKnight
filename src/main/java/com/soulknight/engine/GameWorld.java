@@ -81,7 +81,7 @@ public final class GameWorld {
             case MAIN_MENU -> {
                 inputHandler.consumeConfirmRequest();
             }
-            case PLAYING -> updatePlaying(deltaSeconds, viewportWidth, viewportHeight, true);
+            case PLAYING -> updatePlaying(deltaSeconds, viewportWidth, viewportHeight, false);
             case LEVEL_CLEAR -> updateLevelClear(deltaSeconds, viewportWidth, viewportHeight);
             case PAUSED -> {
             }
@@ -128,15 +128,6 @@ public final class GameWorld {
             inputHandler.consumeConfirmRequest();
             changeState(GameState.GAME_OVER);
             return;
-        }
-
-        if (missionManager.isMissionComplete()) {
-            if (levelManager.getCurrentLevel().bossLevel()) {
-                changeState(GameState.GAME_VICTORY);
-            } else {
-                changeState(GameState.LEVEL_CLEAR);
-                mapManager.openExitPortal(pendingPortalPosition);
-            }
         }
     }
 
@@ -275,12 +266,6 @@ public final class GameWorld {
             spawnEnergyCrystals(3);
         }
 
-        // lấy danh sách các điểm enemy từ Mapmanager để cho quái xuất hiện ở vị trí đó trên bản đồ
-        List<Vector2D> enemySpawnPoints = mapManager.getEnemySpawnPoints();
-
-        if (!enemySpawnPoints.isEmpty()) {
-            enemies.addAll(enemyFactory.createInitialEnemies(random, player.getPosition(), enemySpawnPoints));
-        }
         // nếu là màn có boss
         if (levelManager.getCurrentLevel().bossLevel() && mapManager.getBossSpawnPoint() != null) {
             enemies.add(enemyFactory.createGrandKnight(mapManager.getBossSpawnPoint()));
@@ -356,12 +341,15 @@ public final class GameWorld {
     public boolean isPlaying() {
         return state == GameState.PLAYING;
     }
-    public void spawnEnemiesInRoom(com.soulknight.map.Room room) {
+    public void spawnEnemiesInRoom(com.soulknight.map.Room room, int waveNumber) {
         List<Vector2D> roomSpawnPoints = new ArrayList<>();
         javafx.geometry.BoundingBox bound = room.getBound();
 
+        int baseEnemyCount = enemyFactory.calculateEnemyCount();
+
         //  Lấy số lượng quái dự kiến từ Factory dựa trên level hiện tại
-        int desiredEnemyCount = enemyFactory.calculateEnemyCount();
+        int desiredEnemyCount = baseEnemyCount + (waveNumber - 1);
+
 
         // 2. : Đảm bảo số quái một phòng không bao giờ vượt quá mức cho phép
         final int MAX_ENEMIES_PER_ROOM = 3;
@@ -375,8 +363,8 @@ public final class GameWorld {
             Vector2D point = null;
             boolean validPointFound = false;
 
-            for (int attempt = 0; attempt < 10; attempt++) {
-                Vector2D randomPoint = mapManager.findRandomWalkablePosition(random, com.soulknight.utils.Constants.ENEMY_RADIUS);
+            for (int attempt = 0; attempt < 15; attempt++) {
+                Vector2D randomPoint = mapManager.findRandomWalkablePositionInRoom(room, random, Constants.ENEMY_RADIUS);
 
                 if (randomPoint != null && bound.contains(randomPoint.getX(), randomPoint.getY())) {
                     if (randomPoint.distance(player.getPosition()) >= MIN_SAFE_DISTANCE) {
@@ -409,8 +397,13 @@ public final class GameWorld {
             roomSpawnPoints.add(point);
         }
 
-        // 3. Cập nhật lại lệnh gọi Factory: Truyền trực tiếp danh sách điểm đã giới hạn số lượng
-        enemies.addAll(enemyFactory.createInitialEnemiesAtPoints(random, player.getPosition(), roomSpawnPoints));
+        // sinh quái tùy theo wave
+        if (waveNumber == 1) {
+            enemies.addAll(enemyFactory.createInitialEnemiesAtPoints(random, player.getPosition(), roomSpawnPoints));
+        } else {
+
+            enemies.addAll(enemyFactory.createInitialEnemiesAtPoints(random, player.getPosition(), roomSpawnPoints));
+        }
     }
 //    xu li va cham giua entity va entity
 //  Thêm thuật toán đẩy lùi, tạo vùng cấm không cho quái chồng lấn lên hình Player

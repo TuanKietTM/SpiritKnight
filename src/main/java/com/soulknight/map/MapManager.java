@@ -295,6 +295,45 @@ public final class MapManager {
         return null;
     }
 
+    /**
+     * Tìm một vị trí ngẫu nhiên hợp lệ nằm trọn trong một Room cụ thể.
+     * Đảm bảo vị trí đó là WALKABLE (Sàn) và không đè lên tường.
+     */
+    public Vector2D findRandomWalkablePositionInRoom(Room room, Random random, double enemyRadius) {
+        javafx.geometry.BoundingBox bound = room.getBound();
+
+        // Tính toán giới hạn ô gạch (Tile) bao quanh phòng để tối ưu vòng lặp
+        int minTileX = (int) Math.floor(bound.getMinX() / tileSize);
+        int maxTileX = (int) Math.floor((bound.getMinX() + bound.getWidth()) / tileSize);
+        int minTileY = (int) Math.floor(bound.getMinY() / tileSize);
+        int maxTileY = (int) Math.floor((bound.getMinY() + bound.getHeight()) / tileSize);
+
+        // Thử tối đa 100 lần để tìm vị trí trống sạch sẽ
+        for (int attempt = 0; attempt < 100; attempt++) {
+            // Lấy ngẫu nhiên một tọa độ pixel nằm trong BoundingBox của phòng
+            double randomX = bound.getMinX() + random.nextDouble() * bound.getWidth();
+            double randomY = bound.getMinY() + random.nextDouble() * bound.getHeight();
+
+            // 🎯 ĐIỀU KIỆN 1: Tọa độ đó phải di chuyển được (Walkable) theo cơ chế va chạm hiện tại
+            if (isWalkable(randomX, randomY, enemyRadius)) {
+
+                // 🎯 ĐIỀU KIỆN 2: Ép kỹ hơn - ô gạch tại tâm đó bắt buộc phải tồn tại và là FLOOR
+                int tx = (int) Math.floor(randomX / tileSize);
+                int ty = (int) Math.floor(randomY / tileSize);
+
+                if (tx >= minTileX && tx <= maxTileX && ty >= minTileY && ty <= maxTileY) {
+                    Tile tile = tiles[ty][tx];
+                    // Chỉ cho phép sinh trên gạch sàn thông thường (ID = 1)
+                    if (tile != null && tile.isWalkable()) {
+                        return new Vector2D(randomX, randomY);
+                    }
+                }
+            }
+        }
+        // Nếu phòng quá chật hoặc không tìm thấy sau 100 lần, trả về tâm phòng làm điểm dự phòng
+        return new Vector2D(bound.getMinX() + bound.getWidth() / 2.0, bound.getMinY() + bound.getHeight() / 2.0);
+    }
+
     public double getWorldWidth() {
         return width * (double) tileSize;
     }
