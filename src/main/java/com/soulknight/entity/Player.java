@@ -16,6 +16,8 @@ public final class Player extends Entity {
     private final PlayerAnimator animator = new PlayerAnimator();
     private boolean isFacingLeft = false;
     private PlayerAnimator.State movementState = PlayerAnimator.State.IDLE;
+    private double invulnerabilityTimer = 0.0;
+    private final double MAX_INVULNERABILITY_TIME = 0.3;
 
     public Player(Vector2D spawnPoint) {
         super(spawnPoint, Constants.PLAYER_RADIUS, Constants.PLAYER_HEALTH, Color.DODGERBLUE);
@@ -28,9 +30,20 @@ public final class Player extends Entity {
     public void equipWeapon(Weapon weapon) {
         this.weapon = weapon;
     }
+//    tao thoi gian bat tu de giam khung lai
+    public void takeDamage(int amount){
+        if(invulnerabilityTimer>0.0){
+            return;
+        }
+        super.takeDamage(amount);
+        this.invulnerabilityTimer=MAX_INVULNERABILITY_TIME;
+    }
 
     @Override
     public void update(GameWorld world, double deltaSeconds) {
+        if(invulnerabilityTimer>0.0){
+            invulnerabilityTimer = Math.max(0.0, invulnerabilityTimer - deltaSeconds);
+        }
         weapon.tick(deltaSeconds);
 
         double dx = 0.0;
@@ -71,7 +84,7 @@ public final class Player extends Entity {
         }
         animator.update(movementState, deltaSeconds);
 
-        if (world.getInputHandler().isFireHeld()) {
+        if (world.getInputHandler().isFireHeld() && world.getMouseWorldPosition()!=null) {
             weapon.attack(world, this, world.getMouseWorldPosition());
         }
     }

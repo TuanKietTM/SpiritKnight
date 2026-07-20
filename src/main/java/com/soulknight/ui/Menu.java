@@ -13,11 +13,16 @@ import javafx.util.Duration;
 
 public final class Menu {
 
-    @FXML private Button btnPlay;
-    @FXML private Button btnSettings;
-    @FXML private Button btnShop;
-    @FXML private Button btnExit;
-    @FXML private ImageView imgCharacter;
+    @FXML
+    private Button btnPlay;
+    @FXML
+    private Button btnSettings;
+    @FXML
+    private Button btnShop;
+    @FXML
+    private Button btnExit;
+    @FXML
+    private ImageView imgCharacter;
 
     private Runnable onPlayCallback;
     private Runnable onSettingsCallback;

@@ -105,8 +105,7 @@ public final class GameWorld {
         player.update(this, deltaSeconds);
         if (mapManager != null && mapManager.getRooms() != null) {
             for (com.soulknight.map.Room room : mapManager.getRooms()) {
-                // Truyền vị trí Player và danh sách kẻ địch hiện tại vào để Room tự xử lý logic
-                room.update(this, player.getPosition().getX(), player.getPosition().getY(), enemies,deltaSeconds);
+                room.update(this, player, enemies, deltaSeconds);
             }
         }
 
@@ -114,6 +113,7 @@ public final class GameWorld {
         for (Enemy enemy : enemies) {
             enemy.update(this, deltaSeconds);
         }
+        resolvePlayerEnemyCollisions(deltaSeconds);
 
         updateBullets(deltaSeconds);
         updateItemCollection();
@@ -360,39 +360,96 @@ public final class GameWorld {
         List<Vector2D> roomSpawnPoints = new ArrayList<>();
         javafx.geometry.BoundingBox bound = room.getBound();
 
-        // Khoảng cách an toàn tối thiểu giữa quái và Player khi xuất hiện (tính bằng pixel)
+        //  Lấy số lượng quái dự kiến từ Factory dựa trên level hiện tại
+        int desiredEnemyCount = enemyFactory.calculateEnemyCount();
+
+        // 2. : Đảm bảo số quái một phòng không bao giờ vượt quá mức cho phép
+        final int MAX_ENEMIES_PER_ROOM = 3;
+        int finalEnemyCount = Math.min(desiredEnemyCount, MAX_ENEMIES_PER_ROOM);
+
+        // Khoảng cách an toàn tối thiểu giữa quái và Player
         final double MIN_SAFE_DISTANCE = 150.0;
 
-        // Thử tìm 4 vị trí hợp lệ nằm TRONG PHÒNG và XA PLAYER
-        for (int i = 0; i < 4; i++) {
+        // Vòng lặp chỉ chạy đúng bằng số lượng quái cần sinh thực tế
+        for (int i = 0; i < finalEnemyCount; i++) {
             Vector2D point = null;
             boolean validPointFound = false;
 
-            // Thử tối đa 10 lần để tìm được một điểm vừa trong phòng vừa an toàn
             for (int attempt = 0; attempt < 10; attempt++) {
                 Vector2D randomPoint = mapManager.findRandomWalkablePosition(random, com.soulknight.utils.Constants.ENEMY_RADIUS);
 
                 if (randomPoint != null && bound.contains(randomPoint.getX(), randomPoint.getY())) {
-                    // Kiểm tra xem khoảng cách từ điểm ngẫu nhiên này tới Player có lớn hơn khoảng cách an toàn không
                     if (randomPoint.distance(player.getPosition()) >= MIN_SAFE_DISTANCE) {
-                        point = randomPoint;
-                        validPointFound = true;
-                        break; // Tìm thấy điểm hoàn hảo, thoát vòng lặp thử
+
+                        // Giữ khoảng cách giữa các con quái với nhau, tránh sinh đè lên nhau
+                        boolean tooCloseToOtherEnemies = false;
+                        for (Vector2D existingPoint : roomSpawnPoints) {
+                            if (randomPoint.distance(existingPoint) < 40.0) { // cách nhau tối thiểu 40px
+                                tooCloseToOtherEnemies = true;
+                                break;
+                            }
+                        }
+
+                        if (!tooCloseToOtherEnemies) {
+                            point = randomPoint;
+                            validPointFound = true;
+                            break;
+                        }
                     }
                 }
             }
 
-            // Trường hợp dự phòng (Nếu thử 10 lần vẫn không tìm được điểm xa player do phòng quá nhỏ)
             if (!validPointFound) {
-                // Lấy tạm tâm của phòng làm điểm sinh quái
-                point = new Vector2D(bound.getMinX() + bound.getWidth() / 2, bound.getMinY() + bound.getHeight() / 2);
+                // Điểm dự phòng nếu phòng quá chật, dịch chuyển ngẫu nhiên một chút quanh tâm để không bị dính chùm
+                double offsetX = (random.nextDouble() - 0.5) * 30.0;
+                double offsetY = (random.nextDouble() - 0.5) * 30.0;
+                point = new Vector2D((bound.getMinX() + bound.getWidth() / 2) + offsetX, (bound.getMinY() + bound.getHeight() / 2) + offsetY);
             }
 
             roomSpawnPoints.add(point);
         }
 
-        // Tiến hành tạo quái tại các điểm an toàn vừa quét được
-        enemies.addAll(enemyFactory.createInitialEnemies(random, player.getPosition(), roomSpawnPoints));
+        // 3. Cập nhật lại lệnh gọi Factory: Truyền trực tiếp danh sách điểm đã giới hạn số lượng
+        enemies.addAll(enemyFactory.createInitialEnemiesAtPoints(random, player.getPosition(), roomSpawnPoints));
     }
+//    xu li va cham giua entity va entity
+//  Thêm thuật toán đẩy lùi, tạo vùng cấm không cho quái chồng lấn lên hình Player
+private void resolvePlayerEnemyCollisions(double deltaSeconds) {
+    if (player == null || !player.isAlive()) return;
 
+    Vector2D pPos = player.getPosition();
+    double pRadius = player.getRadius();
+
+    for (Enemy enemy : enemies) {
+        if (!enemy.isAlive()) continue;
+
+        Vector2D ePos = enemy.getPosition();
+        double eRadius = enemy.getRadius();
+
+        double distance = pPos.distance(ePos);
+        double minDist = pRadius + eRadius; // Khoảng cách tối thiểu để không chạm lề hình của nhau
+
+        // Nếu khoảng cách thực tế nhỏ hơn tổng bán kính -> Đang bị đè hình!
+        if (distance < minDist) {
+            double overlap = minDist - distance; // Độ sâu bị lún hình vào nhau
+
+            // Hướng đẩy từ tâm Player hướng thẳng ra tâm Quái
+            Vector2D pushDirection = ePos.copy().subtract(pPos);
+
+            if (pushDirection.length() == 0.0) {
+                // Tránh trường hợp 2 tâm trùng khít hoàn toàn (Length = 0 không tạo được vector)
+                pushDirection = new Vector2D(1.0, 0.0);
+            }
+
+            pushDirection.normalize();
+
+            // Đẩy quái ra xa 1 nửa khoảng cách lún
+            Vector2D pushEnemy = pushDirection.scale(overlap * 0.5);
+            enemy.move(this, pushEnemy.getX(), pushEnemy.getY());
+
+            // Đẩy ngược Player về phía sau 1 nửa khoảng cách lún để tạo phản lực mượt mà
+            player.move(this, -pushEnemy.getX(), -pushEnemy.getY());
+        }
+    }
+}
 }

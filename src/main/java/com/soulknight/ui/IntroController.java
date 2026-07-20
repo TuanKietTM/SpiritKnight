@@ -23,13 +23,20 @@ import java.util.Random;
 
 public final class IntroController {
 
-    @FXML private StackPane rootStackPane;
-    @FXML private Pane skyLayer;
-    @FXML private Pane cloudLayer;
-    @FXML private Pane castleLayer;
-    @FXML private Pane fireLayer;
-    @FXML private Pane fogLayer;
-    @FXML private Pane ribbonLayer;
+    @FXML
+    private StackPane rootStackPane;
+    @FXML
+    private Pane skyLayer;
+    @FXML
+    private Pane cloudLayer;
+    @FXML
+    private Pane castleLayer;
+    @FXML
+    private Pane fireLayer;
+    @FXML
+    private Pane fogLayer;
+    @FXML
+    private Pane ribbonLayer;
 
     private static final double WIDTH = Constants.WINDOW_WIDTH;
     private static final double HEIGHT = Constants.WINDOW_HEIGHT;

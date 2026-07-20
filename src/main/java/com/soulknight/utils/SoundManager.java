@@ -3,6 +3,7 @@ package com.soulknight.utils;
 import javafx.scene.media.AudioClip;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
+
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
@@ -12,8 +13,8 @@ public final class SoundManager {
 
     private final Map<String, AudioClip> sfxMap = new HashMap<>();
     private MediaPlayer bgmPlayer;
-    private double sfxVolume = 0.8;
-    private double bgmVolume = 0.5;
+    private double sfxVolume = 0.3;
+    private double bgmVolume = 0.2;
 
     private SoundManager() {
         // Tự động tải trước (preload) các hiệu ứng âm thanh ngắn để tránh bị giật lag khi gọi lần đầu
@@ -76,6 +77,7 @@ public final class SoundManager {
             bgmPlayer = null;
         }
     }
+
     public void setBGMVolume(double volume) {
         this.bgmVolume = volume;
         if (bgmPlayer != null) {
@@ -85,12 +87,14 @@ public final class SoundManager {
 
     // Thay đổi âm lượng Hiệu ứng (Giá trị truyền vào từ 0.0 đến 1.0)
     public void setSFXVolume(double volume) {
+
         this.sfxVolume = volume;
     }
 
     public double getBgmVolume() {
         return this.bgmVolume;
     }
+
     public double getSfxVolume() {
         return this.sfxVolume;
     }

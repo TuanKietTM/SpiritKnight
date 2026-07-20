@@ -1,8 +1,6 @@
 package com.soulknight.map;
 
-
 import javafx.scene.image.Image;
-import javafx.scene.paint.Paint;
 
 public final class Tile {
 
@@ -10,8 +8,11 @@ public final class Tile {
     private double x;
     private double y;
     private double size;
+
     private static final Image FLOOR_IMAGE = new Image(Tile.class.getResourceAsStream("/assets/maps/floor.png"));
-    private static final Image WALL_IMAGE = new Image(Tile.class.getResourceAsStream("/assets/maps/wall.png"));
+    private static final Image WALL_IMAGE = new Image(Tile.class.getResourceAsStream("/assets/maps/rock.png"));
+    private static final Image DOOR_OPEN_IMAGE = new Image(Tile.class.getResourceAsStream("/assets/maps/open_door.png"));
+    private static final Image DOOR_CLOSED_IMAGE = new Image(Tile.class.getResourceAsStream("/assets/maps/close_door.png"));
 
     public Tile(double x, double y, double size, TileType type) {
         this.x = x;
@@ -32,21 +33,28 @@ public final class Tile {
     public double getSize() { return size; }
 
     public boolean isWalkable() {
-        return type != TileType.WALL;
+        return type != TileType.WALL && type != TileType.DOOR_CLOSED;
     }
 
     public Image getTexture() {
         return switch (type) {
             case FLOOR -> FLOOR_IMAGE;
             case WALL -> WALL_IMAGE;
+            case DOOR_OPEN -> DOOR_OPEN_IMAGE;
+            case DOOR_CLOSED -> DOOR_CLOSED_IMAGE;
             default -> null; // Các ô khác tạm thời chưa có ảnh, trả về null
         };
+    }
+    public static Image getDoorImage(boolean isClosed) {
+        return isClosed ? DOOR_CLOSED_IMAGE : DOOR_OPEN_IMAGE;
     }
 
     public enum TileType {
         FLOOR,
         WALL,
         SPAWN,
+        DOOR_OPEN,
+        DOOR_CLOSED,
         DOOR,
         PORTAL,
         BOSS
