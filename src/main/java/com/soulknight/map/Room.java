@@ -14,10 +14,29 @@ public class Room {
     private boolean isCleared = false;
     private boolean isDoorClosed = false;
     private List<BoundingBox> doors = new ArrayList<>();
+    //(vitdung) thêm biến quản lí turn cho room
+    private int currentWave = 0;
+    private int maxWaves = 2;
+    private double waveDelayTimer = 0.0;
+    private boolean isWaitingForNextWave = false;
 
+
+    // Trong Room.java
     public Room(String name, double x, double y, double width, double height) {
         this.name = name;
         this.bound = new BoundingBox(x, y, width, height);
+
+        // 🎯 THIẾT LẬP CHO PHÒNG ĐẦU TIÊN TRỐNG HOÀN TOÀN
+        if (this.name.equalsIgnoreCase("StartRoom") || this.name.contains("Spawn")) {
+            this.isActived = false;
+            this.isCleared = true;
+            this.isDoorClosed = false;
+            this.maxWaves = 0;
+        } else if (this.name.equalsIgnoreCase("BossRoom")) {
+            this.maxWaves = 1;         // Phòng boss chỉ có 1 đợt quái
+        } else {
+            this.maxWaves = 2;         // Các phòng quái bình thường có 2 đợt quái
+        }
     }
 
     /**
@@ -83,7 +102,15 @@ public class Room {
         }
 
         if (isActived) {
-            checkRoomClear(globalEnemies);
+            if (isWaitingForNextWave) {
+                waveDelayTimer -= deltaSeconds;
+                if (waveDelayTimer <= 0) {
+                    isWaitingForNextWave = false;
+                    currentWave++;
+                    gameWorld.spawnEnemiesInRoom(this, currentWave);
+                }
+            }
+            checkRoomClear(gameWorld, globalEnemies);
         }
     }
 
@@ -105,18 +132,30 @@ public class Room {
             player.getPosition().add(new com.soulknight.utils.Vector2D(pushX, pushY));
         }
 
-        gameWorld.spawnEnemiesInRoom(this);
+        //Khởi động wave đầu tiên
+        this.currentWave = 1;
+        gameWorld.spawnEnemiesInRoom(this, currentWave);
+
     }
 
-    private void checkRoomClear(List<com.soulknight.entity.Enemy> globalEnemies) {
+    private void checkRoomClear(com.soulknight.engine.GameWorld gameWorld, List<com.soulknight.entity.Enemy> globalEnemies) {
+        // Đếm số quái còn sống trong phòng
         long aliveEnemiesInRoom = globalEnemies.stream()
                 .filter(enemy -> enemy.isAlive() && bound.contains(enemy.getPosition().getX(), enemy.getPosition().getY()))
                 .count();
 
-        if (aliveEnemiesInRoom == 0) {
-            this.isActived = false;
-            this.isCleared = true;
-            this.isDoorClosed = false; // Mở lại toàn bộ cửa để đi sang các phòng khác
+        // 🎯 CHỈ XỬ LÝ KHI QUÁI ĐÃ CHẾT HẾT
+        if (aliveEnemiesInRoom == 0 && !isWaitingForNextWave) {
+            if (currentWave < maxWaves) {
+                // Chuyển sang Wave tiếp theo
+                this.isWaitingForNextWave = true;
+                this.waveDelayTimer = 1.0; // Chờ 1 giây
+            } else {
+                // Đã kết thúc toàn bộ các Wave -> HỦY KÍCH HOẠT VÀ MỞ CỬA!
+                this.isActived = false;
+                this.isCleared = true;
+                this.isDoorClosed = false;
+            }
         }
     }
 
