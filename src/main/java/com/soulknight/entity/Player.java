@@ -17,6 +17,7 @@ public final class Player extends Entity {
     private boolean isFacingLeft = false;
     private PlayerAnimator.State movementState = PlayerAnimator.State.IDLE;
     private double invulnerabilityTimer = 0.0;
+//    thoi gian bat tu khi trung don
     private final double MAX_INVULNERABILITY_TIME = 0.3;
 
     public Player(Vector2D spawnPoint) {
@@ -39,6 +40,7 @@ public final class Player extends Entity {
         this.invulnerabilityTimer=MAX_INVULNERABILITY_TIME;
     }
 
+//    Chu y cac ham xu li su kien ban phim , gọi getInputHandler tu gameworld
     @Override
     public void update(GameWorld world, double deltaSeconds) {
         if(invulnerabilityTimer>0.0){
