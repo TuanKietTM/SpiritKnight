@@ -7,6 +7,8 @@ import com.soulknight.utils.Vector2D;
 import com.soulknight.weapon.Weapon;
 import javafx.scene.paint.Color;
 
+import java.util.List;
+
 public class Enemy extends Entity {
 
     private final EnemyArchetype archetype;
@@ -55,6 +57,30 @@ public class Enemy extends Entity {
             case GRAND_KNIGHT -> {
                 // Logic của Boss giữ nguyên hoặc tùy biến thêm
                 standardChaseAndContact(world, playerPos, deltaSeconds);
+            }
+        }
+    }
+    /**
+     * Xu li va cham giua quai va quai tranh de chung de len nhau
+     */
+    public void separateFromOtherEnemies(GameWorld world,List<Enemy> allEnemies, double deltaSeconds) {
+        for (Enemy other : allEnemies) {
+            if (other == this || !other.isAlive()) continue;
+
+            double dist = getPosition().distance(other.getPosition());
+            double minDist = this.getRadius() + other.getRadius(); // khoang cach nho nhat tong ban kinh va cham
+
+            // neu hai con quai de len nhau
+            if (dist < minDist && dist > 0) {
+                Vector2D pushDir = getPosition().copy().subtract(other.getPosition());
+                pushDir.normalize();
+
+                // day nhau ra
+                double overlap = minDist - dist;
+                double pushSpeed = 100.0; // toc do day
+
+                this.move(world, pushDir.getX() * overlap * pushSpeed * deltaSeconds,
+                        pushDir.getY() * overlap * pushSpeed * deltaSeconds);
             }
         }
     }
