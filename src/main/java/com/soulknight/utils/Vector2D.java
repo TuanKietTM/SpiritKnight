@@ -56,11 +56,17 @@ public final class Vector2D {
         double deltaY = y - other.y;
         return Math.sqrt(deltaX * deltaX + deltaY * deltaY);
     }
+    public double distanceSquared(Vector2D other) {
+        double dx = this.x - other.x;
+        double dy = this.y - other.y;
+        return dx * dx + dy * dy;
+    }
 
     public void set(Vector2D other) {
         x = other.x;
         y = other.y;
     }
+
 
     public double getX() {
         return x;

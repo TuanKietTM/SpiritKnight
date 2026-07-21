@@ -61,5 +61,12 @@
             <Label fx:id="weaponLabel" text="BAD PISTOL" styleClass="weapon-text-hud"/>
         </VBox>
     </StackPane>
-
+    <StackPane fx:id="joystickContainer"
+               AnchorPane.bottomAnchor="30.0"
+               AnchorPane.leftAnchor="30.0"
+               styleClass="joystick-container"
+               pickOnBounds="false">
+        <Circle radius="60" styleClass="joystick-base"/>
+        <Circle fx:id="joystickThumb" radius="25" styleClass="joystick-thumb"/>
+    </StackPane>
 </AnchorPane>

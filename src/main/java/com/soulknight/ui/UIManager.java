@@ -3,6 +3,7 @@ package com.soulknight.ui;
 import com.soulknight.engine.GameState;
 import com.soulknight.engine.GameWorld;
 import com.soulknight.utils.Constants;
+import com.soulknight.utils.SoundManager;
 import javafx.animation.FadeTransition;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
@@ -81,7 +82,6 @@ public final class UIManager {
             settingController = settingLoader.getController();
             configFullRegion(settingRoot);
             settingRoot.setPickOnBounds(false);
-
 
             menuRoot.setPickOnBounds(false);
             hudRoot.setPickOnBounds(false);
@@ -171,13 +171,16 @@ public final class UIManager {
     }
 
     public void updateHUD(GameWorld world) {
+        if (world == null) return;
+
         if (hudController != null && world.isPlaying()) {
             hudController.updateData(
+                    world,
                     world.getPlayer(),
                     world.getLevelManager(),
                     world.getMissionManager(),
-                    world.getEnemies().size(),
-                    world.getItems().size()
+                    world.getEnemies() != null ? world.getEnemies().size() : 0,
+                    world.getItems() != null ? world.getItems().size() : 0
             );
         }
 
@@ -196,6 +199,8 @@ public final class UIManager {
     }
 
     public void bindGameWorld(GameWorld world) {
+        if (world == null) return;
+
         world.setGameStateListener(this::handleStateChange);
 
         if (introController != null) {
@@ -207,7 +212,7 @@ public final class UIManager {
                     fadeIntro.setOnFinished(event -> {
                         introRoot.setVisible(false);
 
-//                        chuyen sang main menu
+                        // Chuyen sang main menu
                         world.changeState(GameState.MAIN_MENU);
                         menuRoot.setOpacity(0.0);
                         menuRoot.setVisible(true);
@@ -224,12 +229,13 @@ public final class UIManager {
     }
 
     public void bindGameActions(GameWorld world) {
-        // Lấy cấu hình âm lượng mặc định hoặc hiện tại từ SoundManager làm gốc
-        final com.soulknight.utils.SoundManager sound = com.soulknight.utils.SoundManager.getInstance();
+        if (world == null) return;
+
+        final SoundManager sound = SoundManager.getInstance();
 
         if (menuController != null) {
             menuController.setOnPlayRequested(() -> {
-                sound.playSFX("button"); // Tiếng ấn nút
+                sound.playSFX("button");
                 world.changeState(GameState.PLAYING);
             });
 
@@ -240,23 +246,25 @@ public final class UIManager {
                 settingRoot.toFront();
 
                 if (settingController != null) {
+                    boolean isTouchpad = world.getInputHandler() != null && world.getInputHandler().isTouchpadModeEnabled();
+
                     settingController.setup(
-                            () -> { // Nút Close quay lại màn hình chính
+                            () -> { // Nút Close quay lại Main Menu
                                 sound.playSFX("button");
                                 settingRoot.setVisible(false);
                                 menuRoot.setVisible(true);
                                 menuRoot.toFront();
                             },
-                            (bgmValue) -> {
-                                // Đồng bộ âm lượng nhạc nền khi kéo Slider
-                                sound.setBGMVolume(bgmValue);
+                            sound::setBGMVolume,
+                            sound::setSFXVolume,
+                            (touchpadEnabled) -> { // Callback khi thay đổi Control Mode
+                                if (world.getInputHandler() != null) {
+                                    world.getInputHandler().setTouchpadModeEnabled(touchpadEnabled);
+                                }
                             },
-                            (sfxValue) -> {
-                                // Đồng bộ âm lượng hiệu ứng khi kéo Slider
-                                sound.setSFXVolume(sfxValue);
-                            },
-                            // Truyền giá trị thực tế đang có trong SoundManager lên thanh Slider giao diện
-                            sound.getBgmVolume(), sound.getSfxVolume()
+                            sound.getBgmVolume(),
+                            sound.getSfxVolume(),
+                            isTouchpad
                     );
                 }
             });
@@ -278,33 +286,42 @@ public final class UIManager {
 
         if (pauseController != null) {
             pauseController.setCallbacks(
-                    () -> {
+                    () -> { // Tiếp tục chơi
                         sound.playSFX("button");
-                        world.changeState(GameState.PLAYING); // tiếp tục chơi
+                        world.changeState(GameState.PLAYING);
                     },
-                    () -> {
+                    () -> { // Mở Cài đặt từ Pause
                         sound.playSFX("button");
                         pauseRoot.setVisible(false);
                         settingRoot.setVisible(true);
                         settingRoot.toFront();
 
                         if (settingController != null) {
+                            boolean isTouchpad = world.getInputHandler() != null && world.getInputHandler().isTouchpadModeEnabled();
+
                             settingController.setup(
-                                    () -> { // Nút Close quay lại Pause
+                                    () -> { // Nút Close quay lại Pause Menu
                                         sound.playSFX("button");
                                         settingRoot.setVisible(false);
                                         pauseRoot.setVisible(true);
                                         pauseRoot.toFront();
                                     },
-                                    (bgmValue) -> sound.setBGMVolume(bgmValue),
-                                    (sfxValue) -> sound.setSFXVolume(sfxValue),
-                                    sound.getBgmVolume(), sound.getSfxVolume()
+                                    sound::setBGMVolume,
+                                    sound::setSFXVolume,
+                                    (touchpadEnabled) -> { // Callback khi thay đổi Control Mode
+                                        if (world.getInputHandler() != null) {
+                                            world.getInputHandler().setTouchpadModeEnabled(touchpadEnabled);
+                                        }
+                                    },
+                                    sound.getBgmVolume(),
+                                    sound.getSfxVolume(),
+                                    isTouchpad
                             );
                         }
                     },
-                    () -> { // Quay lại Menu chính
+                    () -> { // Quay lại Main Menu
                         sound.playSFX("button");
-                        sound.stopBGM(); // Dừng nhạc nền màn chơi khi thoát ra ngoài
+                        sound.stopBGM();
                         world.changeState(GameState.MAIN_MENU);
                     }
             );
