@@ -617,3 +617,4 @@ private void resolvePlayerEnemyCollisions(double deltaSeconds) {
 //Player - enemy (gameworld)
 //enemy-enemy - (enemy)
 //bullet - wall
+//giua vat can player , enemy , bullet

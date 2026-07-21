@@ -136,7 +136,7 @@ public final class IntroController {
 
 //   Layer 3 Lau dai
         try {
-            Image spriteSheet = new Image(getClass().getResourceAsStream("/assets/intro/castle (1).png"));
+            Image spriteSheet = new Image(getClass().getResourceAsStream("/assets/intro/castle.png"));
             ImageView castleView = new ImageView(spriteSheet);
             castleView.setSmooth(false);
 
@@ -174,7 +174,7 @@ public final class IntroController {
             };
             castleAnimator.start();
         } catch (Exception e) {
-            System.err.println("Không tìm thấy file castle (1).png!");
+            System.err.println("Khong tim thay anh ");
         }
 
 //        Layer 4 suong mu
