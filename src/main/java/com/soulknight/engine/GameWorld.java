@@ -1,6 +1,7 @@
 package com.soulknight.engine;
 
 import com.soulknight.entity.Enemy;
+import com.soulknight.entity.EnemyArchetype;
 import com.soulknight.entity.EnemyFactory;
 import com.soulknight.entity.Player;
 import com.soulknight.item.EnergyCrystal;
@@ -120,6 +121,8 @@ public final class GameWorld {
 
         for (Enemy enemy : enemies) {
             enemy.update(this, deltaSeconds);
+            // xử lý va chạm quái vs quái
+            enemy.separateFromOtherEnemies(this,enemies, deltaSeconds);
         }
         resolvePlayerEnemyCollisions(deltaSeconds);
 
@@ -363,18 +366,18 @@ public final class GameWorld {
 
 
         // 2. : Đảm bảo số quái một phòng không bao giờ vượt quá mức cho phép
-        final int MAX_ENEMIES_PER_ROOM = 3;
+        final int MAX_ENEMIES_PER_ROOM = Math.min(3 + (waveNumber / 2), 6);
         int finalEnemyCount = Math.min(desiredEnemyCount, MAX_ENEMIES_PER_ROOM);
 
         // Khoảng cách an toàn tối thiểu giữa quái và Player
-        final double MIN_SAFE_DISTANCE = 150.0;
+        final double MIN_SAFE_DISTANCE = 140.0;
 
         // Vòng lặp chỉ chạy đúng bằng số lượng quái cần sinh thực tế
         for (int i = 0; i < finalEnemyCount; i++) {
             Vector2D point = null;
             boolean validPointFound = false;
 
-            for (int attempt = 0; attempt < 15; attempt++) {
+            for (int attempt = 0; attempt < 20; attempt++) {
                 Vector2D randomPoint = mapManager.findRandomWalkablePositionInRoom(room, random, Constants.ENEMY_RADIUS);
 
                 if (randomPoint != null && bound.contains(randomPoint.getX(), randomPoint.getY())) {
@@ -383,7 +386,7 @@ public final class GameWorld {
                         // Giữ khoảng cách giữa các con quái với nhau, tránh sinh đè lên nhau
                         boolean tooCloseToOtherEnemies = false;
                         for (Vector2D existingPoint : roomSpawnPoints) {
-                            if (randomPoint.distance(existingPoint) < 40.0) { // cách nhau tối thiểu 40px
+                            if (randomPoint.distance(existingPoint) < 45.0) { // cách nhau tối thiểu 40px
                                 tooCloseToOtherEnemies = true;
                                 break;
                             }
@@ -409,11 +412,11 @@ public final class GameWorld {
         }
 
         // sinh quái tùy theo wave
-        if (waveNumber == 1) {
-            enemies.addAll(enemyFactory.createInitialEnemiesAtPoints(random, player.getPosition(), roomSpawnPoints));
-        } else {
-
-            enemies.addAll(enemyFactory.createInitialEnemiesAtPoints(random, player.getPosition(), roomSpawnPoints));
+        // 3. KHỞI TẠO ĐA DẠNG LOẠI QUÁI DỰA TRÊN WAVE
+        for (Vector2D spawnPt : roomSpawnPoints) {
+            // Tự động sinh ngẫu nhiên Slime / Cung thủ / Lợn rừng dựa theo wave
+            Enemy enemy = enemyFactory.createEnemyByWave(random, spawnPt, waveNumber);
+            enemies.add(enemy);
         }
     }
 //    xu li va cham giua entity va entity
