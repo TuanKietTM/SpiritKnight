@@ -1,11 +1,13 @@
 package com.soulknight.map;
 
+import com.soulknight.utils.Vector2D;
 import javafx.geometry.BoundingBox;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
 import com.soulknight.engine.Camera;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 public class Room {
     private String name;
@@ -14,14 +16,16 @@ public class Room {
     private boolean isCleared = false;
     private boolean isDoorClosed = false;
     private List<BoundingBox> doors = new ArrayList<>();
-    //(vitdung) thêm biến quản lí turn cho room
+
+    // Quản lý đợt quái (wave)
     private int currentWave = 0;
     private int maxWaves = 2;
     private double waveDelayTimer = 0.0;
     private boolean isWaitingForNextWave = false;
 
+    // Danh sách vật cản trong phòng
+    private List<Obstacle> obstacles = new ArrayList<>();
 
-    // Trong Room.java
     public Room(String name, double x, double y, double width, double height) {
         this.name = name;
         this.bound = new BoundingBox(x, y, width, height);
@@ -39,18 +43,63 @@ public class Room {
         }
     }
 
+    public List<Obstacle> getObstacles() {
+        return obstacles;
+    }
+
+    public void generateObstacles(Random random) {
+        obstacles.clear();
+
+        if (this.name.equalsIgnoreCase("StartRoom") || this.name.contains("Spawn")) {
+            return;
+        }
+
+        int maxObstacles = 3; // Giới hạn số lượng tối đa trong 1 phòng
+        int attempts = 0;
+        double obsSize = 40.0;
+        double minPaddingFromWall = 40.0; // Khoảng cách an toàn tránh dính vào tường
+        double minDistanceBetweenObs = 60.0; // Khoảng cách tối thiểu giữa các vật cản
+
+        while (obstacles.size() < maxObstacles && attempts < 50) {
+            attempts++;
+
+            double minX = bound.getMinX() + minPaddingFromWall;
+            double minY = bound.getMinY() + minPaddingFromWall;
+            double maxX = bound.getMinX() + bound.getWidth() - minPaddingFromWall - obsSize;
+            double maxY = bound.getMinY() + bound.getHeight() - minPaddingFromWall - obsSize;
+
+            if (maxX <= minX || maxY <= minY) break;
+
+            double x = minX + random.nextDouble() * (maxX - minX);
+            double y = minY + random.nextDouble() * (maxY - minY);
+            Vector2D newPos = new Vector2D(x, y);
+
+            // Kiểm tra xem có bị đè lên vật cản đã sinh trước đó không
+            boolean overlapped = false;
+            for (Obstacle existing : obstacles) {
+                if (newPos.distance(existing.getPosition()) < minDistanceBetweenObs) {
+                    overlapped = true;
+                    break;
+                }
+            }
+
+            if (!overlapped) {
+                boolean destructible = random.nextDouble() > 0.2; // 80% phá được, 20% cột đá
+                obstacles.add(new Obstacle(newPos, obsSize, obsSize, 30, destructible));
+            }
+        }
+    }
+
     /**
      * Render toàn bộ cửa thuộc phòng dựa trên trạng thái (Mở / Đóng).
      */
     public void renderDoors(GraphicsContext gc, Camera camera, double tileSize) {
-        // Lấy texture cửa tương ứng với trạng thái (Mở hay Đóng) từ Tile class
         Image doorTexture = Tile.getDoorImage(isDoorClosed);
         if (doorTexture == null) return;
 
         double zoom = camera.getZoom();
 
         for (BoundingBox door : doors) {
-            // Chia nhỏ vùng door theo tileSize để lặp lại tile, tránh làm giãn/bóp méo hình
             int tilesX = (int) Math.round(door.getWidth() / tileSize);
             int tilesY = (int) Math.round(door.getHeight() / tileSize);
 
@@ -71,10 +120,8 @@ public class Room {
         }
     }
 
-    // Kiểm tra xem một ô cửa có nằm sát hoặc giao với biên của phòng này không
     public boolean isDoorBelongsToRoom(double doorX, double doorY, double doorW, double doorH) {
         BoundingBox doorBox = new BoundingBox(doorX, doorY, doorW, doorH);
-        // Mở rộng biên của phòng ra 10px để bắt dính các ô cửa nằm ngay cạnh tường phòng
         BoundingBox expandedBound = new BoundingBox(
                 bound.getMinX() - 10, bound.getMinY() - 10,
                 bound.getWidth() + 20, bound.getHeight() + 20
@@ -83,7 +130,6 @@ public class Room {
     }
 
     public void addDoorCoordinate(double x, double y, double width, double height) {
-        // Tránh thêm trùng lặp cửa
         BoundingBox newDoor = new BoundingBox(x, y, width, height);
         for (BoundingBox d : doors) {
             if (d.getMinX() == x && d.getMinY() == y) return;
@@ -116,7 +162,7 @@ public class Room {
 
     private void activeRoom(com.soulknight.engine.GameWorld gameWorld, com.soulknight.entity.Player player) {
         this.isActived = true;
-        this.isDoorClosed = true; // Sập TẤT CẢ các cửa liên kết với phòng này!
+        this.isDoorClosed = true;
 
         // Đẩy Player tiến nhẹ vào trong phòng để không bị kẹt khi cửa sập
         double roomCenterX = bound.getMinX() + bound.getWidth() / 2.0;
@@ -125,33 +171,29 @@ public class Room {
         double diffX = roomCenterX - player.getPosition().getX();
         double diffY = roomCenterY - player.getPosition().getY();
         double length = Math.sqrt(diffX * diffX + diffY * diffY);
-
+//xac dinh khoang day
         if (length > 0.0) {
-            double pushX = (diffX / length) * 45.0;
-            double pushY = (diffY / length) * 45.0;
+            double pushX = (diffX / length) * 5.0;
+            double pushY = (diffY / length) * 5.0;
             player.getPosition().add(new com.soulknight.utils.Vector2D(pushX, pushY));
         }
 
-        //Khởi động wave đầu tiên
+        // Khởi động wave đầu tiên & Sinh vật cản cho phòng
         this.currentWave = 1;
+        generateObstacles(new Random());
         gameWorld.spawnEnemiesInRoom(this, currentWave);
-
     }
 
     private void checkRoomClear(com.soulknight.engine.GameWorld gameWorld, List<com.soulknight.entity.Enemy> globalEnemies) {
-        // Đếm số quái còn sống trong phòng
         long aliveEnemiesInRoom = globalEnemies.stream()
                 .filter(enemy -> enemy.isAlive() && bound.contains(enemy.getPosition().getX(), enemy.getPosition().getY()))
                 .count();
 
-        // 🎯 CHỈ XỬ LÝ KHI QUÁI ĐÃ CHẾT HẾT
         if (aliveEnemiesInRoom == 0 && !isWaitingForNextWave) {
             if (currentWave < maxWaves) {
-                // Chuyển sang Wave tiếp theo
                 this.isWaitingForNextWave = true;
-                this.waveDelayTimer = 1.0; // Chờ 1 giây
+                this.waveDelayTimer = 1.0;
             } else {
-                // Đã kết thúc toàn bộ các Wave -> HỦY KÍCH HOẠT VÀ MỞ CỬA!
                 this.isActived = false;
                 this.isCleared = true;
                 this.isDoorClosed = false;

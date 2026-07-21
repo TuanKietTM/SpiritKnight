@@ -8,6 +8,8 @@ import com.soulknight.item.EnergyCrystal;
 import com.soulknight.item.Item;
 import com.soulknight.level.LevelManager;
 import com.soulknight.map.MapManager;
+import com.soulknight.map.Obstacle;
+import com.soulknight.map.Room;
 import com.soulknight.mission.MissionManager;
 import com.soulknight.utils.Constants;
 import com.soulknight.utils.SoundManager;
@@ -152,14 +154,30 @@ public final class GameWorld {
     }
 
     private void updateBullets(double deltaSeconds) {
+        List<Obstacle> allObstacles = getObstacles();
         for (Bullet bullet : bullets) {
             bullet.update(deltaSeconds);
             if (!mapManager.isWalkable(bullet.getPosition().getX(), bullet.getPosition().getY(), bullet.getRadius())) {
                 bullet.deactivate();
                 continue;
             }
+            // 2. Đạn va chạm với Vật cản (Thực hiện TRƯỚC khi va chạm Quái/Player)
+            boolean hitObstacle = false;
+            for (Obstacle obstacle : allObstacles) {
+                if (obstacle.intersectsCircle(bullet.getPosition(), bullet.getRadius())) {
+                    // Trừ máu vật cản (nếu vật cản thuộc loại phá hủy được)
+                    obstacle.takeDamage(bullet.getDamage());
+                    // Tiêu hủy đạn ngay lập tức (không cho xuyên qua quái núp sau)
+                    bullet.deactivate();
+                    hitObstacle = true;
+                    break;
+                }
+            }
+            if (hitObstacle) {
+                continue; // Chuyển sang đạn tiếp theo
+            }
 
-            if (bullet.getOwner() instanceof Player) {
+            if (bullet.getOwner() instanceof Player) {// enemy trung dan cua player
                 for (Enemy enemy : enemies) {
                     if (enemy.isAlive() && bullet.intersects(enemy)) {
                         enemy.takeDamage(bullet.getDamage());
@@ -167,14 +185,23 @@ public final class GameWorld {
                         break;
                     }
                 }
-            } else if (bullet.intersects(player)) {
+            } else if (bullet.intersects(player)) {// dan ban trung player
                 player.takeDamage(bullet.getDamage());
                 bullet.deactivate();
             }
         }
 
+//        xoa dan va quai chet
         bullets.removeIf(bullet -> !bullet.isActive());
         enemies.removeIf(enemy -> !enemy.isAlive());
+//        xoa vat can neu ban pha xong
+        if (mapManager != null && mapManager.getRooms() != null) {
+            for (Room room : mapManager.getRooms()) {
+                if (room.getObstacles() != null) {
+                    room.getObstacles().removeIf(Obstacle::isDestroyed);
+                }
+            }
+        }
     }
 
     private void updateItemCollection() {
@@ -221,7 +248,16 @@ public final class GameWorld {
 
     private void renderWorld(GraphicsContext graphicsContext, double renderWidth, double renderHeight) {
         mapManager.render(graphicsContext, camera, renderWidth, renderHeight);
-
+// 2. HIỂN THỊ VẬT CẢN (OBSTACLE)
+        if (mapManager != null && mapManager.getRooms() != null) {
+            for (Room room : mapManager.getRooms()) {
+                if (room.getObstacles() != null) {
+                    for (Obstacle obstacle : room.getObstacles()) {
+                        obstacle.render(graphicsContext, camera);
+                    }
+                }
+            }
+        }
         for (Bullet bullet : bullets) {
             bullet.render(graphicsContext, camera);
         }
@@ -248,6 +284,14 @@ public final class GameWorld {
         String mapPath = "/maps/level1_1.json";
         this.mapManager = new MapManager(mapPath);
         this.mapManager.closeExitPortal();
+        if (mapManager != null && mapManager.getRooms() != null) {
+            for (Room room : mapManager.getRooms()) {
+                // Không tạo vật cản ở phòng xuất phát để Player dễ di chuyển
+                if (room.getName() != null && !room.getName().equalsIgnoreCase("StartRoom")) {
+                    spawnObstaclesInRoom(room, 3); // Sinh 3 vật cản mỗi phòng
+                }
+            }
+        }
         // đoạn portal chưa rõ lắm
         this.pendingPortalPosition = mapManager.getExitPortalPosition();
         if (this.pendingPortalPosition == null) {
@@ -339,23 +383,31 @@ public final class GameWorld {
 //        xu li ngam ban tu chuot
         return camera.screenToWorld(inputHandler.getMousePosition());
     }
-
-    public boolean canMoveTo(Vector2D position, double radius) {
-        return mapManager.isWalkable(position.getX(), position.getY(), radius);
+//Kiem tra xem di duoc khong
+public boolean canMoveTo(Vector2D position, double radius) {
+    // 1. Kiểm tra va chạm với Tường/Bản đồ
+    if (!mapManager.isWalkable(position.getX(), position.getY(), radius)) {
+        return false;
     }
 
-    public void damageEnemiesInRange(Vector2D origin, double range, int damage) {
-        for (Enemy enemy : enemies) {
-            if (enemy.isAlive() && enemy.getPosition().distance(origin) <= range + enemy.getRadius()) {
-                enemy.takeDamage(damage);
-            }
+    // 2. Kiểm tra va chạm với các Vật cản chưa bị phá hủy
+    for (Obstacle obstacle : getObstacles()) {
+        if (obstacle.intersectsCircle(position, radius)) {
+            return false; // Bị cản lại, không cho đi qua
         }
     }
+
+    return true;
+}
 
     public boolean isPlaying() {
         return state == GameState.PLAYING;
     }
-    public void spawnEnemiesInRoom(com.soulknight.map.Room room, int waveNumber) {
+    public void spawnEnemiesInRoom(com.soulknight.map.Room room, int waveNumber)
+    {
+        if (room.getObstacles().isEmpty()) {
+            spawnObstaclesInRoom(room, 3);
+        }
         List<Vector2D> roomSpawnPoints = new ArrayList<>();
         javafx.geometry.BoundingBox bound = room.getBound();
 
@@ -391,8 +443,16 @@ public final class GameWorld {
                                 break;
                             }
                         }
+//                        Kiem tra vi tri co dung vao vat can hay khong
+                        boolean insideObstacle = false;
+                        for (Obstacle obstacle : getObstacles()) {
+                            if (obstacle.intersectsCircle(randomPoint, Constants.ENEMY_RADIUS)) {
+                                insideObstacle = true;
+                                break;
+                            }
+                        }
 
-                        if (!tooCloseToOtherEnemies) {
+                        if (!tooCloseToOtherEnemies && !insideObstacle) {
                             point = randomPoint;
                             validPointFound = true;
                             break;
@@ -419,7 +479,7 @@ public final class GameWorld {
             enemies.add(enemy);
         }
     }
-//    xu li va cham giua entity va entity
+//    xu li va cham giua entity va entity - giua quai va player
 //  Thêm thuật toán đẩy lùi, tạo vùng cấm không cho quái chồng lấn lên hình Player
 private void resolvePlayerEnemyCollisions(double deltaSeconds) {
     if (player == null || !player.isAlive()) return;
@@ -478,4 +538,82 @@ private void resolvePlayerEnemyCollisions(double deltaSeconds) {
             }
         }
     }
+    /**
+     * Lấy toàn bộ danh sách Obstacle từ tất cả các phòng trên bản đồ hiện tại.
+     */
+    public List<Obstacle> getObstacles() {
+        List<Obstacle> allObstacles = new ArrayList<>();
+        if (mapManager != null && mapManager.getRooms() != null) {
+            for (Room room : mapManager.getRooms()) {
+                if (room.getObstacles() != null) {
+                    allObstacles.addAll(room.getObstacles());
+                }
+            }
+        }
+        return allObstacles;
+    }
+
+    /**
+     * Thêm thủ công một Obstacle vào một Room cụ thể.
+     */
+    public void addObstacleToRoom(Room room, Obstacle obstacle) {
+        if (room != null && obstacle != null) {
+            room.getObstacles().add(obstacle);
+        }
+    }
+    /**
+     * Sinh số lượng vật cản ngẫu nhiên vào Room, đảm bảo không đè tường và không chồng lên nhau.
+     */
+    public void spawnObstaclesInRoom(Room room, int maxCount) {
+        if (room == null || room.getObstacles() == null) return;
+
+        javafx.geometry.BoundingBox bound = room.getBound();
+        double obsSize = 40.0;             // Kích thước vật cản
+        double minWallPadding = 80.0;       // Khoảng cách an toàn tối thiểu cách tường
+        double minObsDistance = 60.0;       // Khoảng cách tối thiểu giữa các vật cản
+
+        int attempts = 0;
+        while (room.getObstacles().size() < maxCount && attempts < 50) {
+            attempts++;
+
+            double minX = bound.getMinX() + minWallPadding;
+            double minY = bound.getMinY() + minWallPadding;
+            double maxX = bound.getMinX() + bound.getWidth() - minWallPadding - obsSize;
+            double maxY = bound.getMinY() + bound.getHeight() - minWallPadding - obsSize;
+
+            if (maxX <= minX || maxY <= minY) break;
+
+            double x = minX + random.nextDouble() * (maxX - minX);
+            double y = minY + random.nextDouble() * (maxY - minY);
+            Vector2D newPos = new Vector2D(x, y);
+
+            // Kiểm tra trùng lặp vị trí với các vật cản đã sinh trước đó
+            boolean isOverlapped = false;
+            for (Obstacle existing : room.getObstacles()) {
+                if (newPos.distance(existing.getPosition()) < minObsDistance) {
+                    isOverlapped = true;
+                    break;
+                }
+            }
+
+            // Nếu hợp lệ thì thêm vào phòng
+            if (!isOverlapped) {
+                boolean isDestructible = random.nextDouble() > 0.2; // 80% hòm gỗ (phá được), 20% cột đá
+                Obstacle obstacle = new Obstacle(newPos, obsSize, obsSize, 30, isDestructible);
+                room.getObstacles().add(obstacle);
+            }
+        }
+    }
+    public void damageEnemiesInRange(Vector2D origin, double range, int damage) {
+        for (Enemy enemy : enemies) {
+            if (enemy.isAlive() && enemy.getPosition().distance(origin) <= range + enemy.getRadius()) {
+                enemy.takeDamage(damage);
+            }
+        }
+    }
 }
+//NOTE : cac ham xu ly va cham
+// Player - titled (mapmanager): cua room
+//Player - enemy (gameworld)
+//enemy-enemy - (enemy)
+//bullet - wall
