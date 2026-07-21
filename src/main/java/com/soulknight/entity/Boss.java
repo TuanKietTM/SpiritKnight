@@ -20,6 +20,7 @@ public final class Boss extends Enemy {
         super(EnemyArchetype.GRAND_KNIGHT, spawnPoint, Constants.BOSS_RADIUS, health, 95.0, damage, null, eventListener);
     }
 
+
     @Override
     public void update(GameWorld world, double deltaSeconds) {
         super.update(world, deltaSeconds);
