@@ -114,23 +114,50 @@ public final class HUD {
     }
 
     private void updateJoystickUI(GameWorld world) {
-        // An toàn: Nếu FXML chưa gán Joystick hoặc world null thì bỏ qua không báo lỗi
         if (joystickContainer == null || joystickThumb == null || world == null) return;
-
         if (world.getInputHandler() == null) return;
 
-        TouchpadJoystick joystick = world.getInputHandler().getTouchpadJoystick();
+        Vector2D dir = new Vector2D(0, 0);
+        double maxOffset = 35.0; // Độ lệch tối đa của nút Joystick (pixel)
 
-        if (joystick != null && world.getInputHandler().isTouchpadModeEnabled() && joystick.isActive()) {
+        if (world.getInputHandler().isTouchpadModeEnabled()) {
+            // Nếu ở Touchpad Mode: Lấy hướng trực tiếp từ TouchpadJoystick
+            TouchpadJoystick joystick = world.getInputHandler().getTouchpadJoystick();
+            if (joystick != null && joystick.isActive()) {
+                dir = joystick.getMoveDirection();
+            }
+        } else {
+            //  Nếu ở Keyboard & Mouse Mode: Tính toán hướng di chuyển dựa theo các phím bấm
+            double dx = 0.0;
+            double dy = 0.0;
+
+            if (world.getInputHandler().isDown(javafx.scene.input.KeyCode.W) || world.getInputHandler().isDown(javafx.scene.input.KeyCode.UP)) {
+                dy -= 1.0;
+            }
+            if (world.getInputHandler().isDown(javafx.scene.input.KeyCode.S) || world.getInputHandler().isDown(javafx.scene.input.KeyCode.DOWN)) {
+                dy += 1.0;
+            }
+            if (world.getInputHandler().isDown(javafx.scene.input.KeyCode.A) || world.getInputHandler().isDown(javafx.scene.input.KeyCode.LEFT)) {
+                dx -= 1.0;
+            }
+            if (world.getInputHandler().isDown(javafx.scene.input.KeyCode.D) || world.getInputHandler().isDown(javafx.scene.input.KeyCode.RIGHT)) {
+                dx += 1.0;
+            }
+
+            Vector2D moveDir = new Vector2D(dx, dy);
+            if (moveDir.length() > 0.0) {
+                moveDir.normalize();
+                dir = moveDir;
+            }
+        }
+
+        // Cập nhật vị trí hiển thị của nút Joystick Thumb
+        if (dir.length() > 0.0) {
             joystickContainer.setVisible(true);
-
-            Vector2D dir = joystick.getMoveDirection();
-            double maxOffset = 35.0; // Độ lệch tối đa của nút Joystick
-
             joystickThumb.setTranslateX(dir.getX() * maxOffset);
             joystickThumb.setTranslateY(dir.getY() * maxOffset);
         } else {
-            // Trả nút về vị trí trung tâm khi không thao tác
+            // Trả nút về vị trí trung tâm khi không di chuyển
             joystickThumb.setTranslateX(0.0);
             joystickThumb.setTranslateY(0.0);
         }

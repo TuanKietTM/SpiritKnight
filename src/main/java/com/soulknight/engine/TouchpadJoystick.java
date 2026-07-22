@@ -7,6 +7,8 @@ public class TouchpadJoystick {
      * Huong dan choi mode touchpadjoytick
      * mode ranh tay
      * tu dong tim ke thu va ban
+     *su dung bang cach doi mode joytick
+     * an trai chuot ( nen dung chuot ) va di tuochpad de di chuyen 360 do
      */
     private Vector2D centerPosition;
     private Vector2D currentPosition;
