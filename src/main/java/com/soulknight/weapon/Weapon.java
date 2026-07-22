@@ -2,7 +2,9 @@ package com.soulknight.weapon;
 
 import com.soulknight.engine.GameWorld;
 import com.soulknight.entity.Entity;
+import com.soulknight.utils.ResourceLoader;
 import com.soulknight.utils.Vector2D;
+import javafx.scene.image.Image;
 
 public abstract class Weapon {
 
@@ -10,6 +12,8 @@ public abstract class Weapon {
     private final int damage;
     private final double cooldownSeconds;
     private double cooldownRemaining;
+    // Duong dan anh vu khi (co the null neu vu khi khong co anh)
+    private String imagePath;
 
     protected Weapon(String name, int damage, double cooldownSeconds) {
         this.name = name;
@@ -37,5 +41,16 @@ public abstract class Weapon {
 
     public int getDamage() {
         return damage;
+    }
+
+    // Gan duong dan anh cho vu khi, tra ve chinh no de tien goi noi tiep
+    public Weapon withImage(String imagePath) {
+        this.imagePath = imagePath;
+        return this;
+    }
+
+    // Lay anh vu khi (null neu vu khi khong co anh)
+    public Image getImage() {
+        return imagePath == null ? null : ResourceLoader.image(imagePath);
     }
 }
