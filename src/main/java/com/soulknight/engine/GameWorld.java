@@ -611,10 +611,74 @@ private void resolvePlayerEnemyCollisions(double deltaSeconds) {
             }
         }
     }
+    /**
+     * Kiem tra xem duong ngam ban co vat can khong
+     * giong thuat toan trong bai co tuong
+     */
+    public boolean hasClearLineOfSight(Vector2D start, Vector2D end) {
+        double distance = start.distance(end);
+        if (distance == 0) return true;
+        double stepSize = 12.0;
+        int steps = (int) (distance / stepSize);
+
+        Vector2D direction = end.copy().subtract(start).normalize();
+        for (int i = 1; i <= steps; i++) {
+            Vector2D checkPoint = start.copy().add(direction.getX() * (i * stepSize), direction.getY() * (i * stepSize));
+            if (!mapManager.isWalkable(checkPoint.getX(), checkPoint.getY(), 4.0)) {
+                return false; // Bị tường che
+            }
+        }
+//        Kiem tra xem co trung vat can nao tren duong hay khong
+        for (Obstacle obstacle : getObstacles()) {
+            if (obstacle.isDestroyed()) continue;
+
+            // BoundingBox cua vat can 
+            double minX = obstacle.getPosition().getX();
+            double minY = obstacle.getPosition().getY();
+            double maxX = minX + obstacle.getWidth();
+            double maxY = minY + obstacle.getHeight();
+
+            // Thuật toán kiểm tra đoạn thẳng (start -> end) có cắt Hình chữ nhật (Obstacle) hay không
+            if (lineIntersectsRect(start.getX(), start.getY(), end.getX(), end.getY(), minX, minY, maxX, maxY)) {
+                return false; // Bị vật cản che
+            }
+        }
+
+        return true; // Đường bắn hoàn toàn trống trải
+    }
+
+    /**
+     * Thuật toán hỗ trợ kiểm tra đoạn thẳng cắt Hình chữ nhật (AABB)
+     */
+    private boolean lineIntersectsRect(double x1, double y1, double x2, double y2,
+                                       double minX, double minY, double maxX, double maxY) {
+        // Kiểm tra nhanh xem 2 điểm có nằm hẳn về 1 phía của Hộp không
+        if ((x1 < minX && x2 < minX) || (x1 > maxX && x2 > maxX) ||
+                (y1 < minY && y2 < minY) || (y1 > maxY && y2 > maxY)) {
+            return false;
+        }
+
+        // Kiểm tra va chạm đoạn thẳng với 4 cạnh của hình chữ nhật
+        return lineIntersectsLine(x1, y1, x2, y2, minX, minY, maxX, minY) ||
+                lineIntersectsLine(x1, y1, x2, y2, minX, maxY, maxX, maxY) ||
+                lineIntersectsLine(x1, y1, x2, y2, minX, minY, minX, maxY) ||
+                lineIntersectsLine(x1, y1, x2, y2, maxX, minY, maxX, maxY);
+    }
+
+    private boolean lineIntersectsLine(double x1, double y1, double x2, double y2,
+                                       double x3, double y3, double x4, double y4) {
+        double denom = (y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1);
+        if (denom == 0) return false;
+
+        double ua = ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3)) / denom;
+        double ub = ((x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3)) / denom;
+
+        return (ua >= 0.0 && ua <= 1.0 && ub >= 0.0 && ub <= 1.0);
+    }
 }
 //NOTE : cac ham xu ly va cham
 // Player - titled (mapmanager): cua room
 //Player - enemy (gameworld)
 //enemy-enemy - (enemy)
 //bullet - wall
-//giua vat can player , enemy , bullet
+//giua vat can player , enemy , bullet - xu li su khac nhau giua dan cua enemy voi vat can

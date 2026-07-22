@@ -172,8 +172,13 @@ public class Enemy extends Entity {
                 }
             }
 
+//            Chi ban khi duong ngam ban ro rang khong co
             if (rangedWeapon != null && world.getPlayer().isAlive()) {
-                rangedWeapon.attack(world, this, playerPos);
+                boolean canSeePlayer = world.hasClearLineOfSight(getPosition(), playerPos);
+
+                if (canSeePlayer) {
+                    rangedWeapon.attack(world, this, playerPos);
+                }
             }
         }
     }
