@@ -1,10 +1,12 @@
 package com.soulknight.entity;
 
+import com.soulknight.engine.Camera;
 import com.soulknight.engine.GameWorld;
 import com.soulknight.event.GameEventListener;
 import com.soulknight.map.Obstacle;
 import com.soulknight.utils.Vector2D;
 import com.soulknight.weapon.Weapon;
+import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 
 import java.util.List;
@@ -19,6 +21,9 @@ public class Enemy extends Entity {
     private double attackCooldown;
     private boolean defeatNotified;
 
+    private final EnemyAnimator animator;
+    private boolean isFacingLeft = false;
+
     public Enemy(EnemyArchetype archetype, Vector2D spawnPoint, double radius, int health, double moveSpeed,
                  int contactDamage, Weapon rangedWeapon, GameEventListener eventListener) {
         super(spawnPoint, radius, health, colorFor(archetype));
@@ -27,6 +32,7 @@ public class Enemy extends Entity {
         this.contactDamage = contactDamage;
         this.rangedWeapon = rangedWeapon;
         this.eventListener = eventListener;
+        this.animator = new EnemyAnimator(archetype);
     }
 
     @Override
@@ -36,7 +42,6 @@ public class Enemy extends Entity {
             rangedWeapon.tick(deltaSeconds);
         }
 
-        // Tự động đẩy nhau ra để tránh chồng lấp hình ảnh giữa các quái
         if (world.getEnemies() != null) {
             separateFromOtherEnemies(world, world.getEnemies(), deltaSeconds);
         }
@@ -45,33 +50,64 @@ public class Enemy extends Entity {
         Vector2D enemyPos = getPosition();
         double distanceToPlayer = enemyPos.distance(playerPos);
 
-        // Chia hành vi AI theo từng loại quái vật (Archetype)
+//      Tu xoay mat vao player
+        double diffX = playerPos.getX() - enemyPos.getX();
+        this.isFacingLeft = (diffX < 0);
+
+//        Chia tung loai quai
         switch (archetype) {
-            case SLIME -> {
-                // AI Mặc định: Đi thẳng tới Player, gây sát thương va chạm
-                standardChaseAndContact(world, playerPos, deltaSeconds);
-            }
-            case SKELETON_ARCHER -> {
-                // AI Lính canh: Giữ khoảng cách, bắn tầm xa, né/nấp vật cản khi Player đến quá gần
-                guardianAI(world, playerPos, distanceToPlayer, deltaSeconds);
-            }
-            case ELITE_MINION -> {
-                // AI Lợn Rừng: Cơ chế Húc (Dash) tốc độ cao khi đi vào tầm ngắm
-                wildBoarAI(world, playerPos, distanceToPlayer, deltaSeconds);
-            }
-            case GRAND_KNIGHT -> {
-                // Logic Boss đuổi bắt và gây sát thương
-                standardChaseAndContact(world, playerPos, deltaSeconds);
-            }
+            case SLIME -> standardChaseAndContact(world, playerPos, deltaSeconds);
+            case SKELETON_ARCHER -> guardianAI(world, playerPos, distanceToPlayer, deltaSeconds);
+            case ELITE_MINION -> wildBoarAI(world, playerPos, distanceToPlayer, deltaSeconds);
+        }
+
+        // Cập nhật khung hình Animator
+        animator.update(deltaSeconds);
+    }
+
+    public void move(GameWorld world, double dx, double dy) {
+        if (dx == 0 && dy == 0) return;
+
+        Vector2D currentPos = getPosition();
+
+        Vector2D newPos = new Vector2D(currentPos.getX() + dx, currentPos.getY() + dy);
+        if (world.canMoveTo(newPos, getRadius())) {
+            currentPos.set(newPos);
+            return;
+        }
+
+        Vector2D posXOnly = new Vector2D(currentPos.getX() + dx, currentPos.getY());
+        if (world.canMoveTo(posXOnly, getRadius())) {
+            currentPos.set(posXOnly);
+            return;
+        }
+
+        Vector2D posYOnly = new Vector2D(currentPos.getX(), currentPos.getY() + dy);
+        if (world.canMoveTo(posYOnly, getRadius())) {
+            currentPos.set(posYOnly);
         }
     }
 
-    /**
-     * Xử lý va chạm giữa các quái để tránh đè chồng hình lên nhau
-     * VÀ tự đẩy ra nếu bị lỡ lún vào vật cản.
-     */
+    @Override
+    public void render(GraphicsContext gc, Camera camera) {
+        double renderWidth = getRadius() * 2.5;
+        double renderHeight = getRadius() * 2.5;
+
+        animator.render(
+                gc,
+                camera,
+                getPosition().getX(),
+                getPosition().getY(),
+                renderWidth,
+                renderHeight,
+                getRadius(),
+                isFacingLeft
+        );
+    }
+
+
+
     public void separateFromOtherEnemies(GameWorld world, List<Enemy> allEnemies, double deltaSeconds) {
-        // 1. Đẩy ra khỏi các quái khác
         for (Enemy other : allEnemies) {
             if (other == this || !other.isAlive()) continue;
 
@@ -90,7 +126,6 @@ public class Enemy extends Entity {
             }
         }
 
-        // 2. Đẩy ra khỏi Vật cản (Obstacle) nếu lỡ bị kẹt/chồng hình
         List<Obstacle> obstacles = world.getObstacles();
         if (obstacles != null) {
             for (Obstacle obstacle : obstacles) {
@@ -102,72 +137,34 @@ public class Enemy extends Entity {
                     }
                     pushDir.normalize();
 
-                    // Đẩy quái ra phía ngoài tâm vật cản
                     double pushDistance = 150.0 * deltaSeconds;
                     getPosition().add(pushDir.getX() * pushDistance, pushDir.getY() * pushDistance);
                 }
             }
         }
     }
-    public void move(GameWorld world, double dx, double dy) {
-        if (dx == 0 && dy == 0) return;
 
-        Vector2D currentPos = getPosition();
-
-        // 1. Thử di chuyển cả 2 hướng X và Y
-        Vector2D newPos = new Vector2D(currentPos.getX() + dx, currentPos.getY() + dy);
-        if (world.canMoveTo(newPos, getRadius())) {
-            currentPos.set(newPos);
-            return;
-        }
-
-        // 2. Nếu vướng vật cản/tường: Thử trượt theo trục X
-        Vector2D posXOnly = new Vector2D(currentPos.getX() + dx, currentPos.getY());
-        if (world.canMoveTo(posXOnly, getRadius())) {
-            currentPos.set(posXOnly);
-            return;
-        }
-
-        // 3. Thử trượt theo trục Y
-        Vector2D posYOnly = new Vector2D(currentPos.getX(), currentPos.getY() + dy);
-        if (world.canMoveTo(posYOnly, getRadius())) {
-            currentPos.set(posYOnly);
-        }
-    }
-
-    // ==================== CÁC HÀM AI CHI TIẾT ====================
-
-    /**
-     * AI Lính canh bắn tên (SKELETON_ARCHER):
-     * - Ở xa: Bắn tên và kết hợp tìm điểm nấp đằng sau vật cản (`Obstacle`).
-     * - Ở quá gần (dưới 120px): Tháo chạy dạt sang bên / lùi lại.
-     * - Khi bị áp sát sát sạt (<= 35px): Phản công cận chiến đẩy lui.
-     */
     private void guardianAI(GameWorld world, Vector2D playerPos, double distance, double deltaSeconds) {
         Vector2D toPlayer = playerPos.copy().subtract(getPosition());
 
         if (distance < 120.0) {
-            // TRẠNG THÁI NGUY HIỂM: Rút lui hoặc né dạt sang bên
-            Vector2D escapeDirection = toPlayer.copy().scale(-1.0); // Hướng lùi lại
-            escapeDirection.add(new Vector2D(-toPlayer.getY(), toPlayer.getX()).scale(0.5)); // Lệch góc né tránh
+            Vector2D escapeDirection = toPlayer.copy().scale(-1.0);
+            escapeDirection.add(new Vector2D(-toPlayer.getY(), toPlayer.getX()).scale(0.5));
 
             if (escapeDirection.length() > 0.0) {
                 escapeDirection.normalize().scale(moveSpeed * 1.2 * deltaSeconds);
                 move(world, escapeDirection.getX(), escapeDirection.getY());
             }
 
-            // Phản công cận chiến nếu player áp sát
             if (distance <= 35.0 && attackCooldown <= 0.0) {
                 world.getPlayer().takeDamage(contactDamage + 2);
                 this.attackCooldown = 1.2;
             }
         } else {
-            // TRẠNG THÁI AN TOÀN: Bắn tầm xa & ưu tiên di chuyển tìm chỗ nấp sau vật cản
             List<Obstacle> obstacles = world.getObstacles();
             if (obstacles != null && !obstacles.isEmpty() && distance < 280.0) {
                 coverAI(world, playerPos, deltaSeconds);
             } else if (distance > 250.0) {
-                // Di chuyển chậm lại gần nếu quá xa tầm bắn
                 Vector2D walkDir = toPlayer.copy();
                 if (walkDir.length() > 0.0) {
                     walkDir.normalize().scale(moveSpeed * deltaSeconds);
@@ -175,26 +172,19 @@ public class Enemy extends Entity {
                 }
             }
 
-            // Tấn công tầm xa bằng vũ khí
             if (rangedWeapon != null && world.getPlayer().isAlive()) {
                 rangedWeapon.attack(world, this, playerPos);
             }
         }
     }
 
-    /**
-     * AI Lợn rừng / Quái húc (ELITE_MINION):
-     * Tăng tốc húc mạnh khi đi vào vùng kích hoạt (<= 180px) và xử lý chống lún hình.
-     */
     private void wildBoarAI(GameWorld world, Vector2D playerPos, double distance, double deltaSeconds) {
         Vector2D direction = playerPos.copy().subtract(getPosition());
         double currentSpeed = this.moveSpeed;
 
-        // VÙNG CẤM: Bán kính Player + Bán kính Quái + Khoảng an toàn
         double minAllowedDistance = world.getPlayer().getRadius() + this.getRadius() + 4.0;
 
         if (distance <= 180.0) {
-            // Trạng thái húc tốc độ cao
             currentSpeed = this.moveSpeed * 2.2;
         }
 
@@ -204,7 +194,6 @@ public class Enemy extends Entity {
                 move(world, direction.getX(), direction.getY());
             }
         } else {
-            // Đẩy ngược quái ra lại rìa nếu húc quá nhanh bị lún hình
             Vector2D pushOut = getPosition().copy().subtract(playerPos);
             if (pushOut.length() > 0.0) {
                 pushOut.normalize().scale(currentSpeed * 0.8 * deltaSeconds);
@@ -212,16 +201,12 @@ public class Enemy extends Entity {
             }
         }
 
-        // Gây sát thương va chạm
         if (distance <= minAllowedDistance + 3.0 && attackCooldown <= 0.0) {
             world.getPlayer().takeDamage(contactDamage);
             this.attackCooldown = 1.0;
         }
     }
 
-    /**
-     * AI Đuổi bắt cơ bản (Slime và Boss)
-     */
     private void standardChaseAndContact(GameWorld world, Vector2D playerPos, double deltaSeconds) {
         Vector2D direction = playerPos.copy().subtract(getPosition());
         double distance = direction.length();
@@ -247,9 +232,6 @@ public class Enemy extends Entity {
         }
     }
 
-    /**
-     * AI NẤP VẬT CẢN: Tìm vị trí đằng sau vật cản gần nhất so với góc nhìn của Player.
-     */
     public void coverAI(GameWorld world, Vector2D playerPos, double deltaSeconds) {
         List<Obstacle> obstacles = world.getObstacles();
 
@@ -258,7 +240,6 @@ public class Enemy extends Entity {
             return;
         }
 
-        // 1. Tìm vật cản gần nhất
         Obstacle closestObs = null;
         double minDistance = Double.MAX_VALUE;
         for (Obstacle obs : obstacles) {
@@ -270,11 +251,9 @@ public class Enemy extends Entity {
         }
 
         if (closestObs != null) {
-            // 2. Tính điểm nấp an toàn (Bán kính quái + một nửa đường chéo vật cản + khoảng an toàn)
             Vector2D obsCenter = closestObs.getCenter();
             Vector2D awayFromPlayer = obsCenter.copy().subtract(playerPos).normalize();
 
-            // Tính khoảng cách nấp an toàn để không chui vào ruột vật cản
             double obsRadius = Math.max(closestObs.getWidth(), closestObs.getHeight()) / 2.0;
             double safeHideDistance = obsRadius + getRadius() + 15.0;
 
@@ -283,7 +262,6 @@ public class Enemy extends Entity {
                     awayFromPlayer.getY() * safeHideDistance
             );
 
-            // 3. Di chuyển tới điểm nấp nếu vị trí đó hợp lệ
             double distToCover = getPosition().distance(coverPoint);
             if (distToCover > 10.0 && world.canMoveTo(coverPoint, getRadius())) {
                 Vector2D moveDir = coverPoint.copy().subtract(getPosition()).normalize();
@@ -292,17 +270,14 @@ public class Enemy extends Entity {
             }
         }
     }
+
     @Override
     public void takeDamage(int amount) {
         super.takeDamage(amount);
         if (!isAlive() && !defeatNotified) {
             defeatNotified = true;
             if (eventListener != null) {
-                if (archetype == EnemyArchetype.GRAND_KNIGHT) {
-                    eventListener.onBossDefeated((Boss) this);
-                } else {
-                    eventListener.onEnemyDefeated(this);
-                }
+                eventListener.onEnemyDefeated(this);
             }
         }
     }
@@ -328,7 +303,7 @@ public class Enemy extends Entity {
             case SLIME -> Color.BLUE;
             case SKELETON_ARCHER -> Color.GRAY;
             case ELITE_MINION -> Color.RED;
-            case GRAND_KNIGHT -> Color.PURPLE;
+            default -> Color.RED;
         };
     }
 }
