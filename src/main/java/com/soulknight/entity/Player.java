@@ -6,6 +6,7 @@ import com.soulknight.utils.Vector2D;
 import com.soulknight.weapon.Gun;
 import com.soulknight.weapon.Weapon;
 import com.soulknight.entity.PlayerAnimator;
+import javafx.scene.image.Image;
 import javafx.scene.input.KeyCode;
 import javafx.scene.paint.Color;
 
@@ -13,10 +14,17 @@ import java.util.List;
 
 public final class Player extends Entity {
 
-    private Weapon weapon = new Gun("Blaster", 12, 0.18, 580.0, 0.0);
+    private Weapon weapon = new Gun("Blaster", 12, 0.18, 580.0, 0.0)
+            .withImage("/assets/WeaponImage/GunImage/OldPistol.png");
 
     private final PlayerAnimator animator = new PlayerAnimator();
     private boolean isFacingLeft = false;
+    // Goc ngam ban hien tai (radian), 0 = huong sang phai
+    private double aimAngle = 0.0;
+    // Vi tri nong sung theo chieu cao anh (0 = dinh anh, 1 = day anh).
+    // Dieu chinh gia tri nay de dau nong nam dung tren duong ngam (noi dan bay ra).
+    // 0.5 = giua anh; tang len neu dan bay cao hon nong, giam neu dan bay thap hon.
+    private static final double BARREL_HEIGHT_FRACTION = 0.5;
     private PlayerAnimator.State movementState = PlayerAnimator.State.IDLE;
     private double invulnerabilityTimer = 0.0;
     // Thời gian bất tử khi trúng đòn
@@ -127,6 +135,18 @@ public final class Player extends Entity {
             }
         }
 
+        // Cap nhat goc ngam de sung xoay theo huong ban
+        if (attackTargetPos != null) {
+            double aimDx = attackTargetPos.getX() - getPosition().getX();
+            double aimDy = attackTargetPos.getY() - getPosition().getY();
+            if (aimDx != 0.0 || aimDy != 0.0) {
+                aimAngle = Math.atan2(aimDy, aimDx);
+            }
+        } else if (movement.length() > 0.0) {
+            // Khong co muc tieu thi sung huong theo huong di chuyen
+            aimAngle = Math.atan2(dy, dx);
+        }
+
         // Xu ly tan cong
         if (world.getInputHandler().isFireHeld() && attackTargetPos != null) {
             weapon.attack(world, this, attackTargetPos);
@@ -135,9 +155,8 @@ public final class Player extends Entity {
         animator.update(movementState, deltaSeconds);
     }
 
-    /**
-     * Thuat ton tim kiem ke thu gan nhat
-     */
+    // Thuat toan tim kiem ke thu gan nhat
+
     private Enemy findNearestEnemy(List<Enemy> enemies) {
         if (enemies == null || enemies.isEmpty()) {
             return null;
@@ -175,6 +194,62 @@ public final class Player extends Entity {
                 getRadius(),
                 isFacingLeft
         );
+
+        // Ve sung tren tay nhan vat, xoay theo huong ban
+        renderWeapon(graphicsContext, camera);
+    }
+
+    /**
+     * Ve vu khi nhan vat dang cam.
+     * Sung duoc xoay quanh vi tri tay theo goc aimAngle,
+     * dau nong sung trung voi vi tri dan bay ra (Gun.MUZZLE_DISTANCE).
+     */
+    private void renderWeapon(javafx.scene.canvas.GraphicsContext gc, com.soulknight.engine.Camera camera) {
+        if (weapon == null) {
+            return;
+        }
+        Image weaponImage = weapon.getImage();
+        if (weaponImage == null || weaponImage.getWidth() <= 1.0) {
+            return;
+        }
+
+        double zoom = camera.getZoom();
+
+        // Chieu dai sung (world): du dai de dau nong cham toi MUZZLE_DISTANCE,
+        // phan du ra phia sau la bao tay cam nam sau diem xoay
+        double gunWorldLength = Gun.MUZZLE_DISTANCE + 6.0;
+        double gunWorldHeight = gunWorldLength * (weaponImage.getHeight() / weaponImage.getWidth());
+
+        // Diem xoay = tam nhan vat (cung goc voi noi Gun tinh diem dan bay ra)
+        double pivotScreenX = camera.worldToScreenX(getPosition().getX());
+        double pivotScreenY = camera.worldToScreenY(getPosition().getY());
+
+        double renderLength = gunWorldLength * zoom;
+        double renderHeight = gunWorldHeight * zoom;
+
+        // Dat canh phai (dau nong) cua anh dung ngay tai MUZZLE_DISTANCE
+        // -> dan bay ra trung khop voi dau nong sung tren man hinh
+        double muzzleScreenX = Gun.MUZZLE_DISTANCE * zoom;
+        double leftX = muzzleScreenX - renderLength;
+        // Dich sprite theo phuong doc sao cho nong sung (BARREL_HEIGHT_FRACTION)
+        // nam dung tren duong ngam (y = 0). Diem nay bat bien khi lat doc.
+        double topY = -BARREL_HEIGHT_FRACTION * renderHeight;
+
+        gc.save();
+        gc.setImageSmoothing(false);
+
+        // Dua he toa do ve tam nhan vat va xoay theo goc ngam
+        gc.translate(pivotScreenX, pivotScreenY);
+        gc.rotate(Math.toDegrees(aimAngle));
+        // Khi ngam sang trai, lat doc sprite de sung khong bi nguoc dau
+        if (isFacingLeft) {
+            gc.scale(1, -1);
+        }
+
+        // Ve sung: dau nong ben phai (tai MUZZLE_DISTANCE), tay cam ben trai
+        gc.drawImage(weaponImage, leftX, topY, renderLength, renderHeight);
+
+        gc.restore();
     }
 
     public double getSpeed() {

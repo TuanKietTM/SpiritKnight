@@ -26,7 +26,8 @@ public final class LevelManager {
                     5,
                     0,
                     false,
-                    new Gun("Training Gun", 10, 0.25, 560.0, 0.0),
+                    new Gun("Training Gun", 10, 0.25, 560.0, 0.0)
+                            .withImage("/assets/WeaponImage/GunImage/OldPistol.png"),
                     () -> new KillTargetMission(
                             "The Training Dungeon",
                             "Defeat exactly 5 basic Slimes",

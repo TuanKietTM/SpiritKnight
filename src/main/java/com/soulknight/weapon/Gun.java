@@ -8,6 +8,9 @@ import javafx.scene.paint.Color;
 
 public final class Gun extends Weapon {
 
+    // Khoang cach tu tam nhan vat den dau nong sung (noi dan bay ra)
+    public static final double MUZZLE_DISTANCE = 22.0;
+
     private final double bulletSpeed;
     private final double spreadRadians;
 
@@ -32,7 +35,9 @@ public final class Gun extends Weapon {
 
         double angle = Math.atan2(direction.getY(), direction.getX()) + spreadRadians;
         Vector2D velocity = new Vector2D(Math.cos(angle), Math.sin(angle)).scale(bulletSpeed);
-        Vector2D spawn = owner.getPosition().copy();
+        // Dan xuat phat tu dau nong sung theo huong ban (khong phai tu tam nhan vat)
+        Vector2D spawn = owner.getPosition().copy()
+                .add(Math.cos(angle) * MUZZLE_DISTANCE, Math.sin(angle) * MUZZLE_DISTANCE);
 
         world.addBullet(new Bullet(spawn, velocity, getDamage(), 4.0, owner, Color.GOLD));
         resetCooldown();

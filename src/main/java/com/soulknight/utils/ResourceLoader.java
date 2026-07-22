@@ -21,9 +21,11 @@ public final class ResourceLoader {
         return IMAGE_CACHE.computeIfAbsent(resourcePath, ResourceLoader::loadImage);
     }
 
-    private static Image loadImage(String resourcePath) {
+    public static Image loadImage(String resourcePath) {
         URL resource = ResourceLoader.class.getResource(resourcePath);
-        return resource == null ? PLACEHOLDER_IMAGE : new Image(resource.toExternalForm(), true);
+        // Tai anh dong bo (khong dung background loading) de getWidth()/getHeight()
+        // co gia tri ngay lap tuc; tranh bi ket width=0 khi chay dang module (JPMS)
+        return resource == null ? PLACEHOLDER_IMAGE : new Image(resource.toExternalForm());
     }
 
     private static Image createPlaceholderImage() {

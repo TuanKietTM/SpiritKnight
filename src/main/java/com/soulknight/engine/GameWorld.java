@@ -15,12 +15,14 @@ import com.soulknight.utils.Constants;
 import com.soulknight.utils.SoundManager;
 import com.soulknight.utils.Vector2D;
 import com.soulknight.weapon.Bullet;
+import com.soulknight.weapon.ExplosionEffect;
 import com.soulknight.weapon.Gun;
 import com.soulknight.weapon.Weapon;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.paint.Color;
 
 public final class GameWorld {
 
@@ -37,6 +39,8 @@ public final class GameWorld {
     private Player player;
     private final List<Enemy> enemies = new ArrayList<>();
     private final List<Bullet> bullets = new ArrayList<>();
+    // Danh sach hieu ung no khi dan va cham (tuong hoac muc tieu)
+    private final List<ExplosionEffect> explosions = new ArrayList<>();
     private final List<Item> items = new ArrayList<>();
     private GameState state = GameState.INTRO;
     private double enemySpawnTimer;
@@ -129,6 +133,7 @@ public final class GameWorld {
         resolvePlayerEnemyCollisions(deltaSeconds);
 
         updateBullets(deltaSeconds);
+        updateExplosions(deltaSeconds);
         updateItemCollection();
 
         if (allowSpawns) {
@@ -158,6 +163,7 @@ public final class GameWorld {
         for (Bullet bullet : bullets) {
             bullet.update(deltaSeconds);
             if (!mapManager.isWalkable(bullet.getPosition().getX(), bullet.getPosition().getY(), bullet.getRadius())) {
+                spawnBulletExplosion(bullet.getPosition());
                 bullet.deactivate();
                 continue;
             }
@@ -168,6 +174,7 @@ public final class GameWorld {
                     // Trừ máu vật cản (nếu vật cản thuộc loại phá hủy được)
                     obstacle.takeDamage(bullet.getDamage());
                     // Tiêu hủy đạn ngay lập tức (không cho xuyên qua quái núp sau)
+                    spawnBulletExplosion(bullet.getPosition());
                     bullet.deactivate();
                     hitObstacle = true;
                     break;
@@ -181,12 +188,14 @@ public final class GameWorld {
                 for (Enemy enemy : enemies) {
                     if (enemy.isAlive() && bullet.intersects(enemy)) {
                         enemy.takeDamage(bullet.getDamage());
+                        spawnBulletExplosion(bullet.getPosition());
                         bullet.deactivate();
                         break;
                     }
                 }
             } else if (bullet.intersects(player)) {// dan ban trung player
                 player.takeDamage(bullet.getDamage());
+                spawnBulletExplosion(bullet.getPosition());
                 bullet.deactivate();
             }
         }
@@ -202,6 +211,19 @@ public final class GameWorld {
                 }
             }
         }
+    }
+
+    // Tao hieu ung no tai vi tri dan va cham (tuong hoac muc tieu)
+    private void spawnBulletExplosion(Vector2D position) {
+        explosions.add(new ExplosionEffect(position.copy(), 18.0, 0.3, Color.ORANGERED));
+    }
+
+    // Cap nhat vong doi hieu ung no, xoa cai da ket thuc
+    private void updateExplosions(double deltaSeconds) {
+        for (ExplosionEffect explosion : explosions) {
+            explosion.update(deltaSeconds);
+        }
+        explosions.removeIf(explosion -> !explosion.isActive());
     }
 
     private void updateItemCollection() {
@@ -271,6 +293,11 @@ public final class GameWorld {
         }
 
         player.render(graphicsContext, camera);
+
+        // Ve hieu ung no len tren cung tai cac diem dan va cham
+        for (ExplosionEffect explosion : explosions) {
+            explosion.render(graphicsContext, camera);
+        }
     }
 
     private void startNewRun() {
@@ -305,12 +332,14 @@ public final class GameWorld {
         }
 
         if (freshRun) {
-            player.equipWeapon(new Gun("Blaster", 12, 0.18, 580.0, 0.0));
+            player.equipWeapon(new Gun("Blaster", 12, 0.18, 580.0, 0.0)
+                    .withImage("/assets/WeaponImage/GunImage/OldPistol.png"));
         }
 
         // reset lại các object
         enemies.clear();
         bullets.clear();
+        explosions.clear();
         items.clear();
         enemySpawnTimer = 0.0;
 
