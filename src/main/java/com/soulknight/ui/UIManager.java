@@ -282,6 +282,14 @@ public final class UIManager {
                     world.changeState(GameState.PAUSED);
                 }
             });
+
+            // Doi vu khi (sung <-> kiem) khi bam vao vong vu khi tren HUD
+            hudController.setOnWeaponSwitchRequested(() -> {
+                if (world.getState() == GameState.PLAYING) {
+                    sound.playSFX("button");
+                    world.switchPlayerWeapon();
+                }
+            });
         }
 
         if (pauseController != null) {

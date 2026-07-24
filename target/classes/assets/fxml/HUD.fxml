@@ -54,6 +54,7 @@
         <Button text="⏸" onAction="#onPauseButtonClicked" styleClass="hud-pause-button" focusTraversable="false"/>
     </HBox>
     <StackPane layoutX="860.0" layoutY="450.0" AnchorPane.bottomAnchor="30.0" AnchorPane.rightAnchor="30.0"
+               onMouseClicked="#onWeaponButtonClicked"
                styleClass="weapon-ring-container">
         <Circle radius="55" styleClass="weapon-ring-bg"/>
         <VBox alignment="CENTER" spacing="3" pickOnBounds="false">
