@@ -1,0 +1,319 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.shape.Circle?>
+<?import javafx.scene.shape.Rectangle?>
+
+<StackPane fx:id="rootPane"
+           prefWidth="1000.0"
+           prefHeight="600.0"
+           stylesheets="@../CSS/story.css"
+           xmlns="http://javafx.com/javafx"
+           xmlns:fx="http://javafx.com/fxml"
+           fx:controller="com.soulknight.ui.StoryIntroController">
+    <Pane styleClass="cinematic-background"/>
+
+    <Circle radius="300"
+            opacity="0.18"
+            mouseTransparent="true"
+            styleClass="background-glow"/>
+
+    <VBox fx:id="bootPanel"
+          alignment="CENTER_LEFT"
+          maxWidth="820"
+          maxHeight="440"
+          spacing="18"
+          styleClass="boot-panel">
+
+        <Label text="SOUL CORE BIOS"
+               styleClass="boot-title"/>
+
+        <Label fx:id="bootText"
+               maxWidth="780"
+               wrapText="true"
+               styleClass="boot-text"/>
+    </VBox>
+
+    <VBox fx:id="idePanel"
+          visible="false"
+          managed="false"
+          maxWidth="860"
+          maxHeight="500"
+          styleClass="ide-window">
+
+        <HBox alignment="CENTER_LEFT"
+              prefHeight="45"
+              spacing="9"
+              styleClass="ide-title-bar">
+
+            <padding>
+                <Insets left="16" right="16"/>
+            </padding>
+
+            <Circle radius="6" styleClass="window-red"/>
+            <Circle radius="6" styleClass="window-yellow"/>
+            <Circle radius="6" styleClass="window-green"/>
+
+            <Label text="SoulKnightCore – IntelliJ IDEA"
+                   styleClass="ide-window-title"/>
+        </HBox>
+
+
+        <HBox alignment="CENTER_LEFT"
+              spacing="24"
+              prefHeight="34"
+              styleClass="ide-menu-bar">
+
+            <padding>
+                <Insets left="18"/>
+            </padding>
+
+            <Label text="File" styleClass="menu-text"/>
+            <Label text="Edit" styleClass="menu-text"/>
+            <Label text="View" styleClass="menu-text"/>
+            <Label text="Navigate" styleClass="menu-text"/>
+            <Label text="Code" styleClass="menu-text"/>
+            <Label text="Run" styleClass="menu-text"/>
+        </HBox>
+
+
+        <HBox VBox.vgrow="ALWAYS">
+
+            <VBox prefWidth="54"
+                  alignment="TOP_RIGHT"
+                  styleClass="line-number-panel">
+
+                <padding>
+                    <Insets top="18" right="12"/>
+                </padding>
+
+                <Label text="1&#10;2&#10;3&#10;4&#10;5&#10;6&#10;7&#10;8&#10;9&#10;10&#10;11&#10;12&#10;13&#10;14&#10;15"
+                       styleClass="line-number"/>
+            </VBox>
+
+            <StackPane HBox.hgrow="ALWAYS"
+                       styleClass="editor-panel">
+
+                <VBox alignment="TOP_LEFT"
+                      spacing="5">
+
+                    <padding>
+                        <Insets top="18" right="20" bottom="15" left="18"/>
+                    </padding>
+
+                    <Label fx:id="codeLabel"
+                           maxWidth="750"
+                           wrapText="true"
+                           styleClass="code-text"/>
+
+                    <Label fx:id="cursorLabel"
+                           text="█"
+                           styleClass="cursor-text"/>
+                </VBox>
+            </StackPane>
+        </HBox>
+
+        <VBox prefHeight="115"
+              spacing="6"
+              styleClass="console-panel">
+
+            <padding>
+                <Insets top="10" right="16" bottom="10" left="16"/>
+            </padding>
+
+            <Label text="Run: SoulKnightCore"
+                   styleClass="console-title"/>
+
+            <Label fx:id="consoleLabel"
+                   wrapText="true"
+                   styleClass="console-text"/>
+        </VBox>
+
+        <HBox alignment="CENTER_RIGHT"
+              prefHeight="26"
+              spacing="18"
+              styleClass="status-bar">
+
+            <padding>
+                <Insets right="14"/>
+            </padding>
+
+            <Label text="UTF-8" styleClass="status-text"/>
+            <Label text="Java 21" styleClass="status-text"/>
+            <Label text="Ln 15, Col 1" styleClass="status-text"/>
+        </HBox>
+    </VBox>
+
+    <AnchorPane fx:id="signalOverlay"
+                visible="false"
+                managed="false"
+                mouseTransparent="true"
+                styleClass="signal-overlay"/>
+
+    <VBox fx:id="signalPanel"
+          visible="false"
+          managed="false"
+          alignment="CENTER"
+          maxWidth="740"
+          spacing="22"
+          styleClass="signal-panel">
+
+        <Label text="EXTERNAL TRANSMISSION"
+               styleClass="signal-title"/>
+
+        <Label fx:id="signalText"
+               maxWidth="660"
+               minHeight="180"
+               alignment="CENTER"
+               wrapText="true"
+               textAlignment="CENTER"
+               styleClass="signal-text"/>
+    </VBox>
+
+    <AnchorPane fx:id="bugOverlay"
+                visible="false"
+                managed="false"
+                mouseTransparent="true"
+                styleClass="bug-overlay"/>
+
+    <VBox fx:id="bugPanel"
+          visible="false"
+          managed="false"
+          alignment="CENTER"
+          maxWidth="780"
+          spacing="18"
+          styleClass="bug-panel">
+
+        <Label fx:id="bugTitle"
+               text="DIMENSIONAL CONNECTION LOST"
+               styleClass="bug-title"/>
+
+        <Label text="EMERGENCY_CHANNEL_EXCEPTION"
+               styleClass="bug-code"/>
+
+        <Label text="An unknown transmission is attempting to access this system."
+               textAlignment="CENTER"
+               wrapText="true"
+               styleClass="bug-description"/>
+
+        <Label text="Opening emergency communication channel..."
+               styleClass="bug-loading"/>
+    </VBox>
+
+
+    <StackPane fx:id="visualNovelScene"
+               visible="false"
+               managed="false"
+               prefWidth="1000"
+               prefHeight="600"
+               minWidth="1000"
+               minHeight="600"
+               maxWidth="1000"
+               maxHeight="600">
+
+
+        <ImageView fx:id="storyImage"
+                   fitWidth="1000"
+                   fitHeight="600"
+                   preserveRatio="false"
+                   smooth="false"/>
+
+        <Pane prefWidth="1000"
+              prefHeight="600"
+              mouseTransparent="true"
+              styleClass="story-image-shadow"/>
+
+        <!-- Fade chuyển cảnh, phải đặt trước khung thoại -->
+
+        <Rectangle fx:id="storyBlackFade"
+                   width="1000"
+                   height="600"
+                   fill="BLACK"
+                   opacity="0"
+                   mouseTransparent="true"/>
+
+        <VBox fx:id="dialoguePanel"
+              alignment="TOP_LEFT"
+              spacing="12"
+              prefWidth="940"
+              maxWidth="940"
+              prefHeight="175"
+              minHeight="175"
+              maxHeight="190"
+              opacity="1"
+              visible="true"
+              managed="true"
+              StackPane.alignment="BOTTOM_CENTER"
+              styleClass="dialogue-panel">
+
+            <StackPane.margin>
+                <Insets right="25" bottom="22" left="25"/>
+            </StackPane.margin>
+
+
+            <Label fx:id="storyTitle"
+                   maxWidth="880"
+                   wrapText="true"
+                   styleClass="dialogue-title"/>
+
+            <Label fx:id="storyText"
+                   maxWidth="880"
+                   minHeight="76"
+                   prefHeight="76"
+                   wrapText="true"
+                   styleClass="dialogue-text"/>
+
+            <HBox alignment="CENTER"
+                  prefWidth="880">
+
+                <Label fx:id="storyProgress"
+                       text="01 / 04"
+                       styleClass="dialogue-progress"/>
+
+                <Pane HBox.hgrow="ALWAYS"/>
+
+                <Button fx:id="continueButton"
+                        text="RECEIVE TRANSMISSION  ▶"
+                        onAction="#continueStory"
+                        visible="false"
+                        managed="false"
+                        styleClass="continue-button"/>
+            </HBox>
+        </VBox>
+
+    </StackPane>
+    <Pane fx:id="portalPane"
+          visible="false"
+          managed="false"
+          prefWidth="1000"
+          prefHeight="600"
+          mouseTransparent="true"/>
+
+    <Pane fx:id="whiteFlash"
+          visible="false"
+          managed="false"
+          prefWidth="1000"
+          prefHeight="600"
+          mouseTransparent="true"
+          styleClass="white-flash"/>
+
+
+    <Button text="SKIP"
+            onAction="#skipIntro"
+            StackPane.alignment="TOP_RIGHT"
+            styleClass="skip-button">
+
+        <StackPane.margin>
+            <Insets top="18" right="20"/>
+        </StackPane.margin>
+    </Button>
+
+</StackPane>

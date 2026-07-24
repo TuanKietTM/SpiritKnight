@@ -1,0 +1,57 @@
+{
+  "bootScript": "Soul Core BIOS v4.8.3\n\n[OK] Memory check completed\n[OK] Java Runtime detected\n[OK] JavaFX graphics initialized\n[OK] Soul Core device connected\n[OK] Dimensional network available\n\nStarting development environment...\n",
+  "javaCode": "package com.soulknight.core;\n\npublic final class WorldSystem {\n\n    private static final int MAGIC_STONES = 6;\n\n    public static void initialize() {\n        World world = World.load();\n        Knight knight = new Knight();\n\n        world.connectToMagicCore();\n        knight.activateGuardianMode();\n\n        System.out.println(\n            \"World synchronization started...\"\n        );\n    }\n}\n",
+  "consoleScript": "> Task :compileJava\n> Loading world_database.pkg\n> Loading magic_stone_core.pkg\n> Initializing guardian_knight.pkg\n> Connecting dimensional network...\n> World synchronization: 92%\n> Build completed successfully.\n",
+  "signalScript": "RECEIVING EXTERNAL PACKET...\n\nSOURCE: UNKNOWN\nDIMENSION: NOT REGISTERED\nENCRYPTION: UNRECOGNIZED\n\nDECRYPTING MESSAGE...\n\nCan you hear me...?\n",
+  "corruptedCode": "package com.soulknight.core;\n\npublic final class WorldSystem {\n\n    public static void initialize() {\n\n        System.out.println(\n            \"Can you hear me?\"\n        );\n\n        System.out.println(\n            \"They have stolen the Magic Stones...\"\n        );\n\n        System.out.println(\n            \"Please... help us...\"\n        );\n    }\n}\n",
+  "frames": [
+    {
+      "imagePath": "/assets/story/frame1.png",
+      "title": "UNKNOWN SIGNAL",
+      "text": "Can you still hear me?\n\nGood... the connection between our worlds\nis still alive.\n\nPlease, do not close this window.",
+      "delay": 0
+    },
+    {
+      "imagePath": "/assets/story/frame2.png",
+      "title": "THE MAGIC STONES",
+      "text": "These are the Magic Stones.\n\nFor thousands of years, their light protected\nour cities, our forests and every living soul.",
+      "delay": 0
+    },
+    {
+      "imagePath": "/assets/story/frame3.png",
+      "title": "THE INVADERS",
+      "text": "Then... they arrived.\n\nThey crossed the dimensional barrier\nand came for the power inside the Stones.",
+      "delay": 0
+    },
+    {
+      "imagePath": "/assets/story/frame4.png",
+      "title": "THE FALL",
+      "text": "We tried to stop them.\n\nBut one by one, the Stones disappeared...\nand our world began to die.",
+      "delay": 0
+    },
+    {
+      "imagePath": "/assets/story/frame5.png",
+      "title": "THE GUARDIANS",
+      "text": "We fought.\n\nWe lost.\n\nEvery Guardian has fallen.",
+      "delay": 0
+    },
+    {
+      "imagePath": "/assets/story/frame6.png",
+      "title": "UNKNOWN SIGNAL",
+      "text": "There is no Knight left\nwho can protect this world.\n\nExcept...\n\nYou.",
+      "delay": 0
+    },
+    {
+      "imagePath": "/assets/story/frame7.png",
+      "title": "SIGNAL IDENTIFIED",
+      "text": "TRANSMISSION SOURCE: THE LAST MAGIC STONE\n\nENERGY REMAINING: 1%\nCONNECTION STATUS: CRITICAL",
+      "delay": 0
+    },
+    {
+      "imagePath": "/assets/story/frame8.png",
+      "title": "THE LAST SIGNAL",
+      "text": "I searched across every dimension...\n\nWill you become our last Knight?\n\nPlease, enter the portal\nbefore the final light is gone.",
+      "delay": 0
+    }
+  ]
+}

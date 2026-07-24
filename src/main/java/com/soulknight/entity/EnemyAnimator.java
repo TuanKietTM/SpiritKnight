@@ -46,7 +46,7 @@ public class EnemyAnimator {
             currentFrameIndex = (currentFrameIndex + 1) % totalFrames;
         }
     }
-
+    
     public void render(GraphicsContext gc, Camera camera, double worldX, double worldY,
                        double width, double height, double radius, boolean isFacingLeft) {
         if (runSpriteSheet == null) return;
