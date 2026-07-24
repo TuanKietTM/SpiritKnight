@@ -2,7 +2,7 @@ package com.soulknight.model;
 
 import java.util.Objects;
 
-public record StoryFrame(String imagePath, String title, String text, double displaySeconds) {
+public record StoryFrame(String imagePath, String title, String text, double displaySeconds,String bgmPath,double bgmFadeTime) {
 
     public StoryFrame {
         Objects.requireNonNull(imagePath, "imagePath khong null");

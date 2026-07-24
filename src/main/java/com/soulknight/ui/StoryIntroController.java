@@ -7,12 +7,14 @@ import com.soulknight.cinematic.CinematicPlayer;
 import com.soulknight.cinematic.VisualNovelScene;
 import com.soulknight.model.StoryConfigLoader;
 import com.soulknight.model.StoryFrame;
+import com.soulknight.utils.SoundManager;
 import javafx.animation.Animation;
 import javafx.animation.FadeTransition;
 import javafx.animation.KeyFrame;
 import javafx.animation.PauseTransition;
 import javafx.animation.ScaleTransition;
 import javafx.animation.Timeline;
+import javafx.animation.Transition;
 import javafx.fxml.FXML;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
@@ -24,6 +26,7 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.shape.Rectangle;
 import javafx.util.Duration;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -54,6 +57,7 @@ public final class StoryIntroController {
 
     private final TypingEffect typingEffect = new TypingEffect();
     private final CinematicPlayer cinematicPlayer = new CinematicPlayer();
+    private final List<Animation> activeAnimations = new ArrayList<>();
 
     private VisualNovelScene visualNovelCinematic;
     private Timeline cursorTimeline;
@@ -62,8 +66,8 @@ public final class StoryIntroController {
     private boolean initialized;
     private boolean finished;
 
-//    du lieu tu JSON
     private StoryConfigLoader storyConfig;
+
     public void setOnIntroFinished(Runnable onIntroFinished) {
         this.onIntroFinished = onIntroFinished;
     }
@@ -72,6 +76,7 @@ public final class StoryIntroController {
         if (initialized) {
             return;
         }
+        stopAllSounds();
 
         storyConfig = StoryConfigLoader.loadFromJson("/assets/story/story_intro.json");
         initialized = true;
@@ -80,6 +85,10 @@ public final class StoryIntroController {
         configureCinematic();
         startCursor();
         cinematicPlayer.play();
+    }
+
+    private void stopAllSounds() {
+        SoundManager.getInstance().stopAll();
     }
 
     private void initializeVisualNovelScene() {
@@ -95,9 +104,10 @@ public final class StoryIntroController {
 
     private void validateVisualNovelFXML() {
         if (visualNovelScene == null || storyImage == null || dialoguePanel == null || storyTitle == null || storyText == null || storyProgress == null || storyBlackFade == null || continueButton == null) {
-            throw new IllegalStateException("FXML Visual Novel chua khai bao day du .");
+            throw new IllegalStateException("FXML Visual Novel chua khai bao day du.");
         }
     }
+
     private void configureCinematic() {
         cinematicPlayer
                 .addScene(this::playBootScene)
@@ -110,16 +120,24 @@ public final class StoryIntroController {
                 .addScene(this::playPortalScene);
         cinematicPlayer.setOnFinished(this::finishIntro);
     }
-
-//  Xu li du lieu dong
+//boot may tinh
     private void playBootScene(Runnable onFinished) {
+        if (finished) return;
         showNode(bootPanel);
         bootPanel.setOpacity(1);
         bootText.setText("");
         String text = (storyConfig != null) ? storyConfig.bootScript : "";
-        typingEffect.play(bootText, text, Duration.millis(17), () -> pause(0.7, () -> fadeOutAndHide(bootPanel, 0.6, onFinished)));
+
+        SoundManager.getInstance().playLoopSFX("BIOS");
+
+        typingEffect.play(bootText, text, Duration.millis(17), () -> {
+            SoundManager.getInstance().stopSFX("BIOS");
+            pause(0.7, () -> fadeOutAndHide(bootPanel, 0.6, onFinished));
+        });
     }
+//coding
     private void playCodingScene(Runnable onFinished) {
+        if (finished) return;
         showNode(idePanel);
         idePanel.setOpacity(0);
         idePanel.setScaleX(0.96);
@@ -127,29 +145,48 @@ public final class StoryIntroController {
         codeLabel.setText("");
         consoleLabel.setText("");
         codeLabel.setStyle("");
+
         FadeTransition fade = new FadeTransition(Duration.seconds(0.7), idePanel);
         fade.setFromValue(0);
         fade.setToValue(1);
+
         ScaleTransition scale = new ScaleTransition(Duration.seconds(0.7), idePanel);
         scale.setFromX(0.96);
         scale.setFromY(0.96);
         scale.setToX(1);
         scale.setToY(1);
+
         fade.setOnFinished(event -> {
             if (!finished) {
                 String text = (storyConfig != null) ? storyConfig.javaCode : "";
-                typingEffect.play(codeLabel, text, Duration.millis(11), () -> pause(0.45, onFinished));
+                SoundManager.getInstance().playLoopSFX("Typing");
+
+                typingEffect.play(codeLabel, text, Duration.millis(11), () -> {
+                    SoundManager.getInstance().stopSFX("Typing");
+                    pause(0.45, onFinished);
+                });
             }
         });
-        fade.play();
-        scale.play();
+
+        trackAndPlay(fade);
+        trackAndPlay(scale);
     }
+
     private void playConsoleScene(Runnable onFinished) {
+        if (finished) return;
         consoleLabel.setText("");
         String text = (storyConfig != null) ? storyConfig.consoleScript : "";
-        typingEffect.play(consoleLabel, text, Duration.millis(18), () -> pause(0.9, onFinished));
+
+        SoundManager.getInstance().playLoopSFX("BIOS");
+
+        typingEffect.play(consoleLabel, text, Duration.millis(18), () -> {
+            SoundManager.getInstance().stopSFX("BIOS");
+            pause(0.9, onFinished);
+        });
     }
+
     private void playSignalScene(Runnable onFinished) {
+        if (finished) return;
         showNode(signalOverlay);
         showNode(signalPanel);
         signalOverlay.setOpacity(0);
@@ -157,53 +194,59 @@ public final class StoryIntroController {
         signalPanel.setScaleX(0.88);
         signalPanel.setScaleY(0.88);
         signalText.setText("");
+
         FadeTransition overlayFade = new FadeTransition(Duration.millis(450), signalOverlay);
         overlayFade.setFromValue(0);
         overlayFade.setToValue(1);
+
         FadeTransition panelFade = new FadeTransition(Duration.millis(450), signalPanel);
         panelFade.setFromValue(0);
         panelFade.setToValue(1);
+
         ScaleTransition panelScale = new ScaleTransition(Duration.millis(500), signalPanel);
         panelScale.setFromX(0.88);
         panelScale.setFromY(0.88);
         panelScale.setToX(1);
         panelScale.setToY(1);
+
         panelFade.setOnFinished(event -> {
             if (finished) return;
             String text = (storyConfig != null) ? storyConfig.signalScript : "";
-            typingEffect.play(signalText, text, Duration.millis(27), () -> pause(1, () -> {
-                fadeOutAndHide(signalPanel, 0.4, null);
-                fadeOutAndHide(signalOverlay, 0.45, onFinished);
-            }));
+
+            SoundManager.getInstance().playLoopSFX("Radio");
+
+            typingEffect.play(signalText, text, Duration.millis(27), () -> {
+                SoundManager.getInstance().stopSFX("Radio");
+                pause(1, () -> {
+                    fadeOutAndHide(signalPanel, 0.4, null);
+                    fadeOutAndHide(signalOverlay, 0.45, onFinished);
+                });
+            });
         });
-        overlayFade.play();
-        panelFade.play();
-        panelScale.play();
+
+        trackAndPlay(overlayFade);
+        trackAndPlay(panelFade);
+        trackAndPlay(panelScale);
     }
+
     private void playCorruptionScene(Runnable onFinished) {
+        if (finished) return;
         ScreenShake.play(rootPane, 7, 6);
         codeLabel.setStyle("-fx-text-fill: #ff596e; -fx-font-size: 15px; -fx-line-spacing: 4px;");
 
         String text = (storyConfig != null) ? storyConfig.corruptedCode : "";
-        typingEffect.play(codeLabel, text, Duration.millis(19), () -> pause(0.8, onFinished));
-    }
 
-    @FXML
-    private void skipIntro() {
-        if (finished) return;
-        typingEffect.stop();
-        stopCursor();
-        if (visualNovelCinematic != null) visualNovelCinematic.stop();
-        cinematicPlayer.skip();
-    }
+        SoundManager.getInstance().playLoopSFX("Typing");
 
-    @FXML
-    private void continueStory() {
-        if (finished || visualNovelCinematic == null) return;
-        visualNovelCinematic.continueToNextFrame();
+        typingEffect.play(codeLabel, text, Duration.millis(19), () -> {
+            SoundManager.getInstance().stopSFX("Typing");
+            SoundManager.getInstance().stopSFX("Radio");
+            pause(0.8, onFinished);
+        });
     }
 
     private void playBugScene(Runnable onFinished) {
+        if (finished) return;
         showNode(bugOverlay);
         showNode(bugPanel);
 
@@ -237,16 +280,18 @@ public final class StoryIntroController {
                 new KeyFrame(Duration.millis(220), event -> bugTitle.setOpacity(1))
         );
         bugPulse.setCycleCount(6);
+        SoundManager.getInstance().playSFX("BUG");
 
         ScreenShake.play(rootPane, 18, 12);
 
-        redFlash.play();
-        showPanel.play();
-        scalePanel.play();
-        darkenIde.play();
-        bugPulse.play();
+        trackAndPlay(redFlash);
+        trackAndPlay(showPanel);
+        trackAndPlay(scalePanel);
+        trackAndPlay(darkenIde);
+        trackAndPlay(bugPulse);
 
         pause(2.8, () -> {
+            SoundManager.getInstance().stopSFX("BUG");
             fadeOutAndHide(bugPanel, 0.55, null);
             fadeOutAndHide(bugOverlay, 0.65, null);
             fadeOutAndHide(idePanel, 0.65, onFinished);
@@ -254,7 +299,10 @@ public final class StoryIntroController {
     }
 
     private void playVisualNovelScene(Runnable onFinished) {
+        if (finished) return;
         stopCursor();
+        stopAllSounds();
+
         if (visualNovelCinematic == null) {
             runCallback(onFinished);
             return;
@@ -263,6 +311,7 @@ public final class StoryIntroController {
     }
 
     private void playPortalScene(Runnable onFinished) {
+        if (finished) return;
         if (portalPane == null) {
             runCallback(onFinished);
             return;
@@ -271,6 +320,7 @@ public final class StoryIntroController {
     }
 
     private void playWhiteFlash(Runnable onFinished) {
+        if (finished) return;
         if (whiteFlash == null) {
             runCallback(onFinished);
             return;
@@ -295,7 +345,36 @@ public final class StoryIntroController {
             runCallback(onFinished);
         });
 
-        flashIn.play();
+        trackAndPlay(flashIn);
+    }
+
+    // ===================================================================
+    // BỘ ĐIỀU KHIỂN & SỰ KIỆN NÚT BẤM (SKIP / CONTINUE)
+    // ===================================================================
+
+    @FXML
+    private void skipIntro() {
+        if (finished) return;
+
+        // 1. Dừng ngay lập tức toàn bộ hiệu ứng chữ và âm thanh
+        typingEffect.stop();
+        stopAllSounds();
+        stopCursor();
+        stopAllActiveAnimations();
+
+        // 2. Dừng scene Visual Novel nếu đang chạy
+        if (visualNovelCinematic != null) {
+            visualNovelCinematic.stop();
+        }
+
+        // 3. Hoàn tất Intro và chuyển Scene chính ngay lập tức
+        finishIntro();
+    }
+
+    @FXML
+    private void continueStory() {
+        if (finished || visualNovelCinematic == null) return;
+        visualNovelCinematic.continueToNextFrame();
     }
 
     private void startCursor() {
@@ -319,11 +398,13 @@ public final class StoryIntroController {
     }
 
     private void pause(double seconds, Runnable onFinished) {
+        if (finished) return;
         PauseTransition pause = new PauseTransition(Duration.seconds(seconds));
         pause.setOnFinished(event -> {
+            activeAnimations.remove(pause);
             if (!finished) runCallback(onFinished);
         });
-        pause.play();
+        trackAndPlay(pause);
     }
 
     private void fadeOutAndHide(Node node, double seconds, Runnable onFinished) {
@@ -331,15 +412,33 @@ public final class StoryIntroController {
             runCallback(onFinished);
             return;
         }
+        if (finished) return;
+
         FadeTransition fade = new FadeTransition(Duration.seconds(seconds), node);
         fade.setFromValue(node.getOpacity());
         fade.setToValue(0);
 
         fade.setOnFinished(event -> {
+            activeAnimations.remove(fade);
             hideNode(node);
             if (!finished) runCallback(onFinished);
         });
-        fade.play();
+        trackAndPlay(fade);
+    }
+
+    private void trackAndPlay(Animation animation) {
+        if (finished || animation == null) return;
+        activeAnimations.add(animation);
+        animation.play();
+    }
+
+    private void stopAllActiveAnimations() {
+        for (Animation anim : activeAnimations) {
+            if (anim != null) {
+                anim.stop();
+            }
+        }
+        activeAnimations.clear();
     }
 
     private void showNode(Node node) {
@@ -357,7 +456,7 @@ public final class StoryIntroController {
     }
 
     private void runCallback(Runnable callback) {
-        if (callback != null) callback.run();
+        if (callback != null && !finished) callback.run();
     }
 
     private void finishIntro() {
@@ -365,11 +464,21 @@ public final class StoryIntroController {
         finished = true;
 
         typingEffect.stop();
+        stopAllSounds();
         stopCursor();
+        stopAllActiveAnimations();
+
+        // Ẩn tất cả các panel UI giới thiệu
+        hideNode(bootPanel);
+        hideNode(idePanel);
+        hideNode(signalOverlay);
+        hideNode(bugOverlay);
+        hideNode(visualNovelScene);
 
         rootPane.setTranslateX(0);
         rootPane.setTranslateY(0);
-
-        runCallback(onIntroFinished);
+        if (onIntroFinished != null) {
+            onIntroFinished.run();
+        }
     }
 }

@@ -18,22 +18,25 @@ public class StoryConfigLoader {
         public String title;
         public String text;
         public double delay;
+        public String bgmPath;
+        public double bgmFadeTime;
 
         public StoryFrame toStoryFrame() {
-            return new StoryFrame(imagePath, title, text, delay);
+            // Chuyển đổi sang StoryFrame (truyền thêm bgmPath)
+            return new StoryFrame(imagePath, title, text, delay, bgmPath,bgmFadeTime);
         }
     }
 
     public static StoryConfigLoader loadFromJson(String resourcePath) {
         try (InputStream is = StoryConfigLoader.class.getResourceAsStream(resourcePath)) {
             if (is == null) {
-                throw new IllegalArgumentException("Khong tim thay file jon cot truyen  " + resourcePath);
+                throw new IllegalArgumentException("Khong tim thay file json cot truyen " + resourcePath);
             }
             ObjectMapper mapper = new ObjectMapper();
             return mapper.readValue(is, StoryConfigLoader.class);
         } catch (Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Loi khi doc file cot truyen  " + e.getMessage());
+            throw new RuntimeException("Loi khi doc file cot truyen " + e.getMessage());
         }
     }
 }
