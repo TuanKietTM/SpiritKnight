@@ -1,17 +1,22 @@
 package com.soulknight.utils;
 
+import javafx.animation.KeyFrame;
+import javafx.animation.KeyValue;
+import javafx.animation.Timeline;
 import javafx.scene.media.AudioClip;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
+import javafx.util.Duration;
 
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
-//Thi diem 1 class su dung phuong phap may huu han trang thai
+
+/**
+ * SoundManager -Quan li bang may huu han trang thai
+ */
 public final class SoundManager {
     private static final SoundManager instance = new SoundManager();
-
-//    Dinh nghia cac trang thai am thanh
     public enum AudioState {
         UNMUTED {
             @Override
@@ -41,7 +46,6 @@ public final class SoundManager {
 
             @Override
             public void handleSFX(AudioClip clip, double volume) {
-//                khong phat SFX
             }
 
             @Override
@@ -52,92 +56,189 @@ public final class SoundManager {
             }
         };
 
-//       Chuyen tiep giua cac trang thai MUTE <-> UNMUTE
+        // Chuyển đổi trạng thái MUTE <-> UNMUTE
         public abstract AudioState nextState();
 
-        // Xu ly phat SFX tuy theo trang thai hoen tai
+        // Xử lý phát SFX dựa theo trạng thái
         public abstract void handleSFX(AudioClip clip, double volume);
 
-        // Áp dụng cấu hình Mute lên MediaPlayer tùy theo trạng thái
+        // Áp dụng trạng thái tiếng lên MediaPlayer
         public abstract void applyBGMState(MediaPlayer player);
     }
 
     private final Map<String, AudioClip> sfxMap = new HashMap<>();
     private MediaPlayer bgmPlayer;
+    private String currentBgmPath = "";
     private double sfxVolume = 0.3;
     private double bgmVolume = 0.2;
 
-    // Bien luu trang thai hien tai / thay the cho cac bien booolean
+    private Timeline bgmFadeTimeline;
     private AudioState currentState = AudioState.UNMUTED;
 
     private SoundManager() {
+        // Tải các SFX sử dụng trong game
         loadSFX("Bullet", "/assets/Audio/Bullet.mp3");
         loadSFX("button", "/assets/Audio/button.mp3");
         loadSFX("switch", "/assets/Audio/Switch.mp3");
+        loadSFX("Typing", "/assets/Audio/keyboard.mp3");
+        loadSFX("BIOS", "/assets/Audio/computer fan ambience.mp3");
+        loadSFX("BUG", "/assets/Audio/warning.mp3");
+        loadSFX("Radio", "/assets/Audio/radio_static.mp3");
+        loadSFX("Portal", "/assets/Audio/portal.mp3");
+        loadSFX("Sword", "/assets/Audio/sword.mp3");
     }
 
     public static SoundManager getInstance() {
         return instance;
     }
 
-    private void loadSFX(String key, String resourcePath) {
+    public void loadSFX(String key, String resourcePath) {
         try {
             URL res = getClass().getResource(resourcePath);
             if (res != null) {
                 AudioClip clip = new AudioClip(res.toExternalForm());
                 sfxMap.put(key, clip);
             } else {
-                System.err.println("Khong tim thay file SFX: " + resourcePath);
+                System.err.println("[SoundManager] Không tìm thấy file SFX: " + resourcePath);
             }
         } catch (Exception e) {
-            System.err.println("[Loi tai SFX: " + resourcePath + " - " + e.getMessage());
+            System.err.println("[SoundManager] Lỗi tải SFX: " + resourcePath + " - " + e.getMessage());
+        }
+    }
+    public void playSFX(String key) {
+        AudioClip clip = sfxMap.get(key);
+        if (clip != null) {
+            clip.setCycleCount(1);
+            currentState.handleSFX(clip, sfxVolume);
         }
     }
 
-    // Phat SFX bang cach uy quyen
-    public void playSFX(String key) {
+    public void playLoopSFX(String key) {
+        if (isMuted()) return;
         AudioClip clip = sfxMap.get(key);
-        currentState.handleSFX(clip, sfxVolume);
+        if (clip != null && !clip.isPlaying()) {
+            clip.setCycleCount(AudioClip.INDEFINITE);
+            clip.setVolume(sfxVolume);
+            clip.play();
+        }
     }
 
-    //  Phat BGM va ap dung State hien tai len MediaPlayer
+    public void stopSFX(String key) {
+        AudioClip clip = sfxMap.get(key);
+        if (clip != null) {
+            clip.stop();
+        }
+    }
+
+    public void stopAllSFX() {
+        for (AudioClip clip : sfxMap.values()) {
+            if (clip != null) {
+                clip.stop();
+            }
+        }
+    }
+
+
     public void playBGM(String resourcePath) {
+        playBGM(resourcePath, 0.5);
+    }
+
+//   Hieu ung nho dan bai cu roi den bai moi
+    public void playBGM(String resourcePath, double fadeDurationSeconds) {
+        if (resourcePath != null && resourcePath.equals(currentBgmPath) && bgmPlayer != null) {
+            return;
+        }
+
+        if (bgmPlayer != null && bgmPlayer.getStatus() == MediaPlayer.Status.PLAYING) {
+            double halfDuration = fadeDurationSeconds / 2.0;
+            fadeOutBGM(halfDuration, () -> {
+                fadeInNewBGM(resourcePath, halfDuration);
+            });
+        } else {
+            fadeInNewBGM(resourcePath, fadeDurationSeconds);
+        }
+    }
+
+    private void fadeInNewBGM(String resourcePath, double durationSeconds) {
+        stopFadeTimeline();
         stopBGM();
+
         try {
             URL res = getClass().getResource(resourcePath);
             if (res != null) {
                 Media media = new Media(res.toExternalForm());
                 bgmPlayer = new MediaPlayer(media);
                 bgmPlayer.setCycleCount(MediaPlayer.INDEFINITE);
-                bgmPlayer.setVolume(bgmVolume);
 
-                // Ủy quyền cài đặt trạng thái tiếng cho State
+                bgmPlayer.setVolume(0);
                 currentState.applyBGMState(bgmPlayer);
 
                 bgmPlayer.play();
+                currentBgmPath = resourcePath;
+
+                bgmFadeTimeline = new Timeline(
+                        new KeyFrame(Duration.seconds(durationSeconds),
+                                new KeyValue(bgmPlayer.volumeProperty(), bgmVolume))
+                );
+                bgmFadeTimeline.play();
             } else {
-                System.err.println("Khong tim thay file BGM: " + resourcePath);
+                System.err.println("Khong thay  " + resourcePath);
             }
         } catch (Exception e) {
-            System.err.println("loi phat  BGM: " + e.getMessage());
+            System.err.println("Loi " + e.getMessage());
         }
     }
 
+    public void fadeOutBGM(double durationSeconds, Runnable onFinished) {
+        if (bgmPlayer == null) {
+            if (onFinished != null) onFinished.run();
+            return;
+        }
+
+        stopFadeTimeline();
+
+        bgmFadeTimeline = new Timeline(
+                new KeyFrame(Duration.seconds(durationSeconds),
+                        new KeyValue(bgmPlayer.volumeProperty(), 0))
+        );
+        bgmFadeTimeline.setOnFinished(e -> {
+            stopBGM();
+            if (onFinished != null) onFinished.run();
+        });
+        bgmFadeTimeline.play();
+    }
+
     public void stopBGM() {
+        stopFadeTimeline();
         if (bgmPlayer != null) {
             bgmPlayer.stop();
             bgmPlayer.dispose();
             bgmPlayer = null;
+            currentBgmPath = "";
         }
     }
 
-    // Chuyen doi trang thai khi bam phim M
+    private void stopFadeTimeline() {
+        if (bgmFadeTimeline != null) {
+            bgmFadeTimeline.stop();
+            bgmFadeTimeline = null;
+        }
+    }
+
+    /**
+     *  Skip Cutscene, Reset Game
+     */
+    public void stopAll() {
+        stopBGM();
+        stopAllSFX();
+    }
+
+//   Amluong
     public void toggleMute() {
         this.currentState = this.currentState.nextState();
         this.currentState.applyBGMState(this.bgmPlayer);
     }
 
-    // Doi trang thai tim kiem neu can
     public void setState(AudioState newState) {
         if (newState != null && this.currentState != newState) {
             this.currentState = newState;
@@ -154,14 +255,14 @@ public final class SoundManager {
     }
 
     public void setBGMVolume(double volume) {
-        this.bgmVolume = volume;
-        if (bgmPlayer != null) {
-            bgmPlayer.setVolume(volume);
+        this.bgmVolume = Math.max(0.0, Math.min(1.0, volume));
+        if (bgmPlayer != null && bgmFadeTimeline == null) {
+            bgmPlayer.setVolume(this.bgmVolume);
         }
     }
 
     public void setSFXVolume(double volume) {
-        this.sfxVolume = volume;
+        this.sfxVolume = Math.max(0.0, Math.min(1.0, volume));
     }
 
     public double getBgmVolume() {

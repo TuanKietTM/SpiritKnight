@@ -9,49 +9,65 @@
       "imagePath": "/assets/story/frame1.png",
       "title": "UNKNOWN SIGNAL",
       "text": "Can you still hear me?\n\nGood... the connection between our worlds\nis still alive.\n\nPlease, do not close this window.",
-      "delay": 0
+      "delay": 0,
+      "bgmPath": "/assets/Audio/fantasy ambience.mp3",
+      "bgmFadeTime": 0.8
     },
     {
       "imagePath": "/assets/story/frame2.png",
       "title": "THE MAGIC STONES",
       "text": "These are the Magic Stones.\n\nFor thousands of years, their light protected\nour cities, our forests and every living soul.",
-      "delay": 0
+      "delay": 0,
+      "bgmPath": "/assets/Audio/fantasy ambience.mp3",
+      "bgmFadeTime": 0.8
     },
     {
       "imagePath": "/assets/story/frame3.png",
       "title": "THE INVADERS",
       "text": "Then... they arrived.\n\nThey crossed the dimensional barrier\nand came for the power inside the Stones.",
-      "delay": 0
+      "delay": 0,
+      "bgmPath": "/assets/Audio/fantasy ambience.mp3",
+      "bgmFadeTime": 0.8
     },
     {
       "imagePath": "/assets/story/frame4.png",
       "title": "THE FALL",
       "text": "We tried to stop them.\n\nBut one by one, the Stones disappeared...\nand our world began to die.",
-      "delay": 0
+      "delay": 0,
+      "bgmPath": "/assets/Audio/sad.mp3",
+      "bgmFadeTime": 0.8
     },
     {
       "imagePath": "/assets/story/frame5.png",
       "title": "THE GUARDIANS",
       "text": "We fought.\n\nWe lost.\n\nEvery Guardian has fallen.",
-      "delay": 0
+      "delay": 0,
+      "bgmPath": "/assets/Audio/sad.mp3",
+      "bgmFadeTime": 0.8
     },
     {
       "imagePath": "/assets/story/frame6.png",
       "title": "UNKNOWN SIGNAL",
       "text": "There is no Knight left\nwho can protect this world.\n\nExcept...\n\nYou.",
-      "delay": 0
+      "delay": 0,
+      "bgmPath": "/assets/Audio/sad.mp3",
+      "bgmFadeTime": 0.8
     },
     {
       "imagePath": "/assets/story/frame7.png",
       "title": "SIGNAL IDENTIFIED",
       "text": "TRANSMISSION SOURCE: THE LAST MAGIC STONE\n\nENERGY REMAINING: 1%\nCONNECTION STATUS: CRITICAL",
-      "delay": 0
+      "delay": 0,
+      "bgmPath": "/assets/Audio/you.mp3",
+      "bgmFadeTime": 0.8
     },
     {
       "imagePath": "/assets/story/frame8.png",
       "title": "THE LAST SIGNAL",
       "text": "I searched across every dimension...\n\nWill you become our last Knight?\n\nPlease, enter the portal\nbefore the final light is gone.",
-      "delay": 0
+      "delay": 0,
+      "bgmPath": "/assets/Audio/you.mp3",
+      "bgmFadeTime": 0.8
     }
   ]
 }

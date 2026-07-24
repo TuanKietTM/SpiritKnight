@@ -13,6 +13,7 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.shape.Rectangle;
+import com.soulknight.utils.SoundManager;
 import javafx.util.Duration;
 
 import java.net.URL;
@@ -69,8 +70,10 @@ public final class VisualNovelScene {
     public void stop() {
         playing = false;
         generation++;
-
         typingEffect.stop();
+        SoundManager.getInstance().stopSFX("Typing");
+        SoundManager.getInstance().stopBGM();
+
         stopAnimation(activeTransition);
         stopAnimation(activeZoom);
 
@@ -131,7 +134,10 @@ public final class VisualNovelScene {
         }
 
         StoryFrame frame = frames.get(currentFrameIndex);
-
+        if (frame.bgmPath() != null && !frame.bgmPath().isBlank()) {
+            double fadeTime = (frame.bgmFadeTime() > 0) ? frame.bgmFadeTime() : 0.8;
+            SoundManager.getInstance().playBGM(frame.bgmPath(), fadeTime);
+        }
         if (!loadImage(frame.imagePath())) {
             currentFrameIndex++;
             playCurrentFrame(currentGeneration, onFinished);
@@ -151,14 +157,14 @@ public final class VisualNovelScene {
         URL imageUrl = VisualNovelScene.class.getResource(resourcePath);
 
         if (imageUrl == null) {
-            System.err.println("[VISUAL NOVEL] Không tìm thấy ảnh: " + resourcePath);
+            System.err.println("Khong thay  " + resourcePath);
             return false;
         }
 
         Image image = new Image(imageUrl.toExternalForm(), false);
 
         if (image.isError()) {
-            System.err.println("[VISUAL NOVEL] Không thể đọc ảnh: " + resourcePath);
+            System.err.println("Khong doc duoc : " + resourcePath);
             return false;
         }
 
@@ -238,8 +244,10 @@ public final class VisualNovelScene {
         if (!isValid(currentGeneration)) {
             return;
         }
+        SoundManager.getInstance().playLoopSFX("Typing");
 
         typingEffect.play(storyText, frame.text(), Duration.millis(28), () -> {
+            SoundManager.getInstance().stopSFX("Typing");
             if (!isValid(currentGeneration)) {
                 return;
             }
@@ -256,6 +264,7 @@ public final class VisualNovelScene {
         }
 
         typingEffect.stop();
+        SoundManager.getInstance().stopSFX("Typing");
         pendingContinueAction = null;
         hideContinueButton();
 
@@ -300,8 +309,10 @@ public final class VisualNovelScene {
         if (!isValid(currentGeneration)) {
             return;
         }
-
         typingEffect.stop();
+        SoundManager.getInstance().stopSFX("Typing");
+        SoundManager.getInstance().stopBGM();
+
         pendingContinueAction = null;
         hideContinueButton();
 

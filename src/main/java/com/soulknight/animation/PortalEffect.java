@@ -13,6 +13,7 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
 import javafx.util.Duration;
+import com.soulknight.utils.SoundManager;
 
 public final class PortalEffect {
     private static final String SPRITESHEET_PATH = "/assets/story/portal1.png";
@@ -48,6 +49,7 @@ public final class PortalEffect {
         portalView.setEffect(glow);
 
         portalPane.getChildren().add(portalView);
+        SoundManager.getInstance().playSFX("Portal");
 
         Timeline animation = new Timeline();
         for (int i = 0; i < TOTAL_FRAMES; i++) {
@@ -85,6 +87,7 @@ public final class PortalEffect {
         transition.setOnFinished(event -> {
             animation.stop();
 
+            SoundManager.getInstance().stopSFX("Portal");
             portalPane.setVisible(false);
             portalPane.setManaged(false);
 
