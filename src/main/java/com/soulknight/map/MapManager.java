@@ -138,10 +138,19 @@ public final class MapManager {
     private boolean isCircleCollidingWithTile(double cx, double cy, double radius, int tx, int ty) {
         double tileLeft = tx * tileSize;
         double tileRight = (tx + 1) * tileSize;
-
-        // Chỉ chừa lại 30% mép trên để bàn chân Player lọt nhẹ xuống khi đi xuống Tường dưới
-        double tileTop = ty * tileSize + (tileSize * 0.5);
+        double tileTop = ty * tileSize;
         double tileBottom = (ty + 1) * tileSize;
+
+
+        boolean isBottomWall = (ty > 0 && tiles[ty - 1][tx] != null && tiles[ty - 1][tx].getType() == Tile.TileType.FLOOR);
+
+        if (isBottomWall) {
+            // Nếu là Tường Ngang ở đáy phòng: Cho phép lấn sâu xuống 50% để đè tường thò đầu
+            tileTop += (tileSize * 0.5);
+        } else {
+            // Nếu là Tường Dọc, Tường Góc L, hay Tường Trên: Chặn full 100% không cho kẹt góc!
+            // (Giữ nguyên tileTop = ty * tileSize)
+        }
 
         double closestX = Math.max(tileLeft, Math.min(cx, tileRight));
         double closestY = Math.max(tileTop, Math.min(cy, tileBottom));
