@@ -18,6 +18,10 @@ import com.soulknight.weapon.Bullet;
 import com.soulknight.weapon.ExplosionEffect;
 import com.soulknight.weapon.Gun;
 import com.soulknight.weapon.Weapon;
+import com.soulknight.pet.Pet;
+import com.soulknight.pet.PetFactory;
+import com.soulknight.pet.PetSelectionManager;
+import com.soulknight.pet.PetType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -37,6 +41,7 @@ public final class GameWorld {
 
     private MapManager mapManager;
     private Player player;
+    private Pet currentPet;
     private final List<Enemy> enemies = new ArrayList<>();
     private final List<Bullet> bullets = new ArrayList<>();
     // Danh sach hieu ung no khi dan va cham (tuong hoac muc tieu)
@@ -118,6 +123,8 @@ public final class GameWorld {
 
     private void updatePlaying(double deltaSeconds, double viewportWidth, double viewportHeight, boolean allowSpawns) {
         player.update(this, deltaSeconds);
+        updatePet(deltaSeconds);
+
         if (mapManager != null && mapManager.getRooms() != null) {
             for (com.soulknight.map.Room room : mapManager.getRooms()) {
                 room.update(this, player, enemies, deltaSeconds);
@@ -151,13 +158,34 @@ public final class GameWorld {
 
     private void updateLevelClear(double deltaSeconds, double viewportWidth, double viewportHeight) {
         player.update(this, deltaSeconds);
+        updatePet(deltaSeconds);
         camera.follow(player.getPosition(), viewportWidth, viewportHeight, mapManager.getWorldWidth(), mapManager.getWorldHeight());
 
         if (mapManager.isPlayerInsideExitPortal(player.getPosition())) {
             advanceToNextLevel();
         }
     }
+//    update pet
+// update pet
+private void updatePet(double deltaSeconds) {
+    if (currentPet == null || player == null) {
+        return;
+    }
 
+    Vector2D playerPosition = player.getPosition();
+
+    if (playerPosition == null) {
+        return;
+    }
+
+    // 🔥 Đã truyền thêm mapManager vào để Pet không bị đi xuyên tường/cửa
+    currentPet.update(
+            deltaSeconds,
+            playerPosition.getX(),
+            playerPosition.getY(),
+            mapManager
+    );
+}
     private void updateBullets(double deltaSeconds) {
         List<Obstacle> allObstacles = getObstacles();
         for (Bullet bullet : bullets) {
@@ -291,6 +319,7 @@ public final class GameWorld {
         for (Enemy enemy : enemies) {
             enemy.render(graphicsContext, camera);
         }
+        renderPet(graphicsContext);
 
         player.render(graphicsContext, camera);
 
@@ -300,6 +329,13 @@ public final class GameWorld {
         }
     }
 
+    private void renderPet(GraphicsContext graphicsContext) {
+        if (currentPet == null) {
+            return;
+        }
+
+        currentPet.render(graphicsContext, camera);
+    }
     private void startNewRun() {
         levelManager.startNewRun();
         loadCurrentLevel(true);
@@ -330,6 +366,7 @@ public final class GameWorld {
         } else {
             player.getPosition().set(mapManager.getSpawnPoint());
         }
+        createSelectedPet();
 
         if (freshRun) {
             player.equipWeapon(new Gun("Blaster", 12, 0.18, 580.0, 0.0)
@@ -354,6 +391,19 @@ public final class GameWorld {
         if (levelManager.getCurrentLevel().bossLevel() && mapManager.getBossSpawnPoint() != null) {
             enemies.add(enemyFactory.createGrandKnight(mapManager.getBossSpawnPoint()));
         }
+    }
+    private void createSelectedPet() {
+        if (player == null || player.getPosition() == null) {
+            currentPet = null;
+            return;
+        }
+
+        Vector2D playerPosition = player.getPosition();
+
+        currentPet = PetFactory.createSelected(
+                playerPosition.getX(),
+                playerPosition.getY()
+        );
     }
 
     private void spawnEnergyCrystals(int count) {
@@ -387,12 +437,17 @@ public final class GameWorld {
 
         if (levelManager.advanceLevel()) {
             loadCurrentLevel(false);
+
+            // 🔥 Teleport Pet về sát bên Player khi sang level/bản đồ mới
+            if (currentPet != null && player != null && player.getPosition() != null) {
+                currentPet.onRoomChanged(player.getPosition().getX(), player.getPosition().getY());
+            }
+
             changeState(GameState.PLAYING);
         } else {
             changeState(GameState.GAME_VICTORY);
         }
     }
-
     public GameState getState() { return state; }
     public InputHandler getInputHandler() {
 //        goi trong player de dieu khien nhan vat tu ban phim ,ngam ban tu chuot
@@ -661,7 +716,7 @@ private void resolvePlayerEnemyCollisions(double deltaSeconds) {
         for (Obstacle obstacle : getObstacles()) {
             if (obstacle.isDestroyed()) continue;
 
-            // BoundingBox cua vat can 
+            // BoundingBox cua vat can
             double minX = obstacle.getPosition().getX();
             double minY = obstacle.getPosition().getY();
             double maxX = minX + obstacle.getWidth();
@@ -703,6 +758,40 @@ private void resolvePlayerEnemyCollisions(double deltaSeconds) {
         double ub = ((x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3)) / denom;
 
         return (ua >= 0.0 && ua <= 1.0 && ub >= 0.0 && ub <= 1.0);
+    }
+//    cac phuong thuc pet
+public void equipPet(PetType petType) {
+    PetType safeType = petType != null
+            ? petType
+            : PetType.NONE;
+
+    PetSelectionManager
+            .getInstance()
+            .selectPet(safeType);
+
+    if (safeType == PetType.NONE ||
+            player == null ||
+            player.getPosition() == null) {
+        currentPet = null;
+        return;
+    }
+
+    Vector2D playerPosition = player.getPosition();
+
+    currentPet = PetFactory.create(
+            safeType,
+            playerPosition.getX(),
+            playerPosition.getY()
+    );
+}
+    public void removePet() {
+        equipPet(PetType.NONE);
+    }
+    public Pet getCurrentPet() {
+        return currentPet;
+    }
+    public PetType getEquippedPetType() {
+        return PetSelectionManager.getInstance().getSelectedPet();
     }
 }
 //NOTE : cac ham xu ly va cham
