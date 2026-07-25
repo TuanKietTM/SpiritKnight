@@ -343,7 +343,7 @@ public final class GameWorld {
             }
         }
 
-        // 🎯 THUẬT TOÁN Y-SORTING CHUẨN SOUL KNIGHT
+
         renderList.sort((a, b) -> Double.compare(a.depthY, b.depthY));
 
         // Thực thi render theo thứ tự sâu/nông
