@@ -17,6 +17,7 @@ public final class UIManager {
 
     private final StackPane rootNode;
     private IntroController introController;
+    private StoryIntroController storyIntroController; // <-- Thêm Controller Story
     private HUD hudController;
     private Menu menuController;
     private LevelClearScreen levelClearController;
@@ -26,6 +27,7 @@ public final class UIManager {
     private SettingScreen settingController;
 
     private Parent introRoot;
+    private Parent storyIntroRoot; // <-- Thêm Parent Story
     private Parent hudRoot;
     private Parent menuRoot;
     private Parent levelClearRoot;
@@ -33,6 +35,9 @@ public final class UIManager {
     private Parent gameOverRoot;
     private Parent pauseRoot;
     private Parent settingRoot;
+
+    // Cờ đánh dấu xem người chơi đã xem cốt truyện lần đầu chưa
+    private boolean isFirstRun = true;
 
     public UIManager(StackPane rootNode) {
         this.rootNode = rootNode;
@@ -45,6 +50,12 @@ public final class UIManager {
             introRoot = introLoader.load();
             introController = introLoader.getController();
             configFullRegion(introRoot);
+
+            // Tải FXML của StoryIntro
+            FXMLLoader storyIntroLoader = new FXMLLoader(com.soulknight.Main.class.getResource("/assets/fxml/StoryIntro.fxml"));
+            storyIntroRoot = storyIntroLoader.load();
+            storyIntroController = storyIntroLoader.getController();
+            configFullRegion(storyIntroRoot);
 
             FXMLLoader menuLoader = new FXMLLoader(com.soulknight.Main.class.getResource("/assets/fxml/Menu.fxml"));
             menuRoot = menuLoader.load();
@@ -89,9 +100,10 @@ public final class UIManager {
             victoryRoot.setPickOnBounds(false);
             gameOverRoot.setPickOnBounds(false);
 
-            rootNode.getChildren().addAll(introRoot, menuRoot, hudRoot, levelClearRoot, victoryRoot, gameOverRoot, pauseRoot, settingRoot);
+            rootNode.getChildren().addAll(introRoot, storyIntroRoot, menuRoot, hudRoot, levelClearRoot, victoryRoot, gameOverRoot, pauseRoot, settingRoot);
 
             StackPane.setAlignment(introRoot, Pos.CENTER);
+            StackPane.setAlignment(storyIntroRoot, Pos.CENTER);
             StackPane.setAlignment(menuRoot, Pos.CENTER);
             StackPane.setAlignment(hudRoot, Pos.BOTTOM_CENTER);
             StackPane.setAlignment(levelClearRoot, Pos.CENTER);
@@ -111,7 +123,7 @@ public final class UIManager {
     }
 
     public void handleStateChange(GameState state) {
-        if (introRoot == null || menuRoot == null || hudRoot == null || levelClearRoot == null ||
+        if (introRoot == null || storyIntroRoot == null || menuRoot == null || hudRoot == null || levelClearRoot == null ||
                 victoryRoot == null || gameOverRoot == null || pauseRoot == null || settingRoot == null)
             return;
 
@@ -236,7 +248,31 @@ public final class UIManager {
         if (menuController != null) {
             menuController.setOnPlayRequested(() -> {
                 sound.playSFX("button");
-                world.changeState(GameState.PLAYING);
+
+                // KIỂM TRA LẦN ĐẦU CHƠI:
+                if (isFirstRun && storyIntroController != null) {
+                    // 1. Ẩn Main Menu
+                    menuRoot.setVisible(false);
+
+                    // 2. Hiện StoryIntro
+                    storyIntroRoot.setVisible(true);
+                    storyIntroRoot.toFront();
+
+                    // 3. Đăng ký sự kiện khi cốt truyện chạy xong (hoặc bị skip)
+                    storyIntroController.setOnIntroFinished(() -> {
+                        Platform.runLater(() -> {
+                            isFirstRun = false; // Đánh dấu đã xem xong
+                            storyIntroRoot.setVisible(false);
+                            world.changeState(GameState.PLAYING); // Bắt đầu vào game
+                        });
+                    });
+
+                    // 4. Bắt đầu phát hoạt ảnh Story
+                    storyIntroController.startStory();
+                } else {
+                    // Từ lần chơi thứ 2 trở đi: Vào thẳng game
+                    world.changeState(GameState.PLAYING);
+                }
             });
 
             menuController.setOnSettingsRequested(() -> {
@@ -338,6 +374,7 @@ public final class UIManager {
 
     private void hideAllScreens() {
         if (introRoot != null) introRoot.setVisible(false);
+        if (storyIntroRoot != null) storyIntroRoot.setVisible(false); // <-- Reset cả màn Story
         if (menuRoot != null) menuRoot.setVisible(false);
         if (hudRoot != null) hudRoot.setVisible(false);
         if (levelClearRoot != null) levelClearRoot.setVisible(false);

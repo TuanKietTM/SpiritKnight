@@ -16,6 +16,7 @@ import javafx.scene.shape.Ellipse;
 import javafx.scene.shape.Rectangle;
 import javafx.geometry.Rectangle2D;
 import javafx.util.Duration;
+import com.soulknight.utils.SoundManager;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -86,6 +87,7 @@ public final class IntroController {
 
     @FXML
     public void initialize() {
+        SoundManager.getInstance().playBGM("/assets/Audio/trailer.mp3");
 //       Layer 1 bau troi
         try {
             Image skyImage = new Image(getClass().getResourceAsStream("/assets/intro/sky.png"));
@@ -305,7 +307,10 @@ public final class IntroController {
             });
 
             javafx.animation.PauseTransition delay = new javafx.animation.PauseTransition(Duration.seconds(1.0));
-            delay.setOnFinished(e -> swordEntrance.play());
+            delay.setOnFinished(e -> {
+                SoundManager.getInstance().playSFX("Sword");
+                swordEntrance.play();
+            });
             delay.play();
 
             // SỰ KIỆN CLICK VÀO CHỮ START
@@ -332,13 +337,16 @@ public final class IntroController {
                     javafx.animation.FadeTransition screenFadeOut = new javafx.animation.FadeTransition(Duration.seconds(0.8), rootStackPane);
                     screenFadeOut.setToValue(0.0);
                     screenFadeOut.setOnFinished(fadeOutEvent -> {
+                        SoundManager.getInstance().stopBGM();
+                        SoundManager.getInstance().stopSFX("Sword");
+                        SoundManager.getInstance().stopSFX("button");
                         if (onIntroFinished != null) {
                             onIntroFinished.run();
                         }
                     });
                     screenFadeOut.play();
                 });
-
+                SoundManager.getInstance().playSFX("Sword");
                 swordExit.play();
             });
 
