@@ -20,7 +20,7 @@ public enum PetType {
             "/assets/pet/bird_RUN.png",
             "/assets/Audio/bird_sound.mp3",
             4, 5,
-            32, 32,
+            22, 22,
             32, 32,
             185,
             0.15
@@ -32,7 +32,7 @@ public enum PetType {
             "/assets/pet/cat_RUN.png",
             "/assets/Audio/cat_sound.mp3",
             4, 4,
-            32, 32,
+            22, 22,
             32, 32,
             195,
             0.15
@@ -44,7 +44,7 @@ public enum PetType {
             "/assets/pet/wolf_RUN.png",
             "/assets/Audio/wolf_sound.mp3",
             4, 4,
-            32, 32,
+            22, 22,
             32, 32,
             210,
             0.15
@@ -56,7 +56,7 @@ public enum PetType {
             "/assets/pet/ghost_RUN.png",
             "/assets/Audio/ghost_sound.mp3",
             4, 4,
-            32, 32,
+            22, 22,
             32, 32,
             175,
             0.15
@@ -79,7 +79,7 @@ public enum PetType {
             String displayName,
             String idleImagePath,
             String runImagePath,
-            String soundPath, // <-- Đã thêm tham số soundPath vào constructor
+            String soundPath,
             int idleFrameCount,
             int runFrameCount,
             double renderWidth,

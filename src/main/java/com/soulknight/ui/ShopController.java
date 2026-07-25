@@ -40,8 +40,9 @@ public class ShopController {
     private AnimationTimer shopAnimTimer;
     private double elapsedTime = 0;
     private long lastTime = 0;
+    private static final double SHOP_CANVAS_SIZE = 80.0;
+    private static final double SHOP_PET_SIZE = 64.0;
 
-//  render cho tung pet
     private final List<PetCanvasRenderer> activeRenderers = new ArrayList<>();
 
     private record PetCanvasRenderer(PetType pet, Canvas canvas, Image idleSheet) {}
@@ -82,9 +83,6 @@ public class ShopController {
         loadContent.run();
     }
 
-    /**
-     * Cho pet vao cac grid
-     */
     private void loadPetShop() {
         activeRenderers.clear();
         itemGrid.getChildren().clear();
@@ -108,9 +106,7 @@ public class ShopController {
         if (isEquipped) {
             card.getStyleClass().add("item-card-equipped");
         }
-
-        // Tạo Canvas hiển thị Animation Sprite Sheet
-        Canvas canvas = new Canvas(48, 48);
+        Canvas canvas = new Canvas(SHOP_CANVAS_SIZE, SHOP_CANVAS_SIZE);
         Image idleSheet = loadImage(pet.getIdleImagePath());
 
         if (idleSheet != null) {
@@ -122,10 +118,7 @@ public class ShopController {
 
         card.getChildren().addAll(canvas, nameLabel);
 
-        // Click chọn thẻ Pet
-        // 🔥 CLICK VÀO THẺ PET: Phát tiếng kêu của Pet đó
         card.setOnMouseClicked(e -> {
-            // 1. Phát tiếng kêu đặc trưng của Pet nếu có
             if (pet.getSoundPath() != null && !pet.getSoundPath().isBlank()) {
                 SoundManager.getInstance().playSFX(pet.getSoundPath());
             } else {
@@ -136,7 +129,7 @@ public class ShopController {
 
             this.selectedPet = pet;
             selectedItemName.setText(pet.getDisplayName());
-            selectedItemDesc.setText("PACE" + pet.getMoveSpeed() + " | Supporter");
+            selectedItemDesc.setText("PACE: " + pet.getMoveSpeed() + " | Supporter");
 
             actionButton.setVisible(true);
 
@@ -165,9 +158,6 @@ public class ShopController {
         return card;
     }
 
-    /**
-     * Vong lao animation
-     */
     private void setupAnimationLoop() {
         shopAnimTimer = new AnimationTimer() {
             @Override
@@ -199,18 +189,16 @@ public class ShopController {
             if (totalFrames <= 0) totalFrames = 1;
 
             int currentFrame = (int) (elapsedTime / pet.getFrameDuration()) % totalFrames;
-
             double sx = currentFrame * pet.getFrameWidth();
             double sy = 0;
             double sw = pet.getFrameWidth();
             double sh = pet.getFrameHeight();
-            double drawX = (canvas.getWidth() - pet.getRenderWidth()) / 2.0;
-            double drawY = (canvas.getHeight() - pet.getRenderHeight()) / 2.0;
+            double drawX = (canvas.getWidth() - SHOP_PET_SIZE) / 2.0;
+            double drawY = (canvas.getHeight() - SHOP_PET_SIZE) / 2.0;
 
-            gc.drawImage(
-                    sheet,
-                    sx, sy, sw, sh,
-                    drawX, drawY, pet.getRenderWidth(), pet.getRenderHeight()
+            gc.setImageSmoothing(false);
+            gc.drawImage(sheet, sx, sy, sw, sh,
+                    drawX, drawY, SHOP_PET_SIZE, SHOP_PET_SIZE
             );
         }
     }
