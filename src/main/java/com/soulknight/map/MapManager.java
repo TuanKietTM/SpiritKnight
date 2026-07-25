@@ -41,66 +41,52 @@ public final class MapManager {
         loadMapFromJson(JsonPath);
         generateWorldTiles();
     }
-    // 1. Vẽ Nền sàn và Tường phía trên
-    public void renderBackground(GraphicsContext graphicsContext, Camera camera, double renderWidth, double renderHeight) {
-        graphicsContext.setFill(Color.BLACK);
-        graphicsContext.fillRect(0.0, 0.0, renderWidth, renderHeight);
+    // 1. Chỉ vẽ ô SÀN (Nền nhà bẹt dưới cùng)
+    public void renderFloor(GraphicsContext gc, Camera camera, double renderWidth, double renderHeight) {
+        gc.setFill(Color.BLACK);
+        gc.fillRect(0.0, 0.0, renderWidth, renderHeight);
 
         double zoom = camera.getZoom();
-
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
                 Tile tile = tiles[y][x];
                 if (tile == null) continue;
 
-                // Bỏ qua tường phía dưới để vẽ ở Foreground
-                if (isSouthWallBoundary(x, y)) {
-                    continue;
+                // Chỉ vẽ các ô là FLOOR hoặc DOOR_OPEN (các ô nằm bẹt dưới đất)
+                if (tile.getType() != Tile.TileType.WALL) {
+                    double worldX = x * tileSize;
+                    double worldY = y * tileSize;
+                    double screenX = camera.worldToScreenX(worldX);
+                    double screenY = camera.worldToScreenY(worldY);
+                    gc.drawImage(tile.getTexture(), screenX, screenY, tileSize * zoom, tileSize * zoom);
                 }
-
-                double worldX = x * tileSize;
-                double worldY = y * tileSize;
-                double screenX = camera.worldToScreenX(worldX);
-                double screenY = camera.worldToScreenY(worldY);
-
-                graphicsContext.drawImage(tile.getTexture(), screenX, screenY, tileSize * zoom, tileSize * zoom);
             }
         }
 
         if (exitPortalOpen && exitPortalPosition != null) {
             double screenX = camera.worldToScreenX(exitPortalPosition.getX());
             double screenY = camera.worldToScreenY(exitPortalPosition.getY());
-            graphicsContext.setFill(Color.GOLD);
-            graphicsContext.fillOval(screenX - 18.0, screenY - 18.0, 36.0, 36.0);
-            graphicsContext.setStroke(Color.WHITE);
-            graphicsContext.setLineWidth(2.0);
-            graphicsContext.strokeOval(screenX - 18.0, screenY - 18.0, 36.0, 36.0);
+            gc.setFill(Color.GOLD);
+            gc.fillOval(screenX - 18.0, screenY - 18.0, 36.0, 36.0);
         }
 
         for (Room room : rooms) {
-            room.renderDoors(graphicsContext, camera, tileSize);
+            room.renderDoors(gc, camera, tileSize);
         }
     }
 
-    // 2. Vẽ Lớp Tường phía dưới đè lên chân Player
-    public void renderForeground(GraphicsContext graphicsContext, Camera camera) {
-        double zoom = camera.getZoom();
-
+    // 2. Lấy danh sách tất cả các Ô TƯỜNG để đưa vào hệ thống Y-Sorting
+    public List<Tile> getWallTiles() {
+        List<Tile> wallList = new ArrayList<>();
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
                 Tile tile = tiles[y][x];
-                if (tile == null) continue;
-
-                if (isSouthWallBoundary(x, y)) {
-                    double worldX = x * tileSize;
-                    double worldY = y * tileSize;
-                    double screenX = camera.worldToScreenX(worldX);
-                    double screenY = camera.worldToScreenY(worldY);
-
-                    graphicsContext.drawImage(tile.getTexture(), screenX, screenY, tileSize * zoom, tileSize * zoom);
+                if (tile != null && tile.getType() == Tile.TileType.WALL) {
+                    wallList.add(tile);
                 }
             }
         }
+        return wallList;
     }
 
     // 3. Hàm kiểm tra Tường phía dưới
@@ -114,22 +100,17 @@ public final class MapManager {
     }
 
     // (cuongpluss) Kiem tra va cham tren ban do
-    // SỬA LẠI TRONG MapManager.java
     public boolean isWalkable(double worldX, double worldY, double radius) {
-        // Kiem tra va cham voi cua dang dong cua cac phong
         for (Room room : rooms) {
             if (room.isHitClosedDoor(worldX, worldY, radius)) {
                 return false;
             }
         }
 
-        // 🎯 CHỈNH HITBOX BÀN CHÂN:
-        // Thu nhỏ bán kính va chạm lại 50% (radius * 0.5) và dịch tâm xuống chân một chút (+6px)
-        // Giúp phần thân nhân vật lấn thoải mái vào sprite tường
-        double footRadius = radius * 0.5;
-        double footY = worldY + 8.0;
+        // Tâm tính va chạm dịch nhẹ xuống chân Player (+6px)
+        double footY = worldY + 6.0;
+        double footRadius = radius * 0.6; // Hitbox thu gọn ở chân
 
-        // Xac dinh pham vi các ô gạch xung quanh theo Hitbox bàn chân mới
         int minTileX = (int) Math.floor((worldX - footRadius) / tileSize);
         int maxTileX = (int) Math.floor((worldX + footRadius) / tileSize);
         int minTileY = (int) Math.floor((footY - footRadius) / tileSize);
@@ -137,11 +118,8 @@ public final class MapManager {
 
         for (int ty = minTileY; ty <= maxTileY; ty++) {
             for (int tx = minTileX; tx <= maxTileX; tx++) {
-
                 if (tx < 0 || ty < 0 || tx >= width || ty >= height) {
-                    if (isCircleCollidingWithTile(worldX, footY, footRadius, tx, ty)) {
-                        return false;
-                    }
+                    if (isCircleCollidingWithTile(worldX, footY, footRadius, tx, ty)) return false;
                     continue;
                 }
 
@@ -160,7 +138,9 @@ public final class MapManager {
     private boolean isCircleCollidingWithTile(double cx, double cy, double radius, int tx, int ty) {
         double tileLeft = tx * tileSize;
         double tileRight = (tx + 1) * tileSize;
-        double tileTop = ty * tileSize;
+
+        // Chỉ chừa lại 30% mép trên để bàn chân Player lọt nhẹ xuống khi đi xuống Tường dưới
+        double tileTop = ty * tileSize + (tileSize * 0.5);
         double tileBottom = (ty + 1) * tileSize;
 
         double closestX = Math.max(tileLeft, Math.min(cx, tileRight));

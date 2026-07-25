@@ -10,6 +10,7 @@ import com.soulknight.level.LevelManager;
 import com.soulknight.map.MapManager;
 import com.soulknight.map.Obstacle;
 import com.soulknight.map.Room;
+import com.soulknight.map.Tile;
 import com.soulknight.mission.MissionManager;
 import com.soulknight.utils.Constants;
 import com.soulknight.utils.SoundManager;
@@ -287,44 +288,74 @@ public final class GameWorld {
     }
 
     private void renderWorld(GraphicsContext graphicsContext, double renderWidth, double renderHeight) {
-        // LỚP 1: Nền nhà & Tường sau
-        mapManager.renderBackground(graphicsContext, camera, renderWidth, renderHeight);
+        // 1. Vẽ sàn nhà bẹt dưới cùng trước
+        mapManager.renderFloor(graphicsContext, camera, renderWidth, renderHeight);
 
-        // LỚP 2: Vật cản trong phòng
+        // 2. Danh sách Y-Sorting
+        class SortableObject {
+            double depthY;
+            Runnable renderAction;
+            SortableObject(double depthY, Runnable renderAction) {
+                this.depthY = depthY;
+                this.renderAction = renderAction;
+            }
+        }
+
+        List<SortableObject> renderList = new ArrayList<>();
+        double tileSize = mapManager.getTileSize();
+
+// A. Thêm các ô TƯỜNG vào Y-Sorting (Mốc Y tính ở ĐÁY ô Tile Tường)
+        for (Tile wall : mapManager.getWallTiles()) {
+            double wallBottomY = wall.getY() + tileSize; // 🎯 ĐÁY Ô TƯỜNG
+            renderList.add(new SortableObject(wallBottomY, () -> {
+                double screenX = camera.worldToScreenX(wall.getX());
+                double screenY = camera.worldToScreenY(wall.getY());
+                double zoom = camera.getZoom();
+                graphicsContext.drawImage(wall.getTexture(), screenX, screenY, tileSize * zoom, tileSize * zoom);
+            }));
+        }
+
+// B. Thêm PLAYER (Mốc Y tính ở BÀN CHÂN)
+        double playerFootY = player.getPosition().getY() + 10.0;
+        renderList.add(new SortableObject(playerFootY, () -> {
+            player.render(graphicsContext, camera);
+        }));
+
+        // C. Thêm ENEMIES
+        for (Enemy enemy : enemies) {
+            double enemyFootY = enemy.getPosition().getY() + 12.0;
+            renderList.add(new SortableObject(enemyFootY, () -> {
+                enemy.render(graphicsContext, camera);
+            }));
+        }
+
+        // D. Thêm OBSTACLES (Vật cản)
         if (mapManager != null && mapManager.getRooms() != null) {
             for (Room room : mapManager.getRooms()) {
                 if (room.getObstacles() != null) {
                     for (Obstacle obstacle : room.getObstacles()) {
-                        obstacle.render(graphicsContext, camera);
+                        double obsY = obstacle.getPosition().getY() + 16.0;
+                        renderList.add(new SortableObject(obsY, () -> {
+                            obstacle.render(graphicsContext, camera);
+                        }));
                     }
                 }
             }
         }
 
-        // LỚP 3: Item, Đạn, Quái
-        for (Item item : items) {
-            item.render(graphicsContext, camera);
-        }
-        for (Bullet bullet : bullets) {
-            bullet.render(graphicsContext, camera);
-        }
-        for (Enemy enemy : enemies) {
-            enemy.render(graphicsContext, camera);
+        // 🎯 THUẬT TOÁN Y-SORTING CHUẨN SOUL KNIGHT
+        renderList.sort((a, b) -> Double.compare(a.depthY, b.depthY));
+
+        // Thực thi render theo thứ tự sâu/nông
+        for (SortableObject obj : renderList) {
+            obj.renderAction.run();
         }
 
-        // LỚP 4: Nhân vật chính (Player)
-        player.render(graphicsContext, camera);
-
-        // LỚP 5: 🎯 Tường phía trước (Đè lên chân Player & Enemy)
-        mapManager.renderForeground(graphicsContext, camera);
-
-        // LỚP 6: Hiệu ứng trên cùng
-        for (SlashEffect slash : slashEffects) {
-            slash.render(graphicsContext, camera);
-        }
-        for (ExplosionEffect explosion : explosions) {
-            explosion.render(graphicsContext, camera);
-        }
+        // 3. Hiệu ứng đạn, chém, nổ vẽ lên trên cùng
+        for (Item item : items) item.render(graphicsContext, camera);
+        for (Bullet bullet : bullets) bullet.render(graphicsContext, camera);
+        for (SlashEffect slash : slashEffects) slash.render(graphicsContext, camera);
+        for (ExplosionEffect explosion : explosions) explosion.render(graphicsContext, camera);
     }
 
     private void startNewRun() {
