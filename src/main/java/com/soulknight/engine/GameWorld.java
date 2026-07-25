@@ -22,6 +22,7 @@ import com.soulknight.pet.Pet;
 import com.soulknight.pet.PetFactory;
 import com.soulknight.pet.PetSelectionManager;
 import com.soulknight.pet.PetType;
+import javafx.geometry.BoundingBox;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -166,26 +167,20 @@ public final class GameWorld {
         }
     }
 //    update pet
-// update pet
 private void updatePet(double deltaSeconds) {
-    if (currentPet == null || player == null) {
+    if (currentPet == null || player == null || player.getPosition() == null) {
         return;
     }
 
-    Vector2D playerPosition = player.getPosition();
-
-    if (playerPosition == null) {
-        return;
-    }
-
-    // 🔥 Đã truyền thêm mapManager vào để Pet không bị đi xuyên tường/cửa
+    // 🔥 Truyền "this" (GameWorld) để Pet thừa hưởng toàn bộ MapManager + Vật cản (Obstacle)
     currentPet.update(
             deltaSeconds,
-            playerPosition.getX(),
-            playerPosition.getY(),
-            mapManager
+            player.getPosition().getX(),
+            player.getPosition().getY(),
+            this
     );
 }
+
     private void updateBullets(double deltaSeconds) {
         List<Obstacle> allObstacles = getObstacles();
         for (Bullet bullet : bullets) {
@@ -319,7 +314,9 @@ private void updatePet(double deltaSeconds) {
         for (Enemy enemy : enemies) {
             enemy.render(graphicsContext, camera);
         }
-        renderPet(graphicsContext);
+        if (currentPet != null) {
+            currentPet.render(graphicsContext, camera);
+        }
 
         player.render(graphicsContext, camera);
 
@@ -393,16 +390,14 @@ private void updatePet(double deltaSeconds) {
         }
     }
     private void createSelectedPet() {
-        if (player == null || player.getPosition() == null) {
+        if (player == null) {
             currentPet = null;
             return;
         }
 
-        Vector2D playerPosition = player.getPosition();
-
         currentPet = PetFactory.createSelected(
-                playerPosition.getX(),
-                playerPosition.getY()
+                player.getPosition().getX(),
+                player.getPosition().getY()
         );
     }
 
@@ -437,12 +432,6 @@ private void updatePet(double deltaSeconds) {
 
         if (levelManager.advanceLevel()) {
             loadCurrentLevel(false);
-
-            // 🔥 Teleport Pet về sát bên Player khi sang level/bản đồ mới
-            if (currentPet != null && player != null && player.getPosition() != null) {
-                currentPet.onRoomChanged(player.getPosition().getX(), player.getPosition().getY());
-            }
-
             changeState(GameState.PLAYING);
         } else {
             changeState(GameState.GAME_VICTORY);
@@ -469,15 +458,32 @@ private void updatePet(double deltaSeconds) {
     }
 //Kiem tra xem di duoc khong
 public boolean canMoveTo(Vector2D position, double radius) {
-    // 1. Kiểm tra va chạm với Tường/Bản đồ
+    if (position == null || mapManager == null || radius < 0.0) {
+        return false;
+    }
+
+    /*
+     * Kiểm tra:
+     * - Tile
+     * - Tường
+     * - Biên map
+     * - Cửa phòng đang đóng
+     */
     if (!mapManager.isWalkable(position.getX(), position.getY(), radius)) {
         return false;
     }
 
-    // 2. Kiểm tra va chạm với các Vật cản chưa bị phá hủy
+    /*
+     * Kiểm tra vật cản động trong các Room.
+     */
     for (Obstacle obstacle : getObstacles()) {
-        if (obstacle.intersectsCircle(position, radius)) {
-            return false; // Bị cản lại, không cho đi qua
+        if (obstacle == null || obstacle.isDestroyed()) {
+            continue;
+        }
+
+        if (obstacle.intersectsCircle(position, radius
+        )) {
+            return false;
         }
     }
 
@@ -487,11 +493,7 @@ public boolean canMoveTo(Vector2D position, double radius) {
     public boolean isPlaying() {
         return state == GameState.PLAYING;
     }
-    public void spawnEnemiesInRoom(com.soulknight.map.Room room, int waveNumber)
-    {
-        if (room.getObstacles().isEmpty()) {
-            spawnObstaclesInRoom(room, 3);
-        }
+    public void spawnEnemiesInRoom(com.soulknight.map.Room room, int waveNumber){
         List<Vector2D> roomSpawnPoints = new ArrayList<>();
         javafx.geometry.BoundingBox bound = room.getBound();
 
@@ -759,29 +761,66 @@ private void resolvePlayerEnemyCollisions(double deltaSeconds) {
 
         return (ua >= 0.0 && ua <= 1.0 && ub >= 0.0 && ub <= 1.0);
     }
+    public void placePetInsideRoom(Room room) {
+
+        if (room == null ||
+                currentPet == null ||
+                player == null) {
+            return;
+        }
+
+        BoundingBox bound = room.getBound();
+
+        Vector2D playerPos = player.getPosition();
+
+        double[][] offsets = {
+
+                {-40,20},
+                {40,20},
+                {-40,-20},
+                {40,-20},
+                {0,50},
+                {0,-50},
+                {-70,0},
+                {70,0}
+        };
+
+        for (double[] offset : offsets) {
+
+            Vector2D candidate =
+                    playerPos.copy().add(offset[0], offset[1]);
+
+            if (!bound.contains(candidate.getX(), candidate.getY())) {
+                continue;
+            }
+
+            if (canMoveTo(candidate, currentPet.getRadius())) {
+
+                currentPet.teleport(
+                        candidate.getX(),
+                        candidate.getY()
+                );
+
+                return;
+            }
+        }
+
+        currentPet.teleport(
+                playerPos.getX(),
+                playerPos.getY()
+        );
+    }
 //    cac phuong thuc pet
-public void equipPet(PetType petType) {
-    PetType safeType = petType != null
-            ? petType
-            : PetType.NONE;
+public void equipPet(PetType type) {
 
     PetSelectionManager
             .getInstance()
-            .selectPet(safeType);
-
-    if (safeType == PetType.NONE ||
-            player == null ||
-            player.getPosition() == null) {
-        currentPet = null;
-        return;
-    }
-
-    Vector2D playerPosition = player.getPosition();
+            .selectPet(type);
 
     currentPet = PetFactory.create(
-            safeType,
-            playerPosition.getX(),
-            playerPosition.getY()
+            type,
+            player.getPosition().getX(),
+            player.getPosition().getY()
     );
 }
     public void removePet() {
@@ -793,6 +832,7 @@ public void equipPet(PetType petType) {
     public PetType getEquippedPetType() {
         return PetSelectionManager.getInstance().getSelectedPet();
     }
+
 }
 //NOTE : cac ham xu ly va cham
 // Player - titled (mapmanager): cua room

@@ -22,9 +22,9 @@ public enum PetType {
 
     SLIME(
             "Slime",
-            "/assets/pet/bird.png",
-            42,
-            42,
+            "/assets/pet/bocau.png",
+            24,
+            24,
             185
     ),
 
