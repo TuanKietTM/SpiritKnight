@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.FlowPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<StackPane stylesheets="@../CSS/Shop.css" styleClass="shop-overlay" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.soulknight.ui.ShopController">
+    <VBox maxHeight="600" maxWidth="1000" styleClass="shop-window">
+        <HBox alignment="CENTER_LEFT" styleClass="shop-header">
+            <Label styleClass="shop-title" text="PIXEL SHOP" />
+            <HBox alignment="CENTER_RIGHT" styleClass="currency-container" HBox.hgrow="ALWAYS">
+                <HBox alignment="CENTER" styleClass="coin-badge">
+                    <ImageView fx:id="coinIcon" fitHeight="24.0" fitWidth="24.0" pickOnBounds="true" preserveRatio="true" />
+                    <Label fx:id="coinLabel" styleClass="coin-text" text="9999" />
+                </HBox>
+                <Button fx:id="closeButton" mnemonicParsing="false" styleClass="pixel-btn-close" text="X" />
+            </HBox>
+        </HBox>
+        <HBox styleClass="shop-body" VBox.vgrow="ALWAYS">
+            <VBox styleClass="shop-sidebar">
+                <Button fx:id="tabPet" mnemonicParsing="false" styleClass="tab-button, tab-active" text="🐾 PET" />
+                <Button fx:id="tabWeapon" mnemonicParsing="false" styleClass="tab-button" text="⚔ WEAPON" />
+                <Button fx:id="tabHero" mnemonicParsing="false" styleClass="tab-button" text="🛡 CHARACTER" />
+                <Button fx:id="tabUpgrade" mnemonicParsing="false" styleClass="tab-button" text="⚡ BUFF" />
+            </VBox>
+            <VBox styleClass="shop-content" HBox.hgrow="ALWAYS">
+                <ScrollPane fitToWidth="true" styleClass="pixel-scroll">
+                    <content>
+                        <FlowPane fx:id="itemGrid" hgap="16.0" styleClass="item-grid" vgap="16.0" />
+                    </content>
+                </ScrollPane>
+                <HBox alignment="CENTER_LEFT" styleClass="item-preview-bar">
+                    <VBox HBox.hgrow="ALWAYS">
+                        <Label fx:id="selectedItemName" styleClass="preview-title" text="Chose..." />
+                        <Label fx:id="selectedItemDesc" styleClass="preview-desc" text="Detail" />
+                    </VBox>
+                    <Button fx:id="actionButton" mnemonicParsing="false" styleClass="pixel-btn-action" text="STRANG_SELECT" visible="false" />
+                </HBox>
+            </VBox>
+        </HBox>
+    </VBox>
+</StackPane>

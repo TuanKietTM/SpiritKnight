@@ -1,13 +1,13 @@
 package com.soulknight.pet;
 
 /**
- * Danh sách các loại pet hiện có trong game hỗ trợ Sprite Sheet Animation.
+ * Danh sách các loại pet hiện có trong game hỗ trợ Sprite Sheet Animation & Sound.
  */
 public enum PetType {
 
     NONE(
             "Không sử dụng",
-            null, null,
+            null, null, null,
             0, 0,
             0, 0,
             32, 32,
@@ -15,44 +15,48 @@ public enum PetType {
     ),
 
     SLIME(
-            "Slime / Bồ câu",
+            "Bird",
             "/assets/pet/bird_IDLE.png",
             "/assets/pet/bird_RUN.png",
-            4, 5, // Ví dụ: IDLE có 4 frame, RUN có 6 frame (chỉnh theo thực tế của bạn)
-            24, 24, // Render size
-            32, 32, // Frame size gốc trong sprite sheet
+            "/assets/Audio/bird_sound.mp3",
+            4, 5,
+            32, 32,
+            32, 32,
             185,
-            0.12 // Tốc độ đổi frame (giây/frame)
+            0.15
     ),
 
     CAT(
-            "Mèo",
+            "Cat",
             "/assets/pet/cat_IDLE.png",
             "/assets/pet/cat_RUN.png",
+            "/assets/Audio/cat_sound.mp3",
             4, 4,
-            24, 24,
+            32, 32,
             32, 32,
             195,
-            0.10
+            0.15
     ),
 
     WOLF(
-            "Sói",
+            "Wolf",
             "/assets/pet/wolf_IDLE.png",
             "/assets/pet/wolf_RUN.png",
+            "/assets/Audio/wolf_sound.mp3",
             4, 4,
-            28, 28,
+            32, 32,
             32, 32,
             210,
-            0.10
+            0.15
     ),
 
     GHOST(
-            "Hồn ma",
+            "Ghost",
             "/assets/pet/ghost_IDLE.png",
             "/assets/pet/ghost_RUN.png",
+            "/assets/Audio/ghost_sound.mp3",
             4, 4,
-            26, 26,
+            32, 32,
             32, 32,
             175,
             0.15
@@ -61,6 +65,7 @@ public enum PetType {
     private final String displayName;
     private final String idleImagePath;
     private final String runImagePath;
+    private final String soundPath;
     private final int idleFrameCount;
     private final int runFrameCount;
     private final double renderWidth;
@@ -74,6 +79,7 @@ public enum PetType {
             String displayName,
             String idleImagePath,
             String runImagePath,
+            String soundPath, // <-- Đã thêm tham số soundPath vào constructor
             int idleFrameCount,
             int runFrameCount,
             double renderWidth,
@@ -86,6 +92,7 @@ public enum PetType {
         this.displayName = displayName;
         this.idleImagePath = idleImagePath;
         this.runImagePath = runImagePath;
+        this.soundPath = soundPath;
         this.idleFrameCount = idleFrameCount;
         this.runFrameCount = runFrameCount;
         this.renderWidth = renderWidth;
@@ -99,6 +106,7 @@ public enum PetType {
     public String getDisplayName() { return displayName; }
     public String getIdleImagePath() { return idleImagePath; }
     public String getRunImagePath() { return runImagePath; }
+    public String getSoundPath() { return soundPath; }
     public int getIdleFrameCount() { return idleFrameCount; }
     public int getRunFrameCount() { return runFrameCount; }
     public double getRenderWidth() { return renderWidth; }

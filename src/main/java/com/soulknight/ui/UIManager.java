@@ -26,6 +26,7 @@ public final class UIManager {
     private GameOverScreen gameOverController;
     private PauseScreen pauseController;
     private SettingScreen settingController;
+    private ShopController shopController;
 
     private Parent introRoot;
     private Parent storyIntroRoot; // <-- Thêm Parent Story
@@ -36,6 +37,7 @@ public final class UIManager {
     private Parent gameOverRoot;
     private Parent pauseRoot;
     private Parent settingRoot;
+    private Parent shopRoot;
 
     // Cờ đánh dấu xem người chơi đã xem cốt truyện lần đầu chưa
     private boolean isFirstRun = true;
@@ -95,13 +97,20 @@ public final class UIManager {
             configFullRegion(settingRoot);
             settingRoot.setPickOnBounds(false);
 
+            FXMLLoader shopLoader = new FXMLLoader(com.soulknight.Main.class.getResource("/assets/fxml/Shop.fxml"));
+            shopRoot = shopLoader.load();
+            shopController = shopLoader.getController();
+            configFullRegion(shopRoot);
+            shopRoot.setPickOnBounds(false);
+
             menuRoot.setPickOnBounds(false);
             hudRoot.setPickOnBounds(false);
             levelClearRoot.setPickOnBounds(false);
             victoryRoot.setPickOnBounds(false);
             gameOverRoot.setPickOnBounds(false);
 
-            rootNode.getChildren().addAll(introRoot, storyIntroRoot, menuRoot, hudRoot, levelClearRoot, victoryRoot, gameOverRoot, pauseRoot, settingRoot);
+            rootNode.getChildren().addAll(introRoot, storyIntroRoot, menuRoot, hudRoot, levelClearRoot, victoryRoot,
+                    gameOverRoot, pauseRoot, settingRoot,shopRoot);
 
             StackPane.setAlignment(introRoot, Pos.CENTER);
             StackPane.setAlignment(storyIntroRoot, Pos.CENTER);
@@ -308,10 +317,18 @@ public final class UIManager {
 
             menuController.setOnShopRequested(() -> {
                 sound.playSFX("button");
-//                test thu pet
-                world.equipPet(
-                        PetType.CAT
-                );
+                menuRoot.setVisible(false);
+                shopRoot.setVisible(true);
+                shopRoot.toFront();
+
+                if (shopController != null) {
+                    shopController.setup(world, () -> {
+                        sound.playSFX("button");
+                        shopRoot.setVisible(false);
+                        menuRoot.setVisible(true);
+                        menuRoot.toFront();
+                    });
+                }
             });
         }
 
@@ -386,5 +403,6 @@ public final class UIManager {
         if (gameOverRoot != null) gameOverRoot.setVisible(false);
         if (pauseRoot != null) pauseRoot.setVisible(false);
         if (settingRoot != null) settingRoot.setVisible(false);
+        if (shopRoot != null) shopRoot.setVisible(false);
     }
 }
