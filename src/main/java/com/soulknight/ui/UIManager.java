@@ -4,6 +4,7 @@ import com.soulknight.engine.GameState;
 import com.soulknight.engine.GameWorld;
 import com.soulknight.utils.Constants;
 import com.soulknight.utils.SoundManager;
+import com.soulknight.pet.PetType;
 import javafx.animation.FadeTransition;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
@@ -307,7 +308,10 @@ public final class UIManager {
 
             menuController.setOnShopRequested(() -> {
                 sound.playSFX("button");
-                System.out.println("Open Shop");
+//                test thu pet
+                world.equipPet(
+                        PetType.SLIME
+                );
             });
         }
 
