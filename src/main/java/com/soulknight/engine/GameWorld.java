@@ -419,10 +419,18 @@ private void updatePet(double deltaSeconds) {
             return;
         }
 
-        currentPet = PetFactory.createSelected(
-                player.getPosition().getX(),
-                player.getPosition().getY()
-        );
+        // Lấy loại Pet đã được lưu trong PetSelectionManager (từ Shop)
+        PetType selectedType = PetSelectionManager.getInstance().getSelectedPet();
+
+        if (selectedType != null && selectedType.hasPet()) {
+            currentPet = PetFactory.create(
+                    selectedType,
+                    player.getPosition().getX(),
+                    player.getPosition().getY()
+            );
+        } else {
+            currentPet = null;
+        }
     }
 
     private void spawnEnergyCrystals(int count) {
@@ -803,16 +811,27 @@ private void resolvePlayerEnemyCollisions(double deltaSeconds) {
     }
 //    cac phuong thuc pet
 public void equipPet(PetType type) {
+    PetType safeType = (type != null) ? type : PetType.NONE;
 
-    PetSelectionManager
-            .getInstance()
-            .selectPet(type);
+    // Luu lua chon
+    PetSelectionManager.getInstance().selectPet(safeType);
 
-    currentPet = PetFactory.create(
-            type,
-            player.getPosition().getX(),
-            player.getPosition().getY()
-    );
+    // Chua co player thi chi can luu lua chon
+    if (player == null) {
+        currentPet = null;
+        return;
+    }
+
+    // Khoi tao instance pet
+    if (safeType.hasPet()) {
+        currentPet = PetFactory.create(
+                safeType,
+                player.getPosition().getX(),
+                player.getPosition().getY()
+        );
+    } else {
+        currentPet = null;
+    }
 }
     public void removePet() {
         equipPet(PetType.NONE);

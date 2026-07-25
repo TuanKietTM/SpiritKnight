@@ -19,7 +19,7 @@ public final class Pet {
         STUCK
     }
 
-    private static final double COLLISION_RADIUS = 6.0; // Bán kính nhỏ để lách hòm/tường
+    private static final double COLLISION_RADIUS = 6.0;
     private static final double START_FOLLOW_DISTANCE = 48.0;
     private static final double WAYPOINT_REACH_DISTANCE = 12.0;
     private static final double BREADCRUMB_SPACING = 16.0;
