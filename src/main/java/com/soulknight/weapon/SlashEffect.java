@@ -6,11 +6,8 @@ import com.soulknight.utils.Vector2D;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
 
-/**
- * Hieu ung chem cua vu khi can chien (kiem).
- * Ve hinh cung chem (Buff_Melee_Range) truoc mat nhan vat, xoay theo huong ngam,
- * kem hoat anh quet nhanh + mo dan de trong sinh dong nhung khong che khuat UI.
- */
+// Hieu ung chem cua vu khi can chien (kiem).
+
 public final class SlashEffect {
 
     private static final String SPRITE_PATH = "/assets/effects/Buff_Melee_Range-removebg.png";
