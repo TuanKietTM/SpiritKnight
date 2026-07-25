@@ -1,0 +1,159 @@
+
+.shop-overlay {
+    -fx-background-color: rgba(0, 0, 0, 0.7);
+}
+
+.shop-window {
+    -fx-background-color: #2a2334;
+    -fx-border-color: #5a4e69 #181425 #181425 #5a4e69;
+    -fx-border-width: 6px;
+    -fx-padding: 12px;
+}
+
+.shop-header {
+    -fx-padding: 0 0 10 0;
+    -fx-border-color: transparent transparent #181425 transparent;
+    -fx-border-width: 3px;
+}
+
+.shop-title {
+    -fx-font-family: "Impact", "Arial Black", sans-serif;
+    -fx-font-size: 26px;
+    -fx-text-fill: #ffcd75;
+    -fx-effect: dropshadow(three-pass-box, #000000, 0, 0, 3, 3);
+}
+.coin-badge {
+    -fx-background-color: #181425;
+    -fx-border-color: #ffcd75;
+    -fx-border-width: 2px;
+    -fx-padding: 4 12 4 8;
+    -fx-spacing: 6px;
+}
+
+.coin-text {
+    -fx-font-family: "Consolas", monospace;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #ffcd75;
+}
+
+.pixel-btn-close {
+    -fx-background-color: #a22633;
+    -fx-text-fill: #ffffff;
+    -fx-font-weight: bold;
+    -fx-font-size: 16px;
+    -fx-border-color: #e43b44 #4e1820 #4e1820 #e43b44;
+    -fx-border-width: 3px;
+    -fx-cursor: hand;
+    -fx-margin-left: 10px;
+}
+.pixel-btn-close:hover {
+    -fx-background-color: #e43b44;
+}
+
+.shop-sidebar {
+    -fx-pref-width: 170px;
+    -fx-spacing: 8px;
+    -fx-padding: 10 10 0 0;
+}
+
+.tab-button {
+    -fx-background-color: #3f384c;
+    -fx-text-fill: #a297b8;
+    -fx-font-weight: bold;
+    -fx-font-size: 13px;
+    -fx-border-color: #5a4e69 #181425 #181425 #5a4e69;
+    -fx-border-width: 3px;
+    -fx-alignment: CENTER-LEFT;
+    -fx-padding: 10px;
+    -fx-cursor: hand;
+}
+
+.tab-button:hover {
+    -fx-background-color: #5a4e69;
+    -fx-text-fill: #ffffff;
+}
+
+.tab-active {
+    -fx-background-color: #639bff;
+    -fx-text-fill: #ffffff;
+    -fx-border-color: #87b6ff #1f4287 #1f4287 #87b6ff;
+}
+
+.pixel-scroll {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+}
+.pixel-scroll .viewport {
+    -fx-background-color: transparent;
+}
+
+.item-grid {
+    -fx-padding: 10px;
+}
+
+.item-card {
+    -fx-background-color: #3f384c;
+    -fx-border-color: #5a4e69 #181425 #181425 #5a4e69;
+    -fx-border-width: 3px;
+    -fx-padding: 10px;
+    -fx-alignment: CENTER;
+    -fx-pref-width: 120px;
+    -fx-pref-height: 130px;
+    -fx-cursor: hand;
+}
+
+.item-card:hover {
+    -fx-background-color: #5a4e69;
+    -fx-border-color: #ffcd75;
+}
+
+.item-card-selected {
+    -fx-background-color: #2c354d;
+    -fx-border-color: #ffcd75 #a06500 #a06500 #ffcd75;
+    -fx-border-width: 4px;
+}
+
+.item-card-equipped {
+    -fx-border-color: #38b764;
+}
+
+.item-card-title {
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #ffffff;
+}
+
+/* Preview Bar ở dưới cùng */
+.item-preview-bar {
+    -fx-background-color: #181425;
+    -fx-border-color: #3f384c;
+    -fx-border-width: 2px;
+    -fx-padding: 8 12;
+    -fx-margin-top: 10px;
+}
+
+.preview-title {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #ffcd75;
+}
+
+.preview-desc {
+    -fx-font-size: 12px;
+    -fx-text-fill: #a297b8;
+}
+
+.pixel-btn-action {
+    -fx-background-color: #38b764;
+    -fx-text-fill: #ffffff;
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+    -fx-border-color: #257179 #183e30 #183e30 #257179;
+    -fx-border-width: 3px;
+    -fx-padding: 8 16;
+    -fx-cursor: hand;
+}
+.pixel-btn-action:hover {
+    -fx-background-color: #257179;
+}
