@@ -62,9 +62,9 @@ public final class ExplosionEffect {
         graphicsContext.save();
         graphicsContext.setImageSmoothing(true);
         graphicsContext.drawImage(
-            SPRITE_SHEET,
-            sourceX, 0.0, FRAME_SIZE, FRAME_SIZE,
-            screenX, screenY, drawSize, drawSize
+                SPRITE_SHEET,
+                sourceX, 0.0, FRAME_SIZE, FRAME_SIZE,
+                screenX, screenY, drawSize, drawSize
         );
         graphicsContext.restore();
     }

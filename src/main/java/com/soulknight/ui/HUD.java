@@ -10,6 +10,7 @@ import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.StackPane;
 import javafx.scene.shape.Circle;
 
@@ -51,15 +52,28 @@ public final class HUD {
     private Circle joystickThumb;
 
     private Runnable onPauseRequested;
+    private Runnable onWeaponSwitchRequested;
 
     public void setOnPauseRequested(Runnable callback) {
         this.onPauseRequested = callback;
+    }
+
+    public void setOnWeaponSwitchRequested(Runnable callback) {
+        this.onWeaponSwitchRequested = callback;
     }
 
     @FXML
     private void onPauseButtonClicked(ActionEvent event) {
         if (onPauseRequested != null) {
             onPauseRequested.run();
+        }
+    }
+
+    // Bam vao vong vu khi tren HUD de doi giua sung va kiem
+    @FXML
+    private void onWeaponButtonClicked(MouseEvent event) {
+        if (onWeaponSwitchRequested != null) {
+            onWeaponSwitchRequested.run();
         }
     }
 
