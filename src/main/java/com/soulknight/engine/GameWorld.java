@@ -17,6 +17,8 @@ import com.soulknight.utils.Vector2D;
 import com.soulknight.weapon.Bullet;
 import com.soulknight.weapon.ExplosionEffect;
 import com.soulknight.weapon.Gun;
+import com.soulknight.weapon.Melee;
+import com.soulknight.weapon.SlashEffect;
 import com.soulknight.weapon.Weapon;
 import com.soulknight.pet.Pet;
 import com.soulknight.pet.PetFactory;
@@ -47,6 +49,8 @@ public final class GameWorld {
     private final List<Bullet> bullets = new ArrayList<>();
     // Danh sach hieu ung no khi dan va cham (tuong hoac muc tieu)
     private final List<ExplosionEffect> explosions = new ArrayList<>();
+    // Danh sach hieu ung chem cua vu khi can chien (kiem)
+    private final List<SlashEffect> slashEffects = new ArrayList<>();
     private final List<Item> items = new ArrayList<>();
     private GameState state = GameState.INTRO;
     private double enemySpawnTimer;
@@ -142,6 +146,7 @@ public final class GameWorld {
 
         updateBullets(deltaSeconds);
         updateExplosions(deltaSeconds);
+        updateSlashEffects(deltaSeconds);
         updateItemCollection();
 
         if (allowSpawns) {
@@ -249,6 +254,19 @@ private void updatePet(double deltaSeconds) {
         explosions.removeIf(explosion -> !explosion.isActive());
     }
 
+    // Cap nhat vong doi hieu ung chem, xoa cai da ket thuc
+    private void updateSlashEffects(double deltaSeconds) {
+        for (SlashEffect slash : slashEffects) {
+            slash.update(deltaSeconds);
+        }
+        slashEffects.removeIf(slash -> !slash.isActive());
+    }
+
+    // Tao hieu ung chem truoc mat nhan vat theo huong ngam (goi tu vu khi can chien)
+    public void spawnMeleeSlash(Vector2D origin, double aimAngle, double range) {
+        slashEffects.add(new SlashEffect(origin.copy(), aimAngle, range, 0.22));
+    }
+
     private void updateItemCollection() {
         for (Item item : items) {
             if (!item.isCollected() && item.intersects(player.getPosition(), player.getRadius())) {
@@ -320,6 +338,11 @@ private void updatePet(double deltaSeconds) {
 
         player.render(graphicsContext, camera);
 
+        // Ve hieu ung chem cua kiem ngay tren nhan vat/quai
+        for (SlashEffect slash : slashEffects) {
+            slash.render(graphicsContext, camera);
+        }
+
         // Ve hieu ung no len tren cung tai cac diem dan va cham
         for (ExplosionEffect explosion : explosions) {
             explosion.render(graphicsContext, camera);
@@ -374,6 +397,7 @@ private void updatePet(double deltaSeconds) {
         enemies.clear();
         bullets.clear();
         explosions.clear();
+        slashEffects.clear();
         items.clear();
         enemySpawnTimer = 0.0;
 
@@ -451,6 +475,22 @@ private void updatePet(double deltaSeconds) {
     public Camera getCamera() { return camera; }
     public LevelManager getLevelManager() { return levelManager; }
     public MissionManager getMissionManager() { return missionManager; }
+
+    // Doi qua lai giua sung va kiem (bam nut vu khi tren HUD de test)
+    public void switchPlayerWeapon() {
+        if (player == null) {
+            return;
+        }
+        if (player.getWeapon() instanceof Melee) {
+            // Dang cam kiem -> doi sang sung
+            player.equipWeapon(new Gun("Blaster", 12, 0.18, 580.0, 0.0)
+                    .withImage("/assets/WeaponImage/GunImage/OldPistol.png"));
+        } else {
+            // Dang cam sung -> doi sang kiem
+            player.equipWeapon(new Melee("Old Sword", 25, 0.35, 60.0)
+                    .withImage("/assets/WeaponImage/MeleeImage/Sprite_Old_Sword_of_Royal_Guard.png"));
+        }
+    }
 
     public Vector2D getMouseWorldPosition() {
 //        xu li ngam ban tu chuot

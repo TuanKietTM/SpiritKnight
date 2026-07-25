@@ -42,6 +42,11 @@ public final class Player extends Entity {
         this.weapon = weapon;
     }
 
+    // Vu khi dang cam (dung de kiem tra loai vu khi khi doi qua lai)
+    public Weapon getWeapon() {
+        return weapon;
+    }
+
     // Tạo thời gian bất tử để giảm đòn đánh liên tục
     @Override
     public void takeDamage(int amount) {
