@@ -287,8 +287,10 @@ public final class GameWorld {
     }
 
     private void renderWorld(GraphicsContext graphicsContext, double renderWidth, double renderHeight) {
-        mapManager.render(graphicsContext, camera, renderWidth, renderHeight);
-// 2. HIỂN THỊ VẬT CẢN (OBSTACLE)
+        // LỚP 1: Nền nhà & Tường sau
+        mapManager.renderBackground(graphicsContext, camera, renderWidth, renderHeight);
+
+        // LỚP 2: Vật cản trong phòng
         if (mapManager != null && mapManager.getRooms() != null) {
             for (Room room : mapManager.getRooms()) {
                 if (room.getObstacles() != null) {
@@ -298,26 +300,28 @@ public final class GameWorld {
                 }
             }
         }
-        for (Bullet bullet : bullets) {
-            bullet.render(graphicsContext, camera);
-        }
 
+        // LỚP 3: Item, Đạn, Quái
         for (Item item : items) {
             item.render(graphicsContext, camera);
         }
-
+        for (Bullet bullet : bullets) {
+            bullet.render(graphicsContext, camera);
+        }
         for (Enemy enemy : enemies) {
             enemy.render(graphicsContext, camera);
         }
 
+        // LỚP 4: Nhân vật chính (Player)
         player.render(graphicsContext, camera);
 
-        // Ve hieu ung chem cua kiem ngay tren nhan vat/quai
+        // LỚP 5: 🎯 Tường phía trước (Đè lên chân Player & Enemy)
+        mapManager.renderForeground(graphicsContext, camera);
+
+        // LỚP 6: Hiệu ứng trên cùng
         for (SlashEffect slash : slashEffects) {
             slash.render(graphicsContext, camera);
         }
-
-        // Ve hieu ung no len tren cung tai cac diem dan va cham
         for (ExplosionEffect explosion : explosions) {
             explosion.render(graphicsContext, camera);
         }

@@ -41,18 +41,23 @@ public final class MapManager {
         loadMapFromJson(JsonPath);
         generateWorldTiles();
     }
-
-    public void render(GraphicsContext graphicsContext, Camera camera, double renderWidth, double renderHeight) {
+    // 1. Vẽ Nền sàn và Tường phía trên
+    public void renderBackground(GraphicsContext graphicsContext, Camera camera, double renderWidth, double renderHeight) {
         graphicsContext.setFill(Color.BLACK);
         graphicsContext.fillRect(0.0, 0.0, renderWidth, renderHeight);
 
         double zoom = camera.getZoom();
 
-        // 1. Vẽ các tile bản đồ (Sàn, Tường)
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
                 Tile tile = tiles[y][x];
                 if (tile == null) continue;
+
+                // Bỏ qua tường phía dưới để vẽ ở Foreground
+                if (isSouthWallBoundary(x, y)) {
+                    continue;
+                }
+
                 double worldX = x * tileSize;
                 double worldY = y * tileSize;
                 double screenX = camera.worldToScreenX(worldX);
@@ -62,7 +67,6 @@ public final class MapManager {
             }
         }
 
-        // 2. Vẽ Portal lối thoát nếu mở
         if (exitPortalOpen && exitPortalPosition != null) {
             double screenX = camera.worldToScreenX(exitPortalPosition.getX());
             double screenY = camera.worldToScreenY(exitPortalPosition.getY());
@@ -73,13 +77,44 @@ public final class MapManager {
             graphicsContext.strokeOval(screenX - 18.0, screenY - 18.0, 36.0, 36.0);
         }
 
-        // 3. Ủy quyền hoàn toàn việc render cửa cho từng Room quản lý
         for (Room room : rooms) {
             room.renderDoors(graphicsContext, camera, tileSize);
         }
     }
 
+    // 2. Vẽ Lớp Tường phía dưới đè lên chân Player
+    public void renderForeground(GraphicsContext graphicsContext, Camera camera) {
+        double zoom = camera.getZoom();
+
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                Tile tile = tiles[y][x];
+                if (tile == null) continue;
+
+                if (isSouthWallBoundary(x, y)) {
+                    double worldX = x * tileSize;
+                    double worldY = y * tileSize;
+                    double screenX = camera.worldToScreenX(worldX);
+                    double screenY = camera.worldToScreenY(worldY);
+
+                    graphicsContext.drawImage(tile.getTexture(), screenX, screenY, tileSize * zoom, tileSize * zoom);
+                }
+            }
+        }
+    }
+
+    // 3. Hàm kiểm tra Tường phía dưới
+    private boolean isSouthWallBoundary(int x, int y) {
+        Tile current = tiles[y][x];
+        if (current == null || current.getType() != Tile.TileType.WALL) {
+            return false;
+        }
+        // Tường có Sàn ngay phía trên nó -> Là bức tường tiếp giáp cạnh dưới của phòng
+        return (y > 0 && tiles[y - 1][x] != null && tiles[y - 1][x].getType() == Tile.TileType.FLOOR);
+    }
+
     // (cuongpluss) Kiem tra va cham tren ban do
+    // SỬA LẠI TRONG MapManager.java
     public boolean isWalkable(double worldX, double worldY, double radius) {
         // Kiem tra va cham voi cua dang dong cua cac phong
         for (Room room : rooms) {
@@ -88,17 +123,23 @@ public final class MapManager {
             }
         }
 
-        // xac dinh pham vi cac o gach xung quanh
-        int minTileX = (int) Math.floor((worldX - radius) / tileSize);
-        int maxTileX = (int) Math.floor((worldX + radius) / tileSize);
-        int minTileY = (int) Math.floor((worldY - radius) / tileSize);
-        int maxTileY = (int) Math.floor((worldY + radius) / tileSize);
+        // 🎯 CHỈNH HITBOX BÀN CHÂN:
+        // Thu nhỏ bán kính va chạm lại 50% (radius * 0.5) và dịch tâm xuống chân một chút (+6px)
+        // Giúp phần thân nhân vật lấn thoải mái vào sprite tường
+        double footRadius = radius * 0.5;
+        double footY = worldY + 8.0;
+
+        // Xac dinh pham vi các ô gạch xung quanh theo Hitbox bàn chân mới
+        int minTileX = (int) Math.floor((worldX - footRadius) / tileSize);
+        int maxTileX = (int) Math.floor((worldX + footRadius) / tileSize);
+        int minTileY = (int) Math.floor((footY - footRadius) / tileSize);
+        int maxTileY = (int) Math.floor((footY + footRadius) / tileSize);
 
         for (int ty = minTileY; ty <= maxTileY; ty++) {
             for (int tx = minTileX; tx <= maxTileX; tx++) {
 
                 if (tx < 0 || ty < 0 || tx >= width || ty >= height) {
-                    if (isCircleCollidingWithTile(worldX, worldY, radius, tx, ty)) {
+                    if (isCircleCollidingWithTile(worldX, footY, footRadius, tx, ty)) {
                         return false;
                     }
                     continue;
@@ -106,7 +147,7 @@ public final class MapManager {
 
                 Tile tile = tiles[ty][tx];
                 if (tile == null || !tile.isWalkable()) {
-                    if (isCircleCollidingWithTile(worldX, worldY, radius, tx, ty)) {
+                    if (isCircleCollidingWithTile(worldX, footY, footRadius, tx, ty)) {
                         return false;
                     }
                 }
