@@ -14,6 +14,7 @@ import java.util.Map;
 
 /**
  * SoundManager -Quan li bang may huu han trang thai
+ * co cac tinh nang phat nhac , fade down dan khi tat nhac( ap dung trong story )
  */
 public final class SoundManager {
     private static final SoundManager instance = new SoundManager();

@@ -64,6 +64,16 @@ public final class Camera {
         // Giới hạn zoom tối thiểu là 0.5 và tối đa là 4.0 để tránh lỗi vỡ hình hoặc quá nhỏ
         this.zoom = Math.max(0.5, Math.min(4.0, zoom));
     }
+    public Vector2D worldToScreen(Vector2D worldPosition) {
+        if (worldPosition == null) {
+            return new Vector2D();
+        }
+
+        return new Vector2D(
+                worldPosition.getX() - offsetX,
+                worldPosition.getY() - offsetY
+        );
+    }
 
     public double getOffsetX() { return offsetX; }
     public double getOffsetY() { return offsetY; }
