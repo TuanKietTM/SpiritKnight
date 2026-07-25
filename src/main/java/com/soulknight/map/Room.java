@@ -4,7 +4,8 @@ import com.soulknight.engine.Camera;
 import com.soulknight.engine.GameWorld;
 import com.soulknight.entity.Enemy;
 import com.soulknight.entity.Player;
-import com.soulknight.pet.Pet;
+import com.soulknight.pet.PetRoomEntryController;
+import com.soulknight.pet.PetRoomInfo;
 import com.soulknight.utils.Vector2D;
 import javafx.geometry.BoundingBox;
 import javafx.scene.canvas.GraphicsContext;
@@ -15,9 +16,20 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
+/**
+ * Đại diện cho một phòng trong bản đồ.
+ *
+ * Room chỉ chịu trách nhiệm:
+ * - Theo dõi trạng thái phòng.
+ * - Điều khiển cửa phòng.
+ * - Quản lý các wave quái.
+ * - Sinh và lưu vật cản.
+ *
+ * Logic chờ Pet đi vào phòng được giao cho PetRoomEntryController.
+ * Room không trực tiếp điều khiển hoặc teleport Pet.
+ */
 public class Room {
 
-    private static final double PET_ENTRY_TIMEOUT = 1.8;
     private static final double PLAYER_PUSH_DISTANCE = 18.0;
     private static final double NEXT_WAVE_DELAY = 1.0;
 
@@ -42,14 +54,11 @@ public class Room {
     private final BoundingBox bound;
     private final List<BoundingBox> doors = new ArrayList<>();
     private final List<Obstacle> obstacles = new ArrayList<>();
+    private final PetRoomEntryController petEntryController = new PetRoomEntryController();
 
     private boolean isActived;
     private boolean isCleared;
     private boolean isDoorClosed;
-
-    private boolean activationPending;
-    private double petEntryWaitTimer;
-
     private boolean obstaclesGenerated;
 
     private int currentWave;
@@ -57,6 +66,9 @@ public class Room {
     private double waveDelayTimer;
     private boolean isWaitingForNextWave;
 
+    /**
+     * Tạo một phòng mới.
+     */
     public Room(String name, double x, double y, double width, double height) {
         this.name = name;
         this.bound = new BoundingBox(x, y, width, height);
@@ -71,6 +83,15 @@ public class Room {
         }
     }
 
+    /**
+     * Cập nhật trạng thái phòng theo từng frame.
+     *
+     * Luồng:
+     * 1. Knight bước vào phòng.
+     * 2. Chờ Pet đi vào.
+     * 3. Đóng cửa, sinh vật cản và wave đầu tiên.
+     * 4. Theo dõi quái để chuyển wave hoặc mở cửa.
+     */
     public void update(GameWorld gameWorld, Player player, List<Enemy> globalEnemies, double deltaSeconds) {
         if (isCleared || gameWorld == null || player == null || player.getPosition() == null) {
             return;
@@ -78,12 +99,23 @@ public class Room {
 
         Vector2D playerPosition = player.getPosition();
 
-        if (!isActived && !activationPending && bound.contains(playerPosition.getX(), playerPosition.getY())) {
+        if (!isActived && !petEntryController.isPending() && bound.contains(playerPosition.getX(), playerPosition.getY())) {
             beginRoomActivation(player);
         }
 
-        if (activationPending) {
-            updatePendingActivation(gameWorld, player, deltaSeconds);
+        if (petEntryController.isPending()) {
+            PetRoomEntryController.EntryResult result = petEntryController.update(gameWorld, this, player, deltaSeconds);
+
+            if (result == PetRoomEntryController.EntryResult.WAITING) {
+                return;
+            }
+
+            if (result == PetRoomEntryController.EntryResult.CANCELLED) {
+                isDoorClosed = false;
+                return;
+            }
+
+            completeRoomActivation(gameWorld);
             return;
         }
 
@@ -95,55 +127,22 @@ public class Room {
         checkRoomClear(globalEnemies);
     }
 
+    /**
+     * Bắt đầu kích hoạt phòng. Cửa vẫn mở trong lúc chờ Pet.
+     */
     private void beginRoomActivation(Player player) {
-        activationPending = true;
-        petEntryWaitTimer = PET_ENTRY_TIMEOUT;
+        petEntryController.begin();
         isDoorClosed = false;
-
         pushPlayerInside(player);
     }
 
-    private void updatePendingActivation(GameWorld gameWorld, Player player, double deltaSeconds) {
-        Vector2D playerPosition = player.getPosition();
-
-        if (!bound.contains(playerPosition.getX(), playerPosition.getY())) {
-            cancelPendingActivation();
-            return;
-        }
-
-        Pet pet = gameWorld.getCurrentPet();
-
-        if (pet == null || pet.getPosition() == null) {
-            completeRoomActivation(gameWorld);
-            return;
-        }
-
-        if (isPositionSafelyInsideRoom(pet.getPosition(), pet.getRadius())) {
-            completeRoomActivation(gameWorld);
-            return;
-        }
-
-        petEntryWaitTimer -= Math.max(0.0, deltaSeconds);
-
-        if (petEntryWaitTimer <= 0.0) {
-            gameWorld.placePetInsideRoom(this);
-            completeRoomActivation(gameWorld);
-        }
-    }
-
-    private void cancelPendingActivation() {
-        activationPending = false;
-        petEntryWaitTimer = 0.0;
-        isDoorClosed = false;
-    }
-
+    /**
+     * Hoàn tất kích hoạt phòng sau khi Pet đã vào hoặc được xử lý.
+     */
     private void completeRoomActivation(GameWorld gameWorld) {
-        activationPending = false;
-        petEntryWaitTimer = 0.0;
-
+        petEntryController.finish();
         isActived = true;
         isDoorClosed = true;
-
         currentWave = 1;
         waveDelayTimer = 0.0;
         isWaitingForNextWave = false;
@@ -152,6 +151,9 @@ public class Room {
         gameWorld.spawnEnemiesInRoom(this, currentWave);
     }
 
+    /**
+     * Đếm thời gian nghỉ giữa hai wave rồi sinh wave tiếp theo.
+     */
     private void updateWaves(GameWorld gameWorld, double deltaSeconds) {
         if (!isWaitingForNextWave) {
             return;
@@ -165,10 +167,12 @@ public class Room {
 
         isWaitingForNextWave = false;
         currentWave++;
-
         gameWorld.spawnEnemiesInRoom(this, currentWave);
     }
 
+    /**
+     * Kiểm tra còn quái sống trong phòng hay không.
+     */
     private void checkRoomClear(List<Enemy> globalEnemies) {
         if (globalEnemies == null) {
             return;
@@ -192,10 +196,14 @@ public class Room {
         isActived = false;
         isCleared = true;
         isDoorClosed = false;
-        activationPending = false;
-        petEntryWaitTimer = 0.0;
+        petEntryController.cancel();
     }
 
+    /**
+     * Sinh vật cản một lần cho phòng.
+     *
+     * Vật cản không được đè lên Knight, Pet, cửa hoặc vật cản khác.
+     */
     public void generateObstacles(Random random, GameWorld gameWorld) {
         if (random == null || isStartRoom() || obstaclesGenerated) {
             return;
@@ -205,29 +213,31 @@ public class Room {
         obstacles.clear();
 
         Player player = gameWorld != null ? gameWorld.getPlayer() : null;
-        Pet pet = gameWorld != null ? gameWorld.getCurrentPet() : null;
+        PetRoomInfo petInfo = PetRoomInfo.from(gameWorld);
 
-        generateRandomObstacles(random, player, pet);
-        generateGridObstacles(random, player, pet, false);
+        generateRandomObstacles(random, player, petInfo);
+        generateGridObstacles(random, player, petInfo, false);
 
         if (obstacles.isEmpty()) {
-            generateGridObstacles(random, player, pet, true);
+            generateGridObstacles(random, player, petInfo, true);
         }
 
         if (obstacles.isEmpty()) {
-            generateFallbackObstacle(random, player, pet);
+            generateFallbackObstacle(random, player, petInfo);
         }
     }
 
-    private void generateRandomObstacles(Random random, Player player, Pet pet) {
+    /**
+     * Thử sinh vật cản tại các vị trí ngẫu nhiên.
+     */
+    private void generateRandomObstacles(Random random, Player player, PetRoomInfo petInfo) {
         int attempts = 0;
 
         while (obstacles.size() < MAX_OBSTACLES && attempts < MAX_RANDOM_ATTEMPTS) {
             attempts++;
-
             BoundingBox candidate = createRandomObstacleBox(random, false);
 
-            if (candidate == null || !isValidObstaclePosition(candidate, player, pet, false)) {
+            if (candidate == null || !isValidObstaclePosition(candidate, player, petInfo, false)) {
                 continue;
             }
 
@@ -235,7 +245,10 @@ public class Room {
         }
     }
 
-    private void generateGridObstacles(Random random, Player player, Pet pet, boolean relaxed) {
+    /**
+     * Quét phòng theo lưới để tìm thêm vị trí hợp lệ.
+     */
+    private void generateGridObstacles(Random random, Player player, PetRoomInfo petInfo, boolean relaxed) {
         if (obstacles.size() >= MAX_OBSTACLES) {
             return;
         }
@@ -256,7 +269,7 @@ public class Room {
             for (double x = minX; x <= maxX; x += GRID_STEP) {
                 BoundingBox candidate = new BoundingBox(x, y, OBSTACLE_SIZE, OBSTACLE_SIZE);
 
-                if (isValidObstaclePosition(candidate, player, pet, relaxed)) {
+                if (isValidObstaclePosition(candidate, player, petInfo, relaxed)) {
                     candidates.add(candidate);
                 }
             }
@@ -269,15 +282,17 @@ public class Room {
                 break;
             }
 
-            if (isValidObstaclePosition(candidate, player, pet, relaxed)) {
+            if (isValidObstaclePosition(candidate, player, petInfo, relaxed)) {
                 addObstacle(candidate, random);
             }
         }
     }
 
-    private void generateFallbackObstacle(Random random, Player player, Pet pet) {
+    /**
+     * Chọn vị trí dự phòng tốt nhất nếu hai bước trên đều thất bại.
+     */
+    private void generateFallbackObstacle(Random random, Player player, PetRoomInfo petInfo) {
         List<BoundingBox> candidates = createFallbackCandidates();
-
         BoundingBox bestCandidate = null;
         double bestScore = Double.NEGATIVE_INFINITY;
 
@@ -290,7 +305,7 @@ public class Room {
                 continue;
             }
 
-            double score = calculateSafetyScore(candidate, player, pet);
+            double score = calculateSafetyScore(candidate, player, petInfo);
 
             if (score > bestScore) {
                 bestScore = score;
@@ -298,11 +313,14 @@ public class Room {
             }
         }
 
-        if (bestCandidate != null && isValidObstaclePosition(bestCandidate, player, pet, true)) {
+        if (bestCandidate != null && isValidObstaclePosition(bestCandidate, player, petInfo, true)) {
             addObstacle(bestCandidate, random);
         }
     }
 
+    /**
+     * Tạo các vị trí góc, cạnh và tâm dùng cho bước dự phòng.
+     */
     private List<BoundingBox> createFallbackCandidates() {
         List<BoundingBox> candidates = new ArrayList<>();
 
@@ -310,7 +328,6 @@ public class Room {
         double right = bound.getMaxX() - RELAXED_WALL_PADDING - OBSTACLE_SIZE;
         double top = bound.getMinY() + RELAXED_WALL_PADDING;
         double bottom = bound.getMaxY() - RELAXED_WALL_PADDING - OBSTACLE_SIZE;
-
         double centerX = bound.getMinX() + (bound.getWidth() - OBSTACLE_SIZE) / 2.0;
         double centerY = bound.getMinY() + (bound.getHeight() - OBSTACLE_SIZE) / 2.0;
 
@@ -327,10 +344,12 @@ public class Room {
         return candidates;
     }
 
-    private double calculateSafetyScore(BoundingBox candidate, Player player, Pet pet) {
+    /**
+     * Điểm càng cao thì vị trí càng xa Knight, Pet và cửa.
+     */
+    private double calculateSafetyScore(BoundingBox candidate, Player player, PetRoomInfo petInfo) {
         double centerX = candidate.getMinX() + candidate.getWidth() / 2.0;
         double centerY = candidate.getMinY() + candidate.getHeight() / 2.0;
-
         double score = 0.0;
 
         if (player != null && player.getPosition() != null) {
@@ -339,9 +358,9 @@ public class Room {
             score += Math.sqrt(dx * dx + dy * dy);
         }
 
-        if (pet != null && pet.getPosition() != null) {
-            double dx = centerX - pet.getPosition().getX();
-            double dy = centerY - pet.getPosition().getY();
+        if (petInfo != null && petInfo.exists()) {
+            double dx = centerX - petInfo.getPosition().getX();
+            double dy = centerY - petInfo.getPosition().getY();
             score += Math.sqrt(dx * dx + dy * dy) * 0.75;
         }
 
@@ -350,13 +369,15 @@ public class Room {
             double doorCenterY = door.getMinY() + door.getHeight() / 2.0;
             double dx = centerX - doorCenterX;
             double dy = centerY - doorCenterY;
-
             score += Math.sqrt(dx * dx + dy * dy) * 0.5;
         }
 
         return score;
     }
 
+    /**
+     * Tạo một vùng vật cản ngẫu nhiên nằm trong phòng.
+     */
     private BoundingBox createRandomObstacleBox(Random random, boolean relaxed) {
         double padding = relaxed ? RELAXED_WALL_PADDING : WALL_PADDING;
         double minX = bound.getMinX() + padding;
@@ -374,7 +395,10 @@ public class Room {
         return new BoundingBox(x, y, OBSTACLE_SIZE, OBSTACLE_SIZE);
     }
 
-    private boolean isValidObstaclePosition(BoundingBox candidate, Player player, Pet pet, boolean relaxed) {
+    /**
+     * Kiểm tra vị trí vật cản có an toàn và hợp lệ hay không.
+     */
+    private boolean isValidObstaclePosition(BoundingBox candidate, Player player, PetRoomInfo petInfo, boolean relaxed) {
         if (candidate == null || !isBoxInsideRoom(candidate)) {
             return false;
         }
@@ -394,10 +418,10 @@ public class Room {
             }
         }
 
-        if (pet != null && pet.getPosition() != null) {
-            double safeRadius = pet.getRadius() + petPadding;
+        if (petInfo != null && petInfo.exists()) {
+            double safeRadius = petInfo.getRadius() + petPadding;
 
-            if (rectangleIntersectsCircle(candidate, pet.getPosition(), safeRadius)) {
+            if (rectangleIntersectsCircle(candidate, petInfo.getPosition(), safeRadius)) {
                 return false;
             }
         }
@@ -405,6 +429,9 @@ public class Room {
         return true;
     }
 
+    /**
+     * Kiểm tra BoundingBox có nằm trọn trong phòng hay không.
+     */
     private boolean isBoxInsideRoom(BoundingBox box) {
         return box != null
                 && box.getMinX() >= bound.getMinX()
@@ -413,6 +440,9 @@ public class Room {
                 && box.getMaxY() <= bound.getMaxY();
     }
 
+    /**
+     * Kiểm tra vị trí mới có chồng hoặc quá gần vật cản cũ không.
+     */
     private boolean overlapsExistingObstacle(BoundingBox candidate, boolean relaxed) {
         double spacing = relaxed ? RELAXED_OBSTACLE_SPACING : OBSTACLE_SPACING;
 
@@ -436,6 +466,9 @@ public class Room {
         return false;
     }
 
+    /**
+     * Kiểm tra vật cản có nằm quá gần cửa phòng hay không.
+     */
     private boolean isNearDoor(BoundingBox candidate, boolean relaxed) {
         double padding = relaxed ? RELAXED_DOOR_PADDING : DOOR_SAFE_PADDING;
 
@@ -455,6 +488,9 @@ public class Room {
         return false;
     }
 
+    /**
+     * Kiểm tra va chạm giữa hình chữ nhật và hình tròn.
+     */
     private boolean rectangleIntersectsCircle(BoundingBox rectangle, Vector2D circlePosition, double circleRadius) {
         if (rectangle == null || circlePosition == null) {
             return false;
@@ -462,13 +498,15 @@ public class Room {
 
         double closestX = Math.max(rectangle.getMinX(), Math.min(circlePosition.getX(), rectangle.getMaxX()));
         double closestY = Math.max(rectangle.getMinY(), Math.min(circlePosition.getY(), rectangle.getMaxY()));
-
         double differenceX = circlePosition.getX() - closestX;
         double differenceY = circlePosition.getY() - closestY;
 
         return differenceX * differenceX + differenceY * differenceY < circleRadius * circleRadius;
     }
 
+    /**
+     * Tạo Obstacle thật từ vùng ứng viên.
+     */
     private void addObstacle(BoundingBox candidate, Random random) {
         Vector2D position = new Vector2D(candidate.getMinX(), candidate.getMinY());
         boolean destructible = random.nextDouble() > 0.2;
@@ -476,16 +514,17 @@ public class Room {
         obstacles.add(new Obstacle(position, OBSTACLE_SIZE, OBSTACLE_SIZE, 30, destructible));
     }
 
+    /**
+     * Đẩy Knight nhẹ về phía tâm phòng để không đứng ngay trên cửa.
+     */
     private void pushPlayerInside(Player player) {
         if (player == null || player.getPosition() == null) {
             return;
         }
 
         Vector2D position = player.getPosition();
-
         double centerX = bound.getMinX() + bound.getWidth() / 2.0;
         double centerY = bound.getMinY() + bound.getHeight() / 2.0;
-
         double differenceX = centerX - position.getX();
         double differenceY = centerY - position.getY();
         double length = Math.sqrt(differenceX * differenceX + differenceY * differenceY);
@@ -496,26 +535,12 @@ public class Room {
 
         double pushX = differenceX / length * PLAYER_PUSH_DISTANCE;
         double pushY = differenceY / length * PLAYER_PUSH_DISTANCE;
-
         position.add(pushX, pushY);
     }
 
-    private boolean isPositionSafelyInsideRoom(Vector2D position, double radius) {
-        if (position == null) {
-            return false;
-        }
-
-        double safeRadius = Math.max(0.0, radius);
-
-        double minX = bound.getMinX() + safeRadius;
-        double maxX = bound.getMaxX() - safeRadius;
-        double minY = bound.getMinY() + safeRadius;
-        double maxY = bound.getMaxY() - safeRadius;
-
-        return position.getX() >= minX && position.getX() <= maxX
-                && position.getY() >= minY && position.getY() <= maxY;
-    }
-
+    /**
+     * Vẽ toàn bộ cửa thuộc phòng.
+     */
     public void renderDoors(GraphicsContext graphicsContext, Camera camera, double tileSize) {
         if (graphicsContext == null || camera == null || tileSize <= 0.0) {
             return;
@@ -546,6 +571,9 @@ public class Room {
         }
     }
 
+    /**
+     * Kiểm tra một vùng cửa có thuộc phòng này hay không.
+     */
     public boolean isDoorBelongsToRoom(double doorX, double doorY, double doorWidth, double doorHeight) {
         BoundingBox doorBox = new BoundingBox(doorX, doorY, doorWidth, doorHeight);
         BoundingBox expandedBound = new BoundingBox(bound.getMinX() - 10.0, bound.getMinY() - 10.0, bound.getWidth() + 20.0, bound.getHeight() + 20.0);
@@ -553,12 +581,17 @@ public class Room {
         return expandedBound.intersects(doorBox);
     }
 
+    /**
+     * Thêm vùng cửa vào phòng và tránh thêm trùng.
+     */
     public void addDoorCoordinate(double x, double y, double width, double height) {
         for (BoundingBox door : doors) {
             boolean sameX = Double.compare(door.getMinX(), x) == 0;
             boolean sameY = Double.compare(door.getMinY(), y) == 0;
+            boolean sameWidth = Double.compare(door.getWidth(), width) == 0;
+            boolean sameHeight = Double.compare(door.getHeight(), height) == 0;
 
-            if (sameX && sameY) {
+            if (sameX && sameY && sameWidth && sameHeight) {
                 return;
             }
         }
@@ -566,15 +599,19 @@ public class Room {
         doors.add(new BoundingBox(x, y, width, height));
     }
 
+    /**
+     * Kiểm tra một hình tròn có va vào cửa đang đóng hay không.
+     */
     public boolean isHitClosedDoor(double worldX, double worldY, double radius) {
         if (!isDoorClosed) {
             return false;
         }
 
-        double diameter = radius * 2.0;
+        double safeRadius = Math.max(0.0, radius);
+        double diameter = safeRadius * 2.0;
 
         for (BoundingBox door : doors) {
-            if (door.intersects(worldX - radius, worldY - radius, diameter, diameter)) {
+            if (door.intersects(worldX - safeRadius, worldY - safeRadius, diameter, diameter)) {
                 return true;
             }
         }
@@ -591,9 +628,21 @@ public class Room {
                 && isPlayerInside(player.getPosition().getX(), player.getPosition().getY());
     }
 
-    public boolean isPetInside(Pet pet) {
-        return pet != null && pet.getPosition() != null
-                && isPositionSafelyInsideRoom(pet.getPosition(), pet.getRadius());
+    /**
+     * Kiểm tra một hình tròn có nằm hoàn toàn trong phòng hay không.
+     * Có thể dùng chung cho Player, Pet, Enemy hoặc NPC.
+     */
+    public boolean containsPosition(Vector2D position, double radius) {
+        if (position == null) {
+            return false;
+        }
+
+        double safeRadius = Math.max(0.0, radius);
+
+        return position.getX() >= bound.getMinX() + safeRadius
+                && position.getX() <= bound.getMaxX() - safeRadius
+                && position.getY() >= bound.getMinY() + safeRadius
+                && position.getY() <= bound.getMaxY() - safeRadius;
     }
 
     private boolean isStartRoom() {
@@ -628,15 +677,15 @@ public class Room {
         return isDoorClosed;
     }
 
+    public boolean isObstaclesGenerated() {
+        return obstaclesGenerated;
+    }
+
     public boolean isActivationPending() {
-        return activationPending;
+        return petEntryController.isPending();
     }
 
     public double getPetEntryWaitTimer() {
-        return petEntryWaitTimer;
-    }
-
-    public boolean isObstaclesGenerated() {
-        return obstaclesGenerated;
+        return petEntryController.getWaitTimer();
     }
 }

@@ -801,55 +801,6 @@ private void resolvePlayerEnemyCollisions(double deltaSeconds) {
 
         return (ua >= 0.0 && ua <= 1.0 && ub >= 0.0 && ub <= 1.0);
     }
-    public void placePetInsideRoom(Room room) {
-
-        if (room == null ||
-                currentPet == null ||
-                player == null) {
-            return;
-        }
-
-        BoundingBox bound = room.getBound();
-
-        Vector2D playerPos = player.getPosition();
-
-        double[][] offsets = {
-
-                {-40,20},
-                {40,20},
-                {-40,-20},
-                {40,-20},
-                {0,50},
-                {0,-50},
-                {-70,0},
-                {70,0}
-        };
-
-        for (double[] offset : offsets) {
-
-            Vector2D candidate =
-                    playerPos.copy().add(offset[0], offset[1]);
-
-            if (!bound.contains(candidate.getX(), candidate.getY())) {
-                continue;
-            }
-
-            if (canMoveTo(candidate, currentPet.getRadius())) {
-
-                currentPet.teleport(
-                        candidate.getX(),
-                        candidate.getY()
-                );
-
-                return;
-            }
-        }
-
-        currentPet.teleport(
-                playerPos.getX(),
-                playerPos.getY()
-        );
-    }
 //    cac phuong thuc pet
 public void equipPet(PetType type) {
 

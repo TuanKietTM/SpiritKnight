@@ -310,7 +310,7 @@ public final class UIManager {
                 sound.playSFX("button");
 //                test thu pet
                 world.equipPet(
-                        PetType.SLIME
+                        PetType.CAT
                 );
             });
         }

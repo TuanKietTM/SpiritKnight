@@ -5,15 +5,6 @@ import java.util.function.Consumer;
 
 /**
  * Lưu pet hiện đang được trang bị.
- *
- * Giai đoạn hiện tại:
- * - Tất cả pet đều miễn phí.
- * - Chưa lưu xuống file.
- *
- * Giai đoạn sau:
- * - Có thể liên kết với SaveData.
- * - Kiểm tra pet đã mua hay chưa.
- * - Trừ xu khi mua.
  */
 public final class PetSelectionManager {
 
@@ -23,7 +14,7 @@ public final class PetSelectionManager {
     /*
      * Pet mặc định để test.
      */
-    private PetType selectedPet = PetType.SLIME;
+    private PetType selectedPet = PetType.CAT;
 
     private Consumer<PetType> selectionListener;
 
