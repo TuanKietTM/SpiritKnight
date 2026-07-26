@@ -20,6 +20,8 @@ import com.soulknight.weapon.Gun;
 import com.soulknight.weapon.Melee;
 import com.soulknight.weapon.SlashEffect;
 import com.soulknight.weapon.Weapon;
+import com.soulknight.weapon.WeaponSelectionManager;
+import com.soulknight.weapon.WeaponType;
 import com.soulknight.pet.Pet;
 import com.soulknight.pet.PetFactory;
 import com.soulknight.pet.PetSelectionManager;
@@ -389,8 +391,8 @@ private void updatePet(double deltaSeconds) {
         createSelectedPet();
 
         if (freshRun) {
-            player.equipWeapon(new Gun("Blaster", 12, 0.18, 580.0, 0.0)
-                    .withImage("/assets/WeaponImage/GunImage/OldPistol.png"));
+            // Trang bị vũ khí đã chọn trong Shop (mặc định Old Pistol)
+            player.equipWeapon(WeaponSelectionManager.getInstance().getSelectedWeapon().createWeapon());
         }
 
         // reset lại các object
@@ -841,6 +843,25 @@ public void equipPet(PetType type) {
     }
     public PetType getEquippedPetType() {
         return PetSelectionManager.getInstance().getSelectedPet();
+    }
+
+    //    cac phuong thuc vu khi (chon tu Shop)
+    public void equipWeapon(WeaponType type) {
+        WeaponType safeType = (type != null) ? type : WeaponType.OLD_PISTOL;
+
+        // Luu lua chon
+        WeaponSelectionManager.getInstance().selectWeapon(safeType);
+
+        // Chua co player thi chi can luu lua chon
+        if (player == null) {
+            return;
+        }
+
+        player.equipWeapon(safeType.createWeapon());
+    }
+
+    public WeaponType getEquippedWeaponType() {
+        return WeaponSelectionManager.getInstance().getSelectedWeapon();
     }
 
 }
