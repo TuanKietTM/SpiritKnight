@@ -4,6 +4,7 @@
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
 <AnchorPane xmlns="http://javafx.com/javafx/21"
@@ -11,21 +12,28 @@
             fx:controller="com.soulknight.ui.Menu"
             stylesheets="@../CSS/Menu.css"
             styleClass="menu-container">
-    <VBox alignment="CENTER" spacing="5"
-          AnchorPane.topAnchor="60.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0">
+    <AnchorPane styleClass="menu-background-overlay"
+                AnchorPane.topAnchor="0.0" AnchorPane.bottomAnchor="0.0"
+                AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0"/>
+    <VBox alignment="CENTER" spacing="8"
+          AnchorPane.topAnchor="45.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0">
         <Label text="SOUL KNIGHT" styleClass="menu-title"/>
+        <Label text="❖ THE KCD VERSION ❖" styleClass="menu-subtitle"/>
     </VBox>
-    <VBox alignment="BOTTOM_CENTER" spacing="10"
-          AnchorPane.bottomAnchor="100.0" AnchorPane.leftAnchor="150.0">
-        <ImageView fx:id="imgCharacter" styleClass="menu-sprite"/>
-        <VBox styleClass="shadow-ellipse"/>
-    </VBox>
-    <VBox alignment="CENTER" spacing="16" styleClass="button-container"
-          AnchorPane.bottomAnchor="80.0" AnchorPane.rightAnchor="120.0">
-        <Button fx:id="btnPlay" text="START GAME" onAction="#onPlayClicked" styleClass="menu-button" focusTraversable="false"/>
-        <Button fx:id="btnShop" text="SHOP" onAction="#onShopClicked" styleClass="menu-button" focusTraversable="false"/>
-        <Button fx:id="btnSettings" text="SETTINGS" onAction="#onSettingsClicked" styleClass="menu-button" focusTraversable="false"/>
-        <Button fx:id="btnExit" text="EXIT GAME" onAction="#onExitClicked" styleClass="menu-button-exit" focusTraversable="false"/>
+    <StackPane AnchorPane.bottomAnchor="80.0" AnchorPane.leftAnchor="120.0">
+        <VBox styleClass="mystic-aura-circle"/>
+
+        <VBox alignment="BOTTOM_CENTER" spacing="5">
+            <ImageView fx:id="imgCharacter" styleClass="menu-sprite"/>
+            <VBox styleClass="shadow-ellipse"/>
+        </VBox>
+    </StackPane>
+    <VBox alignment="CENTER" spacing="18" styleClass="button-container"
+          AnchorPane.bottomAnchor="70.0" AnchorPane.rightAnchor="120.0">
+        <Button fx:id="btnPlay" text="▶  START GAME" onAction="#onPlayClicked" styleClass="menu-button, menu-button-primary" focusTraversable="false"/>
+        <Button fx:id="btnShop" text="🛒  SHOP" onAction="#onShopClicked" styleClass="menu-button" focusTraversable="false"/>
+        <Button fx:id="btnSettings" text="⚙  SETTINGS" onAction="#onSettingsClicked" styleClass="menu-button" focusTraversable="false"/>
+        <Button fx:id="btnExit" text="✖  EXIT GAME" onAction="#onExitClicked" styleClass="menu-button-exit" focusTraversable="false"/>
     </VBox>
 
 </AnchorPane>
