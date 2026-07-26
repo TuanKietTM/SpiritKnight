@@ -122,6 +122,7 @@ public class ShopController {
         card.getChildren().addAll(canvas, nameLabel);
 
         card.setOnMouseClicked(e -> {
+            SoundManager.getInstance().stopAllSFX();
             if (pet.getSoundPath() != null && !pet.getSoundPath().isBlank()) {
                 SoundManager.getInstance().playSFX(pet.getSoundPath());
             } else {
@@ -144,7 +145,10 @@ public class ShopController {
                 actionButton.setText("CHOSE PET");
                 actionButton.setDisable(false);
                 actionButton.setOnAction(evt -> {
+//                    tat moi am thanh SFX khac de tranh de tieng
+                    SoundManager.getInstance().stopAllSFX();
                     if (pet.getSoundPath() != null && !pet.getSoundPath().isBlank()) {
+//                        phat tieng cua moi con khi chon
                         SoundManager.getInstance().playSFX(pet.getSoundPath());
                     } else {
                         SoundManager.getInstance().playSFX("button");
@@ -193,7 +197,12 @@ public class ShopController {
         card.getChildren().addAll(canvas, nameLabel);
 
         card.setOnMouseClicked(e -> {
-            SoundManager.getInstance().playSFX("button");
+            SoundManager.getInstance().stopAllSFX();
+            if (weapon.getSoundPath() != null && !weapon.getSoundPath().isBlank()) {
+                SoundManager.getInstance().playSFX(weapon.getSoundPath());
+            } else {
+                SoundManager.getInstance().playSFX("button");
+            }
             itemGrid.getChildren().forEach(n -> n.getStyleClass().remove("item-card-selected"));
             card.getStyleClass().add("item-card-selected");
 
@@ -211,7 +220,12 @@ public class ShopController {
                 actionButton.setText("CHOSE WEAPON");
                 actionButton.setDisable(false);
                 actionButton.setOnAction(evt -> {
-                    SoundManager.getInstance().playSFX("button");
+                    SoundManager.getInstance().stopAllSFX();
+                    if (weapon.getSoundPath() != null && !weapon.getSoundPath().isBlank()) {
+                        SoundManager.getInstance().playSFX(weapon.getSoundPath());
+                    } else {
+                        SoundManager.getInstance().playSFX("button");
+                    }
                     WeaponSelectionManager.getInstance().selectWeapon(weapon);
                     if (gameWorld != null) {
                         gameWorld.equipWeapon(weapon);

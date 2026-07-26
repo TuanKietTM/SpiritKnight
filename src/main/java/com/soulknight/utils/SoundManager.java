@@ -82,12 +82,19 @@ public final class SoundManager {
         loadSFX("Radio", "/assets/Audio/radio_static.mp3");
         loadSFX("Portal", "/assets/Audio/portal.mp3");
         loadSFX("Sword", "/assets/Audio/sword.mp3");
-
-        // 🔥 NẠP THÊM CÁC TIẾNG KÊU CỦA PET
         loadSFX("bird_sound", "/assets/Audio/bird_sound.mp3");
         loadSFX("cat_sound", "/assets/Audio/cat_sound.mp3");
         loadSFX("wolf_sound", "/assets/Audio/wolf_sound.mp3");
         loadSFX("ghost_sound", "/assets/Audio/ghost_sound.mp3");
+        loadSFX("Pistol_Fire", "/assets/Audio/pistol.mp3");
+        loadSFX("SMG_Fire", "/assets/Audio/smg.mp3");
+        loadSFX("Sword_Swing", "/assets/Audio/sword_1.mp3");
+        loadSFX("Fish_Slap", "/assets/Audio/fish.mp3");
+        loadSFX("Blaster_Fire","/assets/Audio/blaster.mp3");
+        loadSFX("Shotgun_Fire","/assets/Audio/short_gun.mp3");
+        loadSFX("Sniper_Fire","/assets/Audio/sniper.mp3");
+        loadSFX("Magic_Cast","/assets/Audio/magic.mp3");
+
     }
 
     public static SoundManager getInstance() {
@@ -150,6 +157,7 @@ public final class SoundManager {
     }
 
     public void stopAllSFX() {
+//        de tat moi tieng bat ki
         for (AudioClip clip : sfxMap.values()) {
             if (clip != null) {
                 clip.stop();
