@@ -3,6 +3,7 @@
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ProgressBar?>
+<?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
@@ -58,10 +59,11 @@
                styleClass="weapon-ring-container">
         <Circle radius="55" styleClass="weapon-ring-bg"/>
         <VBox alignment="CENTER" spacing="3" pickOnBounds="false">
-            <Label text="⚔" styleClass="weapon-icon"/>
+            <ImageView fx:id="weaponIcon" fitWidth="48" fitHeight="48" preserveRatio="true" smooth="false"/>
             <Label fx:id="weaponLabel" text="BAD PISTOL" styleClass="weapon-text-hud"/>
         </VBox>
     </StackPane>
+
     <StackPane fx:id="joystickContainer"
                AnchorPane.bottomAnchor="30.0"
                AnchorPane.leftAnchor="30.0"

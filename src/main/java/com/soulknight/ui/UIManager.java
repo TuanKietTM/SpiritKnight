@@ -2,9 +2,12 @@ package com.soulknight.ui;
 
 import com.soulknight.engine.GameState;
 import com.soulknight.engine.GameWorld;
+import com.soulknight.entity.Player;
 import com.soulknight.utils.Constants;
 import com.soulknight.utils.SoundManager;
 import com.soulknight.pet.PetType;
+import com.soulknight.weapon.Weapon;
+import com.soulknight.weapon.WeaponType;
 import javafx.animation.FadeTransition;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
@@ -345,6 +348,16 @@ public final class UIManager {
                 if (world.getState() == GameState.PLAYING) {
                     sound.playSFX("button");
                     world.switchPlayerWeapon();
+                    Player player = world.getPlayer();
+                    if (player != null && player.getWeapon() != null) {
+                        Weapon currentWeapon = player.getWeapon();
+                        String weaponName = currentWeapon.getName();
+                        WeaponType type = findWeaponTypeByName(weaponName);
+                        if (type != null) {
+                            currentWeapon.withSound(type.getSoundPath())
+                                    .withImage(type.getImagePath());
+                        }
+                    }
                 }
             });
         }
@@ -391,6 +404,25 @@ public final class UIManager {
                     }
             );
         }
+    }
+    private WeaponType findWeaponTypeByName(String rawName) {
+        if (rawName == null) return null;
+
+        String normalizedInput = rawName.replaceAll("[^a-zA-Z0-9]", "").toLowerCase();
+
+        for (WeaponType type : WeaponType.values()) {
+            String normalizedDisplayName = type.getDisplayName().replaceAll("[^a-zA-Z0-9]", "").toLowerCase();
+            if (normalizedDisplayName.equals(normalizedInput)) {
+                return type;
+            }
+
+            String normalizedEnumName = type.name().replaceAll("[^a-zA-Z0-9]", "").toLowerCase();
+            if (normalizedEnumName.equals(normalizedInput)) {
+                return type;
+            }
+        }
+
+        return null;
     }
 
     private void hideAllScreens() {

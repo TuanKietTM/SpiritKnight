@@ -14,6 +14,7 @@ public abstract class Weapon {
     private double cooldownRemaining;
     // Duong dan anh vu khi (co the null neu vu khi khong co anh)
     private String imagePath;
+    private String soundPath = "Bullet";
 
     protected Weapon(String name, int damage, double cooldownSeconds) {
         this.name = name;
@@ -47,6 +48,14 @@ public abstract class Weapon {
     public Weapon withImage(String imagePath) {
         this.imagePath = imagePath;
         return this;
+    }
+    public Weapon withSound(String soundPath) {
+        this.soundPath = soundPath;
+        return this;
+    }
+
+    public String getSoundPath() {
+        return soundPath;
     }
 
     // Lay anh vu khi (null neu vu khi khong co anh)

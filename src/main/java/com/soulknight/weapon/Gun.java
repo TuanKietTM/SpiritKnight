@@ -26,7 +26,12 @@ public final class Gun extends Weapon {
             return;
         }
 
-        SoundManager.getInstance().playSFX("Bullet");
+        String sound = getSoundPath();
+        if (sound != null && !sound.isBlank()) {
+            SoundManager.getInstance().playSFX(sound);
+        } else {
+            SoundManager.getInstance().playSFX("Bullet");
+        }
         Vector2D direction = targetPosition.copy().subtract(owner.getPosition());
         if (direction.length() == 0.0) {
             direction.setX(1.0);
