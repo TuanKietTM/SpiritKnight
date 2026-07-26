@@ -2,63 +2,108 @@
     font-family: "Press Start 2P";
     src: url("../fonts/PressStart2P-Regular.ttf");
 }
-
 .menu-container {
-    -fx-background-color: #0d0a14;
+    -fx-background-color: #080511;
+    -fx-background-size: cover;
+    -fx-background-position: center;
     -fx-min-width: 1024px;
     -fx-min-height: 576px;
+}
+.menu-background-overlay {
+    -fx-background-color: radial-gradient(
+        center 50% 50%, radius 70%,
+        rgba(30, 15, 55, 0.4) 0%,
+        rgba(8, 5, 17, 0.95) 100%
+    );
 }
 
 .menu-title {
     -fx-font-family: "Press Start 2P";
-    -fx-font-size: 50px;
-    -fx-text-fill: #e63946;
-    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.9), 0, 0, 4, 4); /* Bóng đổ đổ cứng phong cách Retro */
+    -fx-font-size: 52px;
+    -fx-text-fill: #00f0ff;
+    -fx-effect: dropshadow(three-pass-box, #8a2be2, 18, 0.6, 0, 0);
 }
+
 .menu-subtitle {
     -fx-font-family: "Press Start 2P";
-    -fx-font-size: 14px;
-    -fx-text-fill: #ffb703;
-    -fx-effect: dropshadow(three-pass-box, black, 0, 0, 2, 2);
+    -fx-font-size: 13px;
+    -fx-text-fill: #ffd166;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.9), 0, 0, 2, 2);
 }
 
-.menu-button, .menu-button-exit {
-    -fx-background-color: #3a225c;
-    -fx-text-fill: #ffe3a8;
-    -fx-font-family: "Press Start 2P", monospace;
-    -fx-font-size: 14px;
-    -fx-background-radius: 4px;
-    -fx-padding: 14px 0px;
-    -fx-cursor: hand;
-    -fx-pref-width: 250px;
-    -fx-border-color: #1e1130;
-    -fx-border-width: 4px;
-    -fx-border-radius: 4px;
+.mystic-aura-circle {
+    -fx-min-width: 170px;
+    -fx-min-height: 170px;
+    -fx-max-width: 170px;
+    -fx-max-height: 170px;
+    -fx-background-color: radial-gradient(center 50% 50%, radius 50%, rgba(138, 43, 226, 0.35) 0%, transparent 70%);
+    -fx-background-radius: 50%;
 }
 
-.menu-button-exit {
-    -fx-background-color: #4a4e69;
-}
-
-.menu-button:hover, .menu-button-exit:hover {
-    -fx-background-color: #00b4d8;
-    -fx-text-fill: #ffffff;
-    -fx-border-color: #0077b6;
-    -fx-translate-y: -2px;
-}
-
-.menu-button:pressed, .menu-button-exit:pressed {
-    -fx-translate-y: 1px;
+.shadow-ellipse {
+    -fx-min-width: 100px;
+    -fx-min-height: 14px;
+    -fx-max-width: 100px;
+    -fx-max-height: 14px;
+    -fx-background-color: rgba(0, 0, 0, 0.7);
+    -fx-background-radius: 50%;
 }
 
 .menu-sprite {
     -fx-smooth: false;
 }
-.shadow-ellipse {
-    -fx-min-width: 90px;
-    -fx-min-height: 12px;
-    -fx-max-width: 90px;
-    -fx-max-height: 12px;
-    -fx-background-color: rgba(0, 0, 0, 0.5);
-    -fx-background-radius: 50%;
+
+.menu-button, .menu-button-primary, .menu-button-exit {
+    -fx-background-color: linear-gradient(to bottom, #2b1745, #180b2b);
+    -fx-text-fill: #e2d1f9;
+    -fx-font-family: "Press Start 2P", monospace;
+    -fx-font-size: 13px;
+    -fx-background-radius: 6px;
+    -fx-padding: 14px 20px;
+    -fx-cursor: hand;
+    -fx-pref-width: 260px;
+    -fx-border-color: #5a2e91;
+    -fx-border-width: 3px;
+    -fx-border-radius: 6px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.8), 6, 0, 0, 4);
+}
+.menu-button-primary {
+    -fx-background-color: linear-gradient(to bottom, #ff9e00, #b15b00);
+    -fx-text-fill: #ffffff;
+    -fx-border-color: #ffe169;
+    -fx-effect: dropshadow(three-pass-box, rgba(255, 158, 0, 0.5), 10, 0, 0, 0);
+}
+
+.menu-button:hover {
+    -fx-background-color: linear-gradient(to bottom, #4a287a, #281148);
+    -fx-text-fill: #00f0ff;
+    -fx-border-color: #00f0ff;
+    -fx-effect: dropshadow(three-pass-box, #00f0ff, 12, 0.4, 0, 0);
+    -fx-translate-y: -2px;
+}
+
+.menu-button-primary:hover {
+    -fx-background-color: linear-gradient(to bottom, #ffb703, #d46900);
+    -fx-text-fill: #ffffff;
+    -fx-border-color: #ffffff;
+    -fx-effect: dropshadow(three-pass-box, #ffb703, 14, 0.5, 0, 0);
+    -fx-translate-y: -2px;
+}
+
+.menu-button-exit {
+    -fx-background-color: linear-gradient(to bottom, #3d2b3d, #221422);
+    -fx-border-color: #723d46;
+    -fx-text-fill: #e5989b;
+}
+
+.menu-button-exit:hover {
+    -fx-background-color: linear-gradient(to bottom, #e63946, #9b2226);
+    -fx-text-fill: #ffffff;
+    -fx-border-color: #ff758f;
+    -fx-effect: dropshadow(three-pass-box, #e63946, 12, 0.4, 0, 0);
+    -fx-translate-y: -2px;
+}
+
+.menu-button:pressed, .menu-button-primary:pressed, .menu-button-exit:pressed {
+    -fx-translate-y: 2px;
 }
