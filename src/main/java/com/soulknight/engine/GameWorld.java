@@ -10,6 +10,7 @@ import com.soulknight.level.LevelManager;
 import com.soulknight.map.MapManager;
 import com.soulknight.map.Obstacle;
 import com.soulknight.map.Room;
+import com.soulknight.map.Tile;
 import com.soulknight.mission.MissionManager;
 import com.soulknight.utils.Constants;
 import com.soulknight.utils.SoundManager;
@@ -190,20 +191,32 @@ private void updatePet(double deltaSeconds) {
 
     private void updateBullets(double deltaSeconds) {
         List<Obstacle> allObstacles = getObstacles();
+
         for (Bullet bullet : bullets) {
+            if (!bullet.isActive()) continue;
+
+            // KIỂM TRA ĐẠN VỪA BẮN RA ĐÃ NẰM TRONG TƯỜNG CỨNG CHƯA?
+            // Tránh lỗi đạn kẹt đệ quy gây StackOverflow khi đứng sát tường
+            if (mapManager.isBulletCollidingWithWall(bullet.getPosition().getX(), bullet.getPosition().getY())) {
+                bullet.deactivate();
+                continue; // Hủy đạn ngay lập tức, không spawn nổ liên tục
+            }
+
+            // 2. Cho đạn di chuyển
             bullet.update(deltaSeconds);
-            if (!mapManager.isWalkable(bullet.getPosition().getX(), bullet.getPosition().getY(), bullet.getRadius())) {
+
+            // 🎯 3. KIỂM TRA VA CHẠM TƯỜNG (Dùng hàm riêng cho Đạn thay vì isWalkable)
+            if (mapManager.isBulletCollidingWithWall(bullet.getPosition().getX(), bullet.getPosition().getY())) {
                 spawnBulletExplosion(bullet.getPosition());
                 bullet.deactivate();
                 continue;
             }
-            // 2. Đạn va chạm với Vật cản (Thực hiện TRƯỚC khi va chạm Quái/Player)
+
+            // 4. Đạn va chạm với Vật cản (Thực hiện TRƯỚC khi va chạm Quái/Player)
             boolean hitObstacle = false;
             for (Obstacle obstacle : allObstacles) {
                 if (obstacle.intersectsCircle(bullet.getPosition(), bullet.getRadius())) {
-                    // Trừ máu vật cản (nếu vật cản thuộc loại phá hủy được)
                     obstacle.takeDamage(bullet.getDamage());
-                    // Tiêu hủy đạn ngay lập tức (không cho xuyên qua quái núp sau)
                     spawnBulletExplosion(bullet.getPosition());
                     bullet.deactivate();
                     hitObstacle = true;
@@ -211,10 +224,11 @@ private void updatePet(double deltaSeconds) {
                 }
             }
             if (hitObstacle) {
-                continue; // Chuyển sang đạn tiếp theo
+                continue;
             }
 
-            if (bullet.getOwner() instanceof Player) {// enemy trung dan cua player
+            // 5. Va chạm với Entity (Enemy / Player)
+            if (bullet.getOwner() instanceof Player) {
                 for (Enemy enemy : enemies) {
                     if (enemy.isAlive() && bullet.intersects(enemy)) {
                         enemy.takeDamage(bullet.getDamage());
@@ -223,17 +237,18 @@ private void updatePet(double deltaSeconds) {
                         break;
                     }
                 }
-            } else if (bullet.intersects(player)) {// dan ban trung player
+            } else if (bullet.intersects(player)) {
                 player.takeDamage(bullet.getDamage());
                 spawnBulletExplosion(bullet.getPosition());
                 bullet.deactivate();
             }
         }
 
-//        xoa dan va quai chet
+        // Xóa đạn và quái chết
         bullets.removeIf(bullet -> !bullet.isActive());
         enemies.removeIf(enemy -> !enemy.isAlive());
-//        xoa vat can neu ban pha xong
+
+        // Xóa vật cản nếu bị phá hủy
         if (mapManager != null && mapManager.getRooms() != null) {
             for (Room room : mapManager.getRooms()) {
                 if (room.getObstacles() != null) {
@@ -312,43 +327,74 @@ private void updatePet(double deltaSeconds) {
     }
 
     private void renderWorld(GraphicsContext graphicsContext, double renderWidth, double renderHeight) {
-        mapManager.render(graphicsContext, camera, renderWidth, renderHeight);
-// 2. HIỂN THỊ VẬT CẢN (OBSTACLE)
+        // 1. Vẽ sàn nhà bẹt dưới cùng trước
+        mapManager.renderFloor(graphicsContext, camera, renderWidth, renderHeight);
+
+        // 2. Danh sách Y-Sorting
+        class SortableObject {
+            double depthY;
+            Runnable renderAction;
+            SortableObject(double depthY, Runnable renderAction) {
+                this.depthY = depthY;
+                this.renderAction = renderAction;
+            }
+        }
+
+        List<SortableObject> renderList = new ArrayList<>();
+        double tileSize = mapManager.getTileSize();
+
+// A. Thêm các ô TƯỜNG vào Y-Sorting (Mốc Y tính ở ĐÁY ô Tile Tường)
+        for (Tile wall : mapManager.getWallTiles()) {
+            double wallBottomY = wall.getY() + tileSize; // 🎯 ĐÁY Ô TƯỜNG
+            renderList.add(new SortableObject(wallBottomY, () -> {
+                double screenX = camera.worldToScreenX(wall.getX());
+                double screenY = camera.worldToScreenY(wall.getY());
+                double zoom = camera.getZoom();
+                graphicsContext.drawImage(wall.getTexture(), screenX, screenY, tileSize * zoom, tileSize * zoom);
+            }));
+        }
+
+// B. Thêm PLAYER (Mốc Y tính ở BÀN CHÂN)
+        double playerFootY = player.getPosition().getY() + 10.0;
+        renderList.add(new SortableObject(playerFootY, () -> {
+            player.render(graphicsContext, camera);
+        }));
+
+        // C. Thêm ENEMIES
+        for (Enemy enemy : enemies) {
+            double enemyFootY = enemy.getPosition().getY() + 12.0;
+            renderList.add(new SortableObject(enemyFootY, () -> {
+                enemy.render(graphicsContext, camera);
+            }));
+        }
+
+        // D. Thêm OBSTACLES (Vật cản)
         if (mapManager != null && mapManager.getRooms() != null) {
             for (Room room : mapManager.getRooms()) {
                 if (room.getObstacles() != null) {
                     for (Obstacle obstacle : room.getObstacles()) {
-                        obstacle.render(graphicsContext, camera);
+                        double obsY = obstacle.getPosition().getY() + 16.0;
+                        renderList.add(new SortableObject(obsY, () -> {
+                            obstacle.render(graphicsContext, camera);
+                        }));
                     }
                 }
             }
         }
-        for (Bullet bullet : bullets) {
-            bullet.render(graphicsContext, camera);
+
+
+        renderList.sort((a, b) -> Double.compare(a.depthY, b.depthY));
+
+        // Thực thi render theo thứ tự sâu/nông
+        for (SortableObject obj : renderList) {
+            obj.renderAction.run();
         }
 
-        for (Item item : items) {
-            item.render(graphicsContext, camera);
-        }
-
-        for (Enemy enemy : enemies) {
-            enemy.render(graphicsContext, camera);
-        }
-        if (currentPet != null) {
-            currentPet.render(graphicsContext, camera);
-        }
-
-        player.render(graphicsContext, camera);
-
-        // Ve hieu ung chem cua kiem ngay tren nhan vat/quai
-        for (SlashEffect slash : slashEffects) {
-            slash.render(graphicsContext, camera);
-        }
-
-        // Ve hieu ung no len tren cung tai cac diem dan va cham
-        for (ExplosionEffect explosion : explosions) {
-            explosion.render(graphicsContext, camera);
-        }
+        // 3. Hiệu ứng đạn, chém, nổ vẽ lên trên cùng
+        for (Item item : items) item.render(graphicsContext, camera);
+        for (Bullet bullet : bullets) bullet.render(graphicsContext, camera);
+        for (SlashEffect slash : slashEffects) slash.render(graphicsContext, camera);
+        for (ExplosionEffect explosion : explosions) explosion.render(graphicsContext, camera);
     }
 
     private void renderPet(GraphicsContext graphicsContext) {
@@ -366,7 +412,7 @@ private void updatePet(double deltaSeconds) {
 
     //(vitdung) chỉnh lại hàm này để test loadMap từ txt
     private void loadCurrentLevel(boolean freshRun) {
-        String mapPath = "/maps/level1_1.json";
+        String mapPath = "/maps/primeMap_1.json";
         this.mapManager = new MapManager(mapPath);
         this.mapManager.closeExitPortal();
         if (mapManager != null && mapManager.getRooms() != null) {
