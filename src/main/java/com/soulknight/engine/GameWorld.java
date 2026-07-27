@@ -359,8 +359,15 @@ private void updatePet(double deltaSeconds) {
         renderList.add(new SortableObject(playerFootY, () -> {
             player.render(graphicsContext, camera);
         }));
+        // C. Thêm PET (Thêm Pet vào Y-Sorting tại đây)
+        if (currentPet != null && currentPet.getPosition() != null) {
+            double petFootY = currentPet.getPosition().getY() + 8.0; // Mốc Y bàn chân của Pet
+            renderList.add(new SortableObject(petFootY, () -> {
+                currentPet.render(graphicsContext, camera);
+            }));
+        }
 
-        // C. Thêm ENEMIES
+        // D. Thêm ENEMIES
         for (Enemy enemy : enemies) {
             double enemyFootY = enemy.getPosition().getY() + 12.0;
             renderList.add(new SortableObject(enemyFootY, () -> {
@@ -368,7 +375,7 @@ private void updatePet(double deltaSeconds) {
             }));
         }
 
-        // D. Thêm OBSTACLES (Vật cản)
+        // E. Thêm OBSTACLES (Vật cản)
         if (mapManager != null && mapManager.getRooms() != null) {
             for (Room room : mapManager.getRooms()) {
                 if (room.getObstacles() != null) {
@@ -397,13 +404,7 @@ private void updatePet(double deltaSeconds) {
         for (ExplosionEffect explosion : explosions) explosion.render(graphicsContext, camera);
     }
 
-    private void renderPet(GraphicsContext graphicsContext) {
-        if (currentPet == null) {
-            return;
-        }
 
-        currentPet.render(graphicsContext, camera);
-    }
     private void startNewRun() {
         levelManager.startNewRun();
         loadCurrentLevel(true);
@@ -415,50 +416,55 @@ private void updatePet(double deltaSeconds) {
         String mapPath = "/maps/primeMap_1.json";
         this.mapManager = new MapManager(mapPath);
         this.mapManager.closeExitPortal();
-        if (mapManager != null && mapManager.getRooms() != null) {
-            for (Room room : mapManager.getRooms()) {
-                // Không tạo vật cản ở phòng xuất phát để Player dễ di chuyển
-                if (room.getName() != null && !room.getName().equalsIgnoreCase("StartRoom")) {
-                    spawnObstaclesInRoom(room, 3); // Sinh 3 vật cản mỗi phòng
+        this.pendingPortalPosition = null;
+        if (this.mapManager.getRooms() != null) {
+            for (Room room : this.mapManager.getRooms()) {
+                if (room.getType() == Room.RoomType.FIGHT || room.getType() == Room.RoomType.BOSS) {
+                    // Tự động sinh vật cản thông minh tránh Player, Pet và Cửa
+                    room.generateObstacles(this.random, this);
                 }
             }
         }
-        // đoạn portal chưa rõ lắm
-        this.pendingPortalPosition = mapManager.getExitPortalPosition();
-        if (this.pendingPortalPosition == null) {
-            this.pendingPortalPosition = mapManager.getSpawnPoint();
+
+        // 3. Khởi tạo hoặc Đặt lại vị trí Người chơi (Player)
+        Vector2D spawnPoint = mapManager.getSpawnPoint();
+        if (this.player == null || freshRun) {
+            this.player = new Player(spawnPoint);
+        } else {
+            this.player.getPosition().set(spawnPoint);
         }
 
-        if (player == null || freshRun) {
-            player = new Player(mapManager.getSpawnPoint());
-        } else {
-            player.getPosition().set(mapManager.getSpawnPoint());
-        }
+        // 4. Khởi tạo Pet đi theo
         createSelectedPet();
 
+        // 5. Trang bị vũ khí cho lượt chơi mới
         if (freshRun) {
-            // Trang bị vũ khí đã chọn trong Shop (mặc định Old Pistol)
-            player.equipWeapon(WeaponSelectionManager.getInstance().getSelectedWeapon().createWeapon());
+            this.player.equipWeapon(WeaponSelectionManager.getInstance().getSelectedWeapon().createWeapon());
         }
 
-        // reset lại các object
-        enemies.clear();
-        bullets.clear();
-        explosions.clear();
-        slashEffects.clear();
-        items.clear();
-        enemySpawnTimer = 0.0;
+        // 6. Reset toàn bộ danh sách Thực thể & Hiệu ứng của màn cũ
+        this.enemies.clear();
+        this.bullets.clear();
+        this.explosions.clear();
+        this.slashEffects.clear();
+        this.items.clear();
+        this.enemySpawnTimer = 0.0;
 
-        // chỗ nhiệm vụ này chưa cho vào chế độ thường
-        missionManager.setMission(levelManager.createMissionForCurrentLevel());
+        // 7. Tạo nhiệm vụ cho Level hiện tại
+        if (this.missionManager != null && this.levelManager != null) {
+            this.missionManager.setMission(this.levelManager.createMissionForCurrentLevel());
+        }
 
-        if (levelManager.getCurrentLevel().number() == 2) {
+        // 8. Sinh các vật phẩm đặc thù theo Level
+        if (this.levelManager != null && this.levelManager.getCurrentLevel().number() == 2) {
             spawnEnergyCrystals(3);
         }
 
-        // nếu là màn có boss
-        if (levelManager.getCurrentLevel().bossLevel() && mapManager.getBossSpawnPoint() != null) {
-            enemies.add(enemyFactory.createGrandKnight(mapManager.getBossSpawnPoint()));
+        // 9. Sinh Boss nếu đây là Màn Boss
+        if (this.levelManager != null
+                && this.levelManager.getCurrentLevel().bossLevel()
+                && this.mapManager.getBossSpawnPoint() != null) {
+            this.enemies.add(this.enemyFactory.createGrandKnight(this.mapManager.getBossSpawnPoint()));
         }
     }
     private void createSelectedPet() {
