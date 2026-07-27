@@ -170,7 +170,7 @@ public final class GameWorld {
         for (Bullet bullet : bullets) {
             if (!bullet.isActive()) continue;
 
-            // 🎯 1. KIỂM TRA ĐẠN VỪA BẮN RA ĐÃ NẰM TRONG TƯỜNG CỨNG CHƯA?
+            // KIỂM TRA ĐẠN VỪA BẮN RA ĐÃ NẰM TRONG TƯỜNG CỨNG CHƯA?
             // Tránh lỗi đạn kẹt đệ quy gây StackOverflow khi đứng sát tường
             if (mapManager.isBulletCollidingWithWall(bullet.getPosition().getX(), bullet.getPosition().getY())) {
                 bullet.deactivate();
