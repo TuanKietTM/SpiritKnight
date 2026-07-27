@@ -8,18 +8,25 @@ public final class DungeonGenerator {
     public Tile[][] generate(int width, int height, Random random) {
         Tile[][] tiles = new Tile[height][width];
 
+        // Bước 1: Sinh sàn (FLOOR) và tường (WALL)
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
                 Tile.TileType type = Tile.TileType.FLOOR;
+
+                // Viền ngoài map là Tường (WALL)
                 if (x == 0 || y == 0 || x == width - 1 || y == height - 1) {
                     type = Tile.TileType.WALL;
-                } else if (random.nextDouble() < 0.12 && !isInSafeZone(x, y, width, height)) {
+                }
+                // Tỷ lệ 12% xuất hiện chướng ngại vật ngẫu nhiên bên trong
+                else if (random.nextDouble() < 0.12 && !isInSafeZone(x, y, width, height)) {
                     type = Tile.TileType.WALL;
                 }
+
                 tiles[y][x] = new Tile(type);
             }
         }
 
+        // Bước 2: Đào các vùng trống an toàn (Spawn points)
         int spawnX = width / 2;
         int spawnY = height / 2;
         carveSquare(tiles, spawnX, spawnY, 2, Tile.TileType.SPAWN);

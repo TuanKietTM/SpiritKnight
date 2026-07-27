@@ -36,46 +36,71 @@ public final class MapManager {
         this.tiles = new DungeonGenerator().generate(width, height, random);
     }
 
-    //(vitdung) viết constructor này để cho GameWorld load map lên
     public MapManager(String JsonPath) {
         loadMapFromJson(JsonPath);
         generateWorldTiles();
     }
-    // 1. Chỉ vẽ ô SÀN (Nền nhà bẹt dưới cùng)
+
+    // =========================================================================
+    // HÀM RENDER TỰ ĐỘNG ĐỔ BÓNG 3 LỚP (RENDER OFFSET Y + 1)
+    // =========================================================================
     public void renderFloor(GraphicsContext gc, Camera camera, double renderWidth, double renderHeight) {
         gc.setFill(Color.BLACK);
         gc.fillRect(0.0, 0.0, renderWidth, renderHeight);
 
         double zoom = camera.getZoom();
+
+        // 1. LỚP SÀN (FLOOR)
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
                 Tile tile = tiles[y][x];
-                if (tile == null) continue;
-
-                // Chỉ vẽ các ô là FLOOR hoặc DOOR_OPEN (các ô nằm bẹt dưới đất)
-                if (tile.getType() != Tile.TileType.WALL) {
-                    double worldX = x * tileSize;
-                    double worldY = y * tileSize;
-                    double screenX = camera.worldToScreenX(worldX);
-                    double screenY = camera.worldToScreenY(worldY);
+                if (tile != null && tile.getType() == Tile.TileType.FLOOR) {
+                    double screenX = camera.worldToScreenX(x * tileSize);
+                    double screenY = camera.worldToScreenY(y * tileSize);
                     gc.drawImage(tile.getTexture(), screenX, screenY, tileSize * zoom, tileSize * zoom);
                 }
             }
         }
 
-        if (exitPortalOpen && exitPortalPosition != null) {
-            double screenX = camera.worldToScreenX(exitPortalPosition.getX());
-            double screenY = camera.worldToScreenY(exitPortalPosition.getY());
-            gc.setFill(Color.GOLD);
-            gc.fillOval(screenX - 18.0, screenY - 18.0, 36.0, 36.0);
+        // 2. LỚP BÓNG ĐỔ & THÀNH TƯỜNG (Vẽ lệch xuống ô y + 1)
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                Tile tile = tiles[y][x];
+                if (tile != null && tile.getType() == Tile.TileType.WALL) {
+                    // Kiểm tra ô phía dưới xem có phải tường không
+                    boolean isWallBelow = (y + 1 < height) &&
+                            tiles[y + 1][x] != null &&
+                            tiles[y + 1][x].getType() == Tile.TileType.WALL;
+
+                    // Nếu bên dưới KHÔNG là tường -> Đặt hiệu ứng bóng đổ & vạch cyan tràn xuống ô y + 1
+                    if (!isWallBelow) {
+                        double screenX = camera.worldToScreenX(x * tileSize);
+                        double screenY = camera.worldToScreenY((y + 1) * tileSize);
+                        gc.drawImage(Tile.getWallFrontShadowImage(), screenX, screenY, tileSize * zoom, tileSize * zoom);
+                    }
+                }
+            }
         }
 
+        // 3. LỚP BỀ MẶT TƯỜNG (WALL_TOP)
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                Tile tile = tiles[y][x];
+                if (tile != null && tile.getType() == Tile.TileType.WALL) {
+                    double screenX = camera.worldToScreenX(x * tileSize);
+                    double screenY = camera.worldToScreenY(y * tileSize);
+                    gc.drawImage(Tile.getWallTopImage(), screenX, screenY, tileSize * zoom, tileSize * zoom);
+                }
+            }
+        }
+
+        // 4. LỚP CỬA PHÒNG
         for (Room room : rooms) {
             room.renderDoors(gc, camera, tileSize);
         }
     }
 
-    // 2. Lấy danh sách tất cả các Ô TƯỜNG để đưa vào hệ thống Y-Sorting
+    // Lấy danh sách ô tường phục vụ cho Y-Sorting
     public List<Tile> getWallTiles() {
         List<Tile> wallList = new ArrayList<>();
         for (int y = 0; y < height; y++) {
@@ -89,17 +114,16 @@ public final class MapManager {
         return wallList;
     }
 
-    // 3. Hàm kiểm tra Tường phía dưới
+    // Kiểm tra tường có Sàn phía trên nó hay không
     private boolean isSouthWallBoundary(int x, int y) {
         Tile current = tiles[y][x];
         if (current == null || current.getType() != Tile.TileType.WALL) {
             return false;
         }
-        // Tường có Sàn ngay phía trên nó -> Là bức tường tiếp giáp cạnh dưới của phòng
         return (y > 0 && tiles[y - 1][x] != null && tiles[y - 1][x].getType() == Tile.TileType.FLOOR);
     }
 
-    // (cuongpluss) Kiem tra va cham tren ban do
+    // Kiểm tra va chạm bản đồ
     public boolean isWalkable(double worldX, double worldY, double radius) {
         for (Room room : rooms) {
             if (room.isHitClosedDoor(worldX, worldY, radius)) {
@@ -107,9 +131,8 @@ public final class MapManager {
             }
         }
 
-        // Tâm tính va chạm dịch nhẹ xuống chân Player (+6px)
         double footY = worldY + 6.0;
-        double footRadius = radius * 0.6; // Hitbox thu gọn ở chân
+        double footRadius = radius * 0.6;
 
         int minTileX = (int) Math.floor((worldX - footRadius) / tileSize);
         int maxTileX = (int) Math.floor((worldX + footRadius) / tileSize);
@@ -134,22 +157,17 @@ public final class MapManager {
         return true;
     }
 
-    // kiem tra va cham cua player : coi player la circle
     private boolean isCircleCollidingWithTile(double cx, double cy, double radius, int tx, int ty) {
         double tileLeft = tx * tileSize;
         double tileRight = (tx + 1) * tileSize;
         double tileTop = ty * tileSize;
         double tileBottom = (ty + 1) * tileSize;
 
-
-        boolean isBottomWall = (ty > 0 && tiles[ty - 1][tx] != null && tiles[ty - 1][tx].getType() == Tile.TileType.FLOOR);
+        boolean isBottomWall = isSouthWallBoundary(tx, ty);
 
         if (isBottomWall) {
-            // Nếu là Tường Ngang ở đáy phòng: Cho phép lấn sâu xuống 50% để đè tường thò đầu
+            // Tường phía Nam: Cho phép lấn chân nhẹ 50% vào thành tường để tạo chiều sâu 3D
             tileTop += (tileSize * 0.5);
-        } else {
-            // Nếu là Tường Dọc, Tường Góc L, hay Tường Trên: Chặn full 100% không cho kẹt góc!
-            // (Giữ nguyên tileTop = ty * tileSize)
         }
 
         double closestX = Math.max(tileLeft, Math.min(cx, tileRight));
@@ -162,7 +180,6 @@ public final class MapManager {
         return distanceSquared < (radius * radius);
     }
 
-    //(vitdung) hàm đọc dữ liệu từ file Json
     private void loadMapFromJson(String path) {
         try (InputStream is = getClass().getResourceAsStream(path)) {
             if (is == null) {
@@ -177,7 +194,6 @@ public final class MapManager {
             this.tileSize = mapData.tilewidth;
             this.tileMatrix = new int[this.height][this.width];
 
-            // Doc layer ROOM de khoi tao danh sach phong
             for (LayerData layer : mapData.layers) {
                 if ("objectgroup".equals(layer.type) && layer.objects != null) {
                     for (ObjectData obj : layer.objects) {
@@ -196,7 +212,6 @@ public final class MapManager {
                 }
             }
 
-            // doc layer Tile va gan cac Object dang Door vao Room
             for (LayerData layer : mapData.layers) {
                 if ("tilelayer".equals(layer.type)) {
                     for (int i = 0; i < layer.data.size(); i++) {
@@ -215,7 +230,6 @@ public final class MapManager {
                             double doorW = obj.width;
                             double doorH = obj.height;
 
-                            // gan o cua voi tat ca cac phong tiep giap voi no
                             boolean assignedByBound = false;
                             for (Room room : rooms) {
                                 if (room.isDoorBelongsToRoom(doorX, doorY, doorW, doorH)) {
@@ -224,7 +238,6 @@ public final class MapManager {
                                 }
                             }
 
-                            // Du phong khong bat duoc toa do giao cat
                             if (!assignedByBound && obj.properties != null) {
                                 String belongToRoom = "";
                                 for (PropertyData prop : obj.properties) {
@@ -248,27 +261,22 @@ public final class MapManager {
         }
     }
 
-    //(vitdung) hàm chuyển ma trânj thành map.
     private void generateWorldTiles() {
         this.tiles = new Tile[height][width];
 
+        // Khởi tạo mặc định theo đúng ID trong JSON (ID 1: FLOOR, ID 2: WALL)
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
                 int tileId = tileMatrix[y][x];
-
                 double pixelX = x * tileSize;
                 double pixelY = y * tileSize;
 
-                switch (tileId) {
-                    case 1:
-                        this.tiles[y][x] = new Tile(pixelX, pixelY, tileSize, Tile.TileType.FLOOR);
-                        break;
-                    case 2:
-                        this.tiles[y][x] = new Tile(pixelX, pixelY, tileSize, Tile.TileType.WALL);
-                        break;
-                    default:
-                        this.tiles[y][x] = null;
-                        break;
+                if (tileId == 1) {
+                    this.tiles[y][x] = new Tile(pixelX, pixelY, tileSize, Tile.TileType.FLOOR);
+                } else if (tileId == 2) {
+                    this.tiles[y][x] = new Tile(pixelX, pixelY, tileSize, Tile.TileType.WALL);
+                } else {
+                    this.tiles[y][x] = null;
                 }
             }
         }
@@ -325,42 +333,30 @@ public final class MapManager {
         return null;
     }
 
-    /**
-     * Tìm một vị trí ngẫu nhiên hợp lệ nằm trọn trong một Room cụ thể.
-     * Đảm bảo vị trí đó là WALKABLE (Sàn) và không đè lên tường.
-     */
     public Vector2D findRandomWalkablePositionInRoom(Room room, Random random, double enemyRadius) {
         javafx.geometry.BoundingBox bound = room.getBound();
 
-        // Tính toán giới hạn ô gạch (Tile) bao quanh phòng để tối ưu vòng lặp
         int minTileX = (int) Math.floor(bound.getMinX() / tileSize);
         int maxTileX = (int) Math.floor((bound.getMinX() + bound.getWidth()) / tileSize);
         int minTileY = (int) Math.floor(bound.getMinY() / tileSize);
         int maxTileY = (int) Math.floor((bound.getMinY() + bound.getHeight()) / tileSize);
 
-        // Thử tối đa 100 lần để tìm vị trí trống sạch sẽ
         for (int attempt = 0; attempt < 100; attempt++) {
-            // Lấy ngẫu nhiên một tọa độ pixel nằm trong BoundingBox của phòng
             double randomX = bound.getMinX() + random.nextDouble() * bound.getWidth();
             double randomY = bound.getMinY() + random.nextDouble() * bound.getHeight();
 
-            // 🎯 ĐIỀU KIỆN 1: Tọa độ đó phải di chuyển được (Walkable) theo cơ chế va chạm hiện tại
             if (isWalkable(randomX, randomY, enemyRadius)) {
-
-                // 🎯 ĐIỀU KIỆN 2: Ép kỹ hơn - ô gạch tại tâm đó bắt buộc phải tồn tại và là FLOOR
                 int tx = (int) Math.floor(randomX / tileSize);
                 int ty = (int) Math.floor(randomY / tileSize);
 
                 if (tx >= minTileX && tx <= maxTileX && ty >= minTileY && ty <= maxTileY) {
                     Tile tile = tiles[ty][tx];
-                    // Chỉ cho phép sinh trên gạch sàn thông thường (ID = 1)
                     if (tile != null && tile.isWalkable()) {
                         return new Vector2D(randomX, randomY);
                     }
                 }
             }
         }
-        // Nếu phòng quá chật hoặc không tìm thấy sau 100 lần, trả về tâm phòng làm điểm dự phòng
         return new Vector2D(bound.getMinX() + bound.getWidth() / 2.0, bound.getMinY() + bound.getHeight() / 2.0);
     }
 
