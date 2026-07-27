@@ -1,5 +1,7 @@
 package com.soulknight.engine;
 
+import com.soulknight.animation.ShadowRenderer;
+import com.soulknight.animation.SpawnEffect;
 import com.soulknight.entity.Enemy;
 import com.soulknight.entity.EnemyArchetype;
 import com.soulknight.entity.EnemyFactory;
@@ -58,6 +60,9 @@ public final class GameWorld {
     private GameState state = GameState.INTRO;
     private double enemySpawnTimer;
     private Vector2D pendingPortalPosition;
+//    Bien cho hieu ung dau tien cua start room
+    private SpawnEffect playerSpawnEffect;
+    private SpawnEffect petSpawnEffect;
 
     public interface GameStateListener {
         void onStateChanged(GameState newState);
@@ -95,10 +100,11 @@ public final class GameWorld {
     }
 
     public void update(double deltaSeconds, double viewportWidth, double viewportHeight) {
-//        (cuong) khi pause thi dung render
+        // Nếu game đang Pause thì ngưng toàn bộ logic cập nhật
         if (state == GameState.PAUSED) {
             return;
         }
+
         switch (state) {
             case INTRO -> {
                 if (inputHandler.consumeConfirmRequest()) {
@@ -110,10 +116,8 @@ public final class GameWorld {
             }
             case PLAYING -> updatePlaying(deltaSeconds, viewportWidth, viewportHeight, false);
             case LEVEL_CLEAR -> updateLevelClear(deltaSeconds, viewportWidth, viewportHeight);
-            case PAUSED -> {
-            }
             case GAME_OVER, GAME_VICTORY -> {
-//                nhap chuot confirm
+                // Nhấp chuột hoặc bấm nút Confirm để quay lại chơi mới
                 if (inputHandler.consumeConfirmRequest()) {
                     startNewRun();
                     changeState(GameState.PLAYING);
@@ -130,6 +134,22 @@ public final class GameWorld {
     }
 
     private void updatePlaying(double deltaSeconds, double viewportWidth, double viewportHeight, boolean allowSpawns) {
+        // 1. Cập nhật đếm giờ cho hiệu ứng Spawn của Player & Pet
+        if (playerSpawnEffect != null) {
+            playerSpawnEffect.update(deltaSeconds);
+        }
+        if (petSpawnEffect != null) {
+            petSpawnEffect.update(deltaSeconds);
+        }
+
+//        // 2. Nếu đang trong thời gian Spawning -> Dừng mọi logic di chuyển, bắn đạn và quái đánh
+//        if (playerSpawnEffect != null && playerSpawnEffect.isSpawning()) {
+//            // Vẫn cho Camera update nhẹ theo vị trí Player để không bị giật
+//            if (camera != null && player != null) {
+//                camera.update(player.getPosition(), viewportWidth, viewportHeight);
+//            }
+//            return; // BLOCK TOÀN BỘ LOGIC GAME TRONG LÚC SPAWN
+//        }
         player.update(this, deltaSeconds);
         updatePet(deltaSeconds);
 
@@ -355,22 +375,75 @@ private void updatePet(double deltaSeconds) {
         }
 
 // B. Thêm PLAYER (Mốc Y tính ở BÀN CHÂN)
-        double playerFootY = player.getPosition().getY() + 10.0;
-        renderList.add(new SortableObject(playerFootY, () -> {
-            player.render(graphicsContext, camera);
-        }));
-        // C. Thêm PET (Thêm Pet vào Y-Sorting tại đây)
-        if (currentPet != null && currentPet.getPosition() != null) {
-            double petFootY = currentPet.getPosition().getY() + 8.0; // Mốc Y bàn chân của Pet
-            renderList.add(new SortableObject(petFootY, () -> {
-                currentPet.render(graphicsContext, camera);
+        if (player != null && player.getPosition() != null) {
+            double playerFootY = player.getPosition().getY() + 10.0;
+            renderList.add(new SortableObject(playerFootY, () -> {
+                boolean isSpawning = playerSpawnEffect != null && playerSpawnEffect.isSpawning();
+
+                if (isSpawning) {
+                    double alpha = playerSpawnEffect.getEntityAlpha();
+
+                    // chi ve bong khi cac doi tuong xuat hien
+                    if (alpha > 0.0) {
+                        graphicsContext.save();
+                        graphicsContext.setGlobalAlpha(alpha);
+                        ShadowRenderer.render(graphicsContext, camera, player.getPosition(), 22.0, 6.0);
+                        graphicsContext.restore();
+                    }
+
+                    // ve player mo dan
+                    graphicsContext.save();
+                    graphicsContext.setGlobalAlpha(alpha);
+                    player.render(graphicsContext, camera);
+                    graphicsContext.restore();
+
+                    // ve hieu ung cot sang de len tren
+                    playerSpawnEffect.render(graphicsContext, camera);
+                } else {
+                    // khi da spawn xong ve bong va player binh thuong
+                    ShadowRenderer.render(graphicsContext, camera, player.getPosition(), 22.0, 6.0);
+                    player.render(graphicsContext, camera);
+                }
             }));
         }
 
+        // C. Thêm PET
+        if (currentPet != null && currentPet.getPosition() != null) {
+            double petFootY = currentPet.getPosition().getY() + 8.0;
+            renderList.add(new SortableObject(petFootY, () -> {
+                boolean isSpawning = petSpawnEffect != null && petSpawnEffect.isSpawning();
+
+                if (isSpawning) {
+                    double alpha = petSpawnEffect.getEntityAlpha();
+
+                    if (alpha > 0.0) {
+                        graphicsContext.save();
+                        graphicsContext.setGlobalAlpha(alpha);
+                        ShadowRenderer.render(graphicsContext, camera, currentPet.getPosition(), 16.0, 4.0, 8.0, false);
+                        graphicsContext.restore();
+                    }
+
+                    graphicsContext.save();
+                    graphicsContext.setGlobalAlpha(alpha);
+                    currentPet.render(graphicsContext, camera);
+                    graphicsContext.restore();
+
+                    petSpawnEffect.render(graphicsContext, camera);
+                } else {
+                    ShadowRenderer.render(graphicsContext, camera, currentPet.getPosition(), 16.0, 4.0, 8.0, false);
+                    currentPet.render(graphicsContext, camera);
+                }
+            }));
+        }
         // D. Thêm ENEMIES
         for (Enemy enemy : enemies) {
+            if (enemy == null || enemy.getPosition() == null) continue;
+
             double enemyFootY = enemy.getPosition().getY() + 12.0;
             renderList.add(new SortableObject(enemyFootY, () -> {
+                // Vẽ bóng Enemy (Width: 22, Height: 6, OffsetY: 10)
+                ShadowRenderer.render(graphicsContext, camera, enemy.getPosition(), 22.0, 6.0, 10.0, false);
+
                 enemy.render(graphicsContext, camera);
             }));
         }
@@ -436,6 +509,14 @@ private void updatePet(double deltaSeconds) {
 
         // 4. Khởi tạo Pet đi theo
         createSelectedPet();
+//        tao hieu ung spawn
+        this.playerSpawnEffect = new SpawnEffect(spawnPoint, 0.4, 0.7);
+        if (currentPet != null) {
+            // player xuat hien truoc pet xuat hien sau mot chut
+            Vector2D petSpawnPos = new Vector2D(spawnPoint.getX() + 25, spawnPoint.getY() + 10);
+            currentPet.getPosition().set(petSpawnPos);
+            this.petSpawnEffect = new SpawnEffect(petSpawnPos, 0.55,0.7);
+        }
 
         // 5. Trang bị vũ khí cho lượt chơi mới
         if (freshRun) {
