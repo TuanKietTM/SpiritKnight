@@ -8,7 +8,6 @@ import javafx.geometry.BoundingBox;
 
 /**
  * Chịu trách nhiệm tìm vị trí an toàn và đưa Pet vào phòng.
- *
  * Room không tự teleport Pet.
  */
 public final class PetRoomPlacementService {
@@ -42,7 +41,6 @@ public final class PetRoomPlacementService {
                 {-65.0, 0.0},
                 {65.0, 0.0}
         };
-
         // Trước tiên thử các vị trí gần Knight.
         for (double[] offset : offsets) {
             Vector2D candidate = playerPosition.copy().add(offset[0], offset[1]);
