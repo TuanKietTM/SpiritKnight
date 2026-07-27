@@ -166,20 +166,32 @@ public final class GameWorld {
 
     private void updateBullets(double deltaSeconds) {
         List<Obstacle> allObstacles = getObstacles();
+
         for (Bullet bullet : bullets) {
+            if (!bullet.isActive()) continue;
+
+            // 🎯 1. KIỂM TRA ĐẠN VỪA BẮN RA ĐÃ NẰM TRONG TƯỜNG CỨNG CHƯA?
+            // Tránh lỗi đạn kẹt đệ quy gây StackOverflow khi đứng sát tường
+            if (mapManager.isBulletCollidingWithWall(bullet.getPosition().getX(), bullet.getPosition().getY())) {
+                bullet.deactivate();
+                continue; // Hủy đạn ngay lập tức, không spawn nổ liên tục
+            }
+
+            // 2. Cho đạn di chuyển
             bullet.update(deltaSeconds);
-            if (!mapManager.isWalkable(bullet.getPosition().getX(), bullet.getPosition().getY(), bullet.getRadius())) {
+
+            // 🎯 3. KIỂM TRA VA CHẠM TƯỜNG (Dùng hàm riêng cho Đạn thay vì isWalkable)
+            if (mapManager.isBulletCollidingWithWall(bullet.getPosition().getX(), bullet.getPosition().getY())) {
                 spawnBulletExplosion(bullet.getPosition());
                 bullet.deactivate();
                 continue;
             }
-            // 2. Đạn va chạm với Vật cản (Thực hiện TRƯỚC khi va chạm Quái/Player)
+
+            // 4. Đạn va chạm với Vật cản (Thực hiện TRƯỚC khi va chạm Quái/Player)
             boolean hitObstacle = false;
             for (Obstacle obstacle : allObstacles) {
                 if (obstacle.intersectsCircle(bullet.getPosition(), bullet.getRadius())) {
-                    // Trừ máu vật cản (nếu vật cản thuộc loại phá hủy được)
                     obstacle.takeDamage(bullet.getDamage());
-                    // Tiêu hủy đạn ngay lập tức (không cho xuyên qua quái núp sau)
                     spawnBulletExplosion(bullet.getPosition());
                     bullet.deactivate();
                     hitObstacle = true;
@@ -187,10 +199,11 @@ public final class GameWorld {
                 }
             }
             if (hitObstacle) {
-                continue; // Chuyển sang đạn tiếp theo
+                continue;
             }
 
-            if (bullet.getOwner() instanceof Player) {// enemy trung dan cua player
+            // 5. Va chạm với Entity (Enemy / Player)
+            if (bullet.getOwner() instanceof Player) {
                 for (Enemy enemy : enemies) {
                     if (enemy.isAlive() && bullet.intersects(enemy)) {
                         enemy.takeDamage(bullet.getDamage());
@@ -199,17 +212,18 @@ public final class GameWorld {
                         break;
                     }
                 }
-            } else if (bullet.intersects(player)) {// dan ban trung player
+            } else if (bullet.intersects(player)) {
                 player.takeDamage(bullet.getDamage());
                 spawnBulletExplosion(bullet.getPosition());
                 bullet.deactivate();
             }
         }
 
-//        xoa dan va quai chet
+        // Xóa đạn và quái chết
         bullets.removeIf(bullet -> !bullet.isActive());
         enemies.removeIf(enemy -> !enemy.isAlive());
-//        xoa vat can neu ban pha xong
+
+        // Xóa vật cản nếu bị phá hủy
         if (mapManager != null && mapManager.getRooms() != null) {
             for (Room room : mapManager.getRooms()) {
                 if (room.getObstacles() != null) {
@@ -366,7 +380,7 @@ public final class GameWorld {
 
     //(vitdung) chỉnh lại hàm này để test loadMap từ txt
     private void loadCurrentLevel(boolean freshRun) {
-        String mapPath = "/maps/level1_1.json";
+        String mapPath = "/maps/primeMap_1.json";
         this.mapManager = new MapManager(mapPath);
         this.mapManager.closeExitPortal();
         if (mapManager != null && mapManager.getRooms() != null) {
