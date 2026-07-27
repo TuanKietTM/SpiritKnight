@@ -21,6 +21,13 @@ import com.soulknight.weapon.Gun;
 import com.soulknight.weapon.Melee;
 import com.soulknight.weapon.SlashEffect;
 import com.soulknight.weapon.Weapon;
+import com.soulknight.weapon.WeaponSelectionManager;
+import com.soulknight.weapon.WeaponType;
+import com.soulknight.pet.Pet;
+import com.soulknight.pet.PetFactory;
+import com.soulknight.pet.PetSelectionManager;
+import com.soulknight.pet.PetType;
+import javafx.geometry.BoundingBox;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -40,6 +47,7 @@ public final class GameWorld {
 
     private MapManager mapManager;
     private Player player;
+    private Pet currentPet;
     private final List<Enemy> enemies = new ArrayList<>();
     private final List<Bullet> bullets = new ArrayList<>();
     // Danh sach hieu ung no khi dan va cham (tuong hoac muc tieu)
@@ -123,6 +131,8 @@ public final class GameWorld {
 
     private void updatePlaying(double deltaSeconds, double viewportWidth, double viewportHeight, boolean allowSpawns) {
         player.update(this, deltaSeconds);
+        updatePet(deltaSeconds);
+
         if (mapManager != null && mapManager.getRooms() != null) {
             for (com.soulknight.map.Room room : mapManager.getRooms()) {
                 room.update(this, player, enemies, deltaSeconds);
@@ -157,12 +167,27 @@ public final class GameWorld {
 
     private void updateLevelClear(double deltaSeconds, double viewportWidth, double viewportHeight) {
         player.update(this, deltaSeconds);
+        updatePet(deltaSeconds);
         camera.follow(player.getPosition(), viewportWidth, viewportHeight, mapManager.getWorldWidth(), mapManager.getWorldHeight());
 
         if (mapManager.isPlayerInsideExitPortal(player.getPosition())) {
             advanceToNextLevel();
         }
     }
+//    update pet
+private void updatePet(double deltaSeconds) {
+    if (currentPet == null || player == null || player.getPosition() == null) {
+        return;
+    }
+
+    // 🔥 Truyền "this" (GameWorld) để Pet thừa hưởng toàn bộ MapManager + Vật cản (Obstacle)
+    currentPet.update(
+            deltaSeconds,
+            player.getPosition().getX(),
+            player.getPosition().getY(),
+            this
+    );
+}
 
     private void updateBullets(double deltaSeconds) {
         List<Obstacle> allObstacles = getObstacles();
@@ -372,6 +397,13 @@ public final class GameWorld {
         for (ExplosionEffect explosion : explosions) explosion.render(graphicsContext, camera);
     }
 
+    private void renderPet(GraphicsContext graphicsContext) {
+        if (currentPet == null) {
+            return;
+        }
+
+        currentPet.render(graphicsContext, camera);
+    }
     private void startNewRun() {
         levelManager.startNewRun();
         loadCurrentLevel(true);
@@ -402,10 +434,11 @@ public final class GameWorld {
         } else {
             player.getPosition().set(mapManager.getSpawnPoint());
         }
+        createSelectedPet();
 
         if (freshRun) {
-            player.equipWeapon(new Gun("Blaster", 12, 0.18, 580.0, 0.0)
-                    .withImage("/assets/WeaponImage/GunImage/OldPistol.png"));
+            // Trang bị vũ khí đã chọn trong Shop (mặc định Old Pistol)
+            player.equipWeapon(WeaponSelectionManager.getInstance().getSelectedWeapon().createWeapon());
         }
 
         // reset lại các object
@@ -426,6 +459,25 @@ public final class GameWorld {
         // nếu là màn có boss
         if (levelManager.getCurrentLevel().bossLevel() && mapManager.getBossSpawnPoint() != null) {
             enemies.add(enemyFactory.createGrandKnight(mapManager.getBossSpawnPoint()));
+        }
+    }
+    private void createSelectedPet() {
+        if (player == null) {
+            currentPet = null;
+            return;
+        }
+
+        // Lấy loại Pet đã được lưu trong PetSelectionManager (từ Shop)
+        PetType selectedType = PetSelectionManager.getInstance().getSelectedPet();
+
+        if (selectedType != null && selectedType.hasPet()) {
+            currentPet = PetFactory.create(
+                    selectedType,
+                    player.getPosition().getX(),
+                    player.getPosition().getY()
+            );
+        } else {
+            currentPet = null;
         }
     }
 
@@ -465,7 +517,6 @@ public final class GameWorld {
             changeState(GameState.GAME_VICTORY);
         }
     }
-
     public GameState getState() { return state; }
     public InputHandler getInputHandler() {
 //        goi trong player de dieu khien nhan vat tu ban phim ,ngam ban tu chuot
@@ -503,15 +554,32 @@ public final class GameWorld {
     }
 //Kiem tra xem di duoc khong
 public boolean canMoveTo(Vector2D position, double radius) {
-    // 1. Kiểm tra va chạm với Tường/Bản đồ
+    if (position == null || mapManager == null || radius < 0.0) {
+        return false;
+    }
+
+    /*
+     * Kiểm tra:
+     * - Tile
+     * - Tường
+     * - Biên map
+     * - Cửa phòng đang đóng
+     */
     if (!mapManager.isWalkable(position.getX(), position.getY(), radius)) {
         return false;
     }
 
-    // 2. Kiểm tra va chạm với các Vật cản chưa bị phá hủy
+    /*
+     * Kiểm tra vật cản động trong các Room.
+     */
     for (Obstacle obstacle : getObstacles()) {
-        if (obstacle.intersectsCircle(position, radius)) {
-            return false; // Bị cản lại, không cho đi qua
+        if (obstacle == null || obstacle.isDestroyed()) {
+            continue;
+        }
+
+        if (obstacle.intersectsCircle(position, radius
+        )) {
+            return false;
         }
     }
 
@@ -521,11 +589,7 @@ public boolean canMoveTo(Vector2D position, double radius) {
     public boolean isPlaying() {
         return state == GameState.PLAYING;
     }
-    public void spawnEnemiesInRoom(com.soulknight.map.Room room, int waveNumber)
-    {
-        if (room.getObstacles().isEmpty()) {
-            spawnObstaclesInRoom(room, 3);
-        }
+    public void spawnEnemiesInRoom(com.soulknight.map.Room room, int waveNumber){
         List<Vector2D> roomSpawnPoints = new ArrayList<>();
         javafx.geometry.BoundingBox bound = room.getBound();
 
@@ -750,7 +814,7 @@ private void resolvePlayerEnemyCollisions(double deltaSeconds) {
         for (Obstacle obstacle : getObstacles()) {
             if (obstacle.isDestroyed()) continue;
 
-            // BoundingBox cua vat can 
+            // BoundingBox cua vat can
             double minX = obstacle.getPosition().getX();
             double minY = obstacle.getPosition().getY();
             double maxX = minX + obstacle.getWidth();
@@ -793,6 +857,59 @@ private void resolvePlayerEnemyCollisions(double deltaSeconds) {
 
         return (ua >= 0.0 && ua <= 1.0 && ub >= 0.0 && ub <= 1.0);
     }
+//    cac phuong thuc pet
+public void equipPet(PetType type) {
+    PetType safeType = (type != null) ? type : PetType.NONE;
+
+    // Luu lua chon
+    PetSelectionManager.getInstance().selectPet(safeType);
+
+    // Chua co player thi chi can luu lua chon
+    if (player == null) {
+        currentPet = null;
+        return;
+    }
+
+    // Khoi tao instance pet
+    if (safeType.hasPet()) {
+        currentPet = PetFactory.create(
+                safeType,
+                player.getPosition().getX(),
+                player.getPosition().getY()
+        );
+    } else {
+        currentPet = null;
+    }
+}
+    public void removePet() {
+        equipPet(PetType.NONE);
+    }
+    public Pet getCurrentPet() {
+        return currentPet;
+    }
+    public PetType getEquippedPetType() {
+        return PetSelectionManager.getInstance().getSelectedPet();
+    }
+
+    //    cac phuong thuc vu khi (chon tu Shop)
+    public void equipWeapon(WeaponType type) {
+        WeaponType safeType = (type != null) ? type : WeaponType.OLD_PISTOL;
+
+        // Luu lua chon
+        WeaponSelectionManager.getInstance().selectWeapon(safeType);
+
+        // Chua co player thi chi can luu lua chon
+        if (player == null) {
+            return;
+        }
+
+        player.equipWeapon(safeType.createWeapon());
+    }
+
+    public WeaponType getEquippedWeaponType() {
+        return WeaponSelectionManager.getInstance().getSelectedWeapon();
+    }
+
 }
 //NOTE : cac ham xu ly va cham
 // Player - titled (mapmanager): cua room

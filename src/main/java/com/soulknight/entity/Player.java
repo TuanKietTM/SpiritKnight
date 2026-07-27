@@ -220,10 +220,19 @@ public final class Player extends Entity {
 
         double zoom = camera.getZoom();
 
-        // Chieu dai sung (world): du dai de dau nong cham toi MUZZLE_DISTANCE,
-        // phan du ra phia sau la bao tay cam nam sau diem xoay
+        // Mot so anh vu khi ve theo chieu doc (vi du Wand: dau huong len tren).
+        // Nhan dien de xoay lai cho dau vu khi chi dung huong ngam.
+        boolean portraitSprite = weaponImage.getHeight() > weaponImage.getWidth();
+        // Kich thuoc anh tinh theo truc vu khi: chieu dai doc theo huong ngam,
+        // be day vuong goc voi huong ngam
+        double spriteLength = portraitSprite ? weaponImage.getHeight() : weaponImage.getWidth();
+        double spriteThickness = portraitSprite ? weaponImage.getWidth() : weaponImage.getHeight();
+
+        // Chieu dai vu khi (world): du dai de dau nong cham toi MUZZLE_DISTANCE,
+        // phan du ra phia sau la bao tay cam nam sau diem xoay.
+        // Scale theo canh dai nhat cua anh nen vu khi luon vua tam nhan vat.
         double gunWorldLength = Gun.MUZZLE_DISTANCE + 6.0;
-        double gunWorldHeight = gunWorldLength * (weaponImage.getHeight() / weaponImage.getWidth());
+        double gunWorldHeight = gunWorldLength * (spriteThickness / spriteLength);
 
         // Diem xoay = tam nhan vat (cung goc voi noi Gun tinh diem dan bay ra)
         double pivotScreenX = camera.worldToScreenX(getPosition().getX());
@@ -251,8 +260,17 @@ public final class Player extends Entity {
             gc.scale(1, -1);
         }
 
-        // Ve sung: dau nong ben phai (tai MUZZLE_DISTANCE), tay cam ben trai
-        gc.drawImage(weaponImage, leftX, topY, renderLength, renderHeight);
+        // Ve vu khi: dau (nong sung / dau wand) ben phai tai MUZZLE_DISTANCE, tay cam ben trai
+        if (portraitSprite) {
+            // Anh doc: xoay them 90 do de "huong len" cua anh trung voi huong ngam.
+            // Sau khi xoay, chieu cao anh chay doc theo huong ngam.
+            gc.rotate(90);
+            gc.drawImage(weaponImage,
+                    -BARREL_HEIGHT_FRACTION * renderHeight, -muzzleScreenX,
+                    renderHeight, renderLength);
+        } else {
+            gc.drawImage(weaponImage, leftX, topY, renderLength, renderHeight);
+        }
 
         gc.restore();
     }

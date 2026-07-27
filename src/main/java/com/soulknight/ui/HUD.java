@@ -6,13 +6,19 @@ import com.soulknight.entity.Player;
 import com.soulknight.level.LevelManager;
 import com.soulknight.mission.MissionManager;
 import com.soulknight.utils.Vector2D;
+import com.soulknight.weapon.Weapon;
+import com.soulknight.weapon.WeaponType;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.StackPane;
 import javafx.scene.shape.Circle;
+
+import java.net.URL;
 
 public final class HUD {
 
@@ -46,6 +52,10 @@ public final class HUD {
     @FXML
     private Label weaponLabel;
 
+    // Thêm ImageView hiển thị icon vũ khí trên HUD
+    @FXML
+    private ImageView weaponIcon;
+
     @FXML
     private StackPane joystickContainer;
     @FXML
@@ -53,6 +63,7 @@ public final class HUD {
 
     private Runnable onPauseRequested;
     private Runnable onWeaponSwitchRequested;
+    private String currentWeaponImagePath = "";
 
     public void setOnPauseRequested(Runnable callback) {
         this.onPauseRequested = callback;
@@ -69,7 +80,7 @@ public final class HUD {
         }
     }
 
-    // Bam vao vong vu khi tren HUD de doi giua sung va kiem
+    // Bấm vào vòng vũ khí trên HUD để đổi giữa súng và kiếm
     @FXML
     private void onWeaponButtonClicked(MouseEvent event) {
         if (onWeaponSwitchRequested != null) {
@@ -77,25 +88,23 @@ public final class HUD {
         }
     }
 
-    // Cập nhật chữ ký hàm nhận thêm GameWorld để lấy dữ liệu Joystick
+    // Cập nhật dữ liệu HUD
     public void updateData(GameWorld world, Player player, LevelManager levelManager, MissionManager missionManager,
                            int enemyCount, int itemCount) {
         if (hpLabel == null) return;
 
-        // 1. Cập nhật HP
+        // Cập nhật HP & vũ khí
         if (player != null) {
             int currentHp = player.getHealth();
             int maxHp = player.getMaxHealth();
             hpLabel.setText(currentHp + "/" + maxHp);
             hpBar.setProgress(maxHp > 0 ? (double) currentHp / maxHp : 0.0);
 
-            // Cập nhật tên vũ khí
-            if (player.getWeaponName() != null && weaponLabel != null) {
-                weaponLabel.setText(player.getWeaponName().toUpperCase());
-            }
+            // Cập nhật tên & hình ảnh vũ khí
+            updateWeaponUI(player);
         }
 
-        // 2. Cập nhật giáp (Shield)
+        // Cập nhật giáp (Shield)
         if (shieldLabel != null && shieldBar != null) {
             int currentShield = 6;
             int maxShield = 6;
@@ -103,7 +112,7 @@ public final class HUD {
             shieldBar.setProgress((double) currentShield / maxShield);
         }
 
-        // 3. Cập nhật Mana
+        //  Cập nhật Mana
         if (manaLabel != null && manaBar != null) {
             int currentMana = 200;
             int maxMana = 200;
@@ -111,7 +120,7 @@ public final class HUD {
             manaBar.setProgress((double) currentMana / maxMana);
         }
 
-        // 4. Các thông tin nhiệm vụ & Level
+        // Các thông tin nhiệm vụ & Level
         if (levelManager != null && levelBannerLabel != null) {
             levelBannerLabel.setText(levelManager.getLevelBanner());
         }
@@ -123,25 +132,74 @@ public final class HUD {
             entitiesLabel.setText(String.valueOf(itemCount));
         }
 
-        // 5. Cập nhật vị trí Joystick
+        //  Cập nhật vị trí Joystick
         updateJoystickUI(world);
     }
+    //  Cập nhật UI Vũ khí
+    private void updateWeaponUI(Player player) {
+        String currentName = player.getWeaponName();
+        if (currentName == null || currentName.isBlank()) return;
 
+        // Cập nhật Tên lên Label
+        if (weaponLabel != null) {
+            weaponLabel.setText(currentName.toUpperCase());
+        }
+
+        if (weaponIcon == null) return;
+
+        // Tìm WeaponType tương ứng
+        WeaponType matchedType = findWeaponTypeByName(currentName);
+
+        String imagePath = null;
+        if (matchedType != null) {
+            imagePath = matchedType.getImagePath();
+        }
+        if (imagePath != null) {
+            if (!imagePath.equals(currentWeaponImagePath)) {
+                currentWeaponImagePath = imagePath;
+                Image img = loadImage(imagePath);
+                weaponIcon.setImage(img);
+            }
+        } else {
+            currentWeaponImagePath = "";
+        }
+
+        weaponIcon.setSmooth(false);
+        weaponIcon.setPreserveRatio(true);
+    }
+//    tim thong tin vu khi trong WeaponType
+    private WeaponType findWeaponTypeByName(String rawName) {
+        if (rawName == null) return null;
+
+        String normalizedInput = rawName.replaceAll("[^a-zA-Z0-9]", "").toLowerCase();
+
+        for (WeaponType type : WeaponType.values()) {
+            String normalizedDisplayName = type.getDisplayName().replaceAll("[^a-zA-Z0-9]", "").toLowerCase();
+            if (normalizedDisplayName.equals(normalizedInput)) {
+                return type;
+            }
+
+            String normalizedEnumName = type.name().replaceAll("[^a-zA-Z0-9]", "").toLowerCase();
+            if (normalizedEnumName.equals(normalizedInput)) {
+                return type;
+            }
+        }
+
+        return null;
+    }
     private void updateJoystickUI(GameWorld world) {
         if (joystickContainer == null || joystickThumb == null || world == null) return;
         if (world.getInputHandler() == null) return;
 
         Vector2D dir = new Vector2D(0, 0);
-        double maxOffset = 35.0; // Độ lệch tối đa của nút Joystick (pixel)
+        double maxOffset = 35.0;
 
         if (world.getInputHandler().isTouchpadModeEnabled()) {
-            // Nếu ở Touchpad Mode: Lấy hướng trực tiếp từ TouchpadJoystick
             TouchpadJoystick joystick = world.getInputHandler().getTouchpadJoystick();
             if (joystick != null && joystick.isActive()) {
                 dir = joystick.getMoveDirection();
             }
         } else {
-            //  Nếu ở Keyboard & Mouse Mode: Tính toán hướng di chuyển dựa theo các phím bấm
             double dx = 0.0;
             double dy = 0.0;
 
@@ -165,15 +223,20 @@ public final class HUD {
             }
         }
 
-        // Cập nhật vị trí hiển thị của nút Joystick Thumb
         if (dir.length() > 0.0) {
             joystickContainer.setVisible(true);
             joystickThumb.setTranslateX(dir.getX() * maxOffset);
             joystickThumb.setTranslateY(dir.getY() * maxOffset);
         } else {
-            // Trả nút về vị trí trung tâm khi không di chuyển
             joystickThumb.setTranslateX(0.0);
             joystickThumb.setTranslateY(0.0);
         }
+    }
+
+    private Image loadImage(String path) {
+        if (path == null || path.isBlank()) return null;
+        URL resource = getClass().getResource(path);
+        if (resource == null) return null;
+        return new Image(resource.toExternalForm(), false);
     }
 }

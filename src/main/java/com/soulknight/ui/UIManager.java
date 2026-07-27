@@ -2,8 +2,12 @@ package com.soulknight.ui;
 
 import com.soulknight.engine.GameState;
 import com.soulknight.engine.GameWorld;
+import com.soulknight.entity.Player;
 import com.soulknight.utils.Constants;
 import com.soulknight.utils.SoundManager;
+import com.soulknight.pet.PetType;
+import com.soulknight.weapon.Weapon;
+import com.soulknight.weapon.WeaponType;
 import javafx.animation.FadeTransition;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
@@ -25,6 +29,7 @@ public final class UIManager {
     private GameOverScreen gameOverController;
     private PauseScreen pauseController;
     private SettingScreen settingController;
+    private ShopController shopController;
 
     private Parent introRoot;
     private Parent storyIntroRoot; // <-- Thêm Parent Story
@@ -35,6 +40,7 @@ public final class UIManager {
     private Parent gameOverRoot;
     private Parent pauseRoot;
     private Parent settingRoot;
+    private Parent shopRoot;
 
     // Cờ đánh dấu xem người chơi đã xem cốt truyện lần đầu chưa
     private boolean isFirstRun = true;
@@ -94,13 +100,20 @@ public final class UIManager {
             configFullRegion(settingRoot);
             settingRoot.setPickOnBounds(false);
 
+            FXMLLoader shopLoader = new FXMLLoader(com.soulknight.Main.class.getResource("/assets/fxml/Shop.fxml"));
+            shopRoot = shopLoader.load();
+            shopController = shopLoader.getController();
+            configFullRegion(shopRoot);
+            shopRoot.setPickOnBounds(false);
+
             menuRoot.setPickOnBounds(false);
             hudRoot.setPickOnBounds(false);
             levelClearRoot.setPickOnBounds(false);
             victoryRoot.setPickOnBounds(false);
             gameOverRoot.setPickOnBounds(false);
 
-            rootNode.getChildren().addAll(introRoot, storyIntroRoot, menuRoot, hudRoot, levelClearRoot, victoryRoot, gameOverRoot, pauseRoot, settingRoot);
+            rootNode.getChildren().addAll(introRoot, storyIntroRoot, menuRoot, hudRoot, levelClearRoot, victoryRoot,
+                    gameOverRoot, pauseRoot, settingRoot,shopRoot);
 
             StackPane.setAlignment(introRoot, Pos.CENTER);
             StackPane.setAlignment(storyIntroRoot, Pos.CENTER);
@@ -307,7 +320,18 @@ public final class UIManager {
 
             menuController.setOnShopRequested(() -> {
                 sound.playSFX("button");
-                System.out.println("Open Shop");
+                menuRoot.setVisible(false);
+                shopRoot.setVisible(true);
+                shopRoot.toFront();
+
+                if (shopController != null) {
+                    shopController.setup(world, () -> {
+                        sound.playSFX("button");
+                        shopRoot.setVisible(false);
+                        menuRoot.setVisible(true);
+                        menuRoot.toFront();
+                    });
+                }
             });
         }
 
@@ -324,6 +348,16 @@ public final class UIManager {
                 if (world.getState() == GameState.PLAYING) {
                     sound.playSFX("button");
                     world.switchPlayerWeapon();
+                    Player player = world.getPlayer();
+                    if (player != null && player.getWeapon() != null) {
+                        Weapon currentWeapon = player.getWeapon();
+                        String weaponName = currentWeapon.getName();
+                        WeaponType type = findWeaponTypeByName(weaponName);
+                        if (type != null) {
+                            currentWeapon.withSound(type.getSoundPath())
+                                    .withImage(type.getImagePath());
+                        }
+                    }
                 }
             });
         }
@@ -371,6 +405,25 @@ public final class UIManager {
             );
         }
     }
+    private WeaponType findWeaponTypeByName(String rawName) {
+        if (rawName == null) return null;
+
+        String normalizedInput = rawName.replaceAll("[^a-zA-Z0-9]", "").toLowerCase();
+
+        for (WeaponType type : WeaponType.values()) {
+            String normalizedDisplayName = type.getDisplayName().replaceAll("[^a-zA-Z0-9]", "").toLowerCase();
+            if (normalizedDisplayName.equals(normalizedInput)) {
+                return type;
+            }
+
+            String normalizedEnumName = type.name().replaceAll("[^a-zA-Z0-9]", "").toLowerCase();
+            if (normalizedEnumName.equals(normalizedInput)) {
+                return type;
+            }
+        }
+
+        return null;
+    }
 
     private void hideAllScreens() {
         if (introRoot != null) introRoot.setVisible(false);
@@ -382,5 +435,6 @@ public final class UIManager {
         if (gameOverRoot != null) gameOverRoot.setVisible(false);
         if (pauseRoot != null) pauseRoot.setVisible(false);
         if (settingRoot != null) settingRoot.setVisible(false);
+        if (shopRoot != null) shopRoot.setVisible(false);
     }
 }

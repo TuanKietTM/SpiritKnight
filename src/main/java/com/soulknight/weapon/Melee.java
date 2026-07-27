@@ -2,6 +2,7 @@ package com.soulknight.weapon;
 
 import com.soulknight.engine.GameWorld;
 import com.soulknight.entity.Entity;
+import com.soulknight.utils.SoundManager;
 import com.soulknight.utils.Vector2D;
 
 public final class Melee extends Weapon {
@@ -17,6 +18,12 @@ public final class Melee extends Weapon {
     public void attack(GameWorld world, Entity owner, Vector2D targetPosition) {
         if (!isReady()) {
             return;
+        }
+        String sound = getSoundPath();
+        if (sound != null && !sound.isBlank()) {
+            SoundManager.getInstance().playSFX(sound);
+        } else {
+            SoundManager.getInstance().playSFX("Sword_Swing");
         }
 
         // Huong chem tu nhan vat den muc tieu ngam
