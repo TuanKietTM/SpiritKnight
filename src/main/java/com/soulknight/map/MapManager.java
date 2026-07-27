@@ -41,28 +41,56 @@ public final class MapManager {
         loadMapFromJson(JsonPath);
         generateWorldTiles();
     }
-    // 1. Chỉ vẽ ô SÀN (Nền nhà bẹt dưới cùng)
+    // ve o san o duoi cung
+
     public void renderFloor(GraphicsContext gc, Camera camera, double renderWidth, double renderHeight) {
         gc.setFill(Color.BLACK);
         gc.fillRect(0.0, 0.0, renderWidth, renderHeight);
 
         double zoom = camera.getZoom();
+
+        // layer 1 ve toan bo o san
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
                 Tile tile = tiles[y][x];
-                if (tile == null) continue;
-
-                // Chỉ vẽ các ô là FLOOR hoặc DOOR_OPEN (các ô nằm bẹt dưới đất)
-                if (tile.getType() != Tile.TileType.WALL) {
-                    double worldX = x * tileSize;
-                    double worldY = y * tileSize;
-                    double screenX = camera.worldToScreenX(worldX);
-                    double screenY = camera.worldToScreenY(worldY);
+                if (tile != null && tile.getType() != Tile.TileType.WALL) {
+                    double screenX = camera.worldToScreenX(x * tileSize);
+                    double screenY = camera.worldToScreenY(y * tileSize);
                     gc.drawImage(tile.getTexture(), screenX, screenY, tileSize * zoom, tileSize * zoom);
                 }
             }
         }
 
+        //layer 2 ve do bong va thanh tuong  ve lech xuong 1 o  y + 1
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                Tile tile = tiles[y][x];
+                if (tile != null && tile.getType() == Tile.TileType.WALL) {
+                    boolean isWallBelow = (y + 1 < height) &&
+                            tiles[y + 1][x] != null &&
+                            tiles[y + 1][x].getType() == Tile.TileType.WALL;
+                    if (!isWallBelow) {
+                        double screenX = camera.worldToScreenX(x * tileSize);
+                        double screenY = camera.worldToScreenY((y + 1) * tileSize);
+                        gc.drawImage(Tile.getWallFrontShadowImage(), screenX, screenY, tileSize * zoom, tileSize * zoom);
+                    }
+                }
+            }
+        }
+
+        // llayer 3 ve mat dinh cua tuong
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                Tile tile = tiles[y][x];
+                if (tile != null && tile.getType() == Tile.TileType.WALL) {
+                    double screenX = camera.worldToScreenX(x * tileSize);
+                    double screenY = camera.worldToScreenY(y * tileSize);
+                    gc.drawImage(Tile.getWallTopImage(), screenX, screenY, tileSize * zoom, tileSize * zoom);
+                }
+            }
+        }
+
+        // layer 4 ve portal va cua phong
         if (exitPortalOpen && exitPortalPosition != null) {
             double screenX = camera.worldToScreenX(exitPortalPosition.getX());
             double screenY = camera.worldToScreenY(exitPortalPosition.getY());
@@ -74,7 +102,6 @@ public final class MapManager {
             room.renderDoors(gc, camera, tileSize);
         }
     }
-
     // 2. Lấy danh sách tất cả các Ô TƯỜNG để đưa vào hệ thống Y-Sorting
     public List<Tile> getWallTiles() {
         List<Tile> wallList = new ArrayList<>();
