@@ -5,6 +5,7 @@ import com.soulknight.animation.SpawnEffect;
 import com.soulknight.entity.Enemy;
 import com.soulknight.entity.EnemyArchetype;
 import com.soulknight.entity.EnemyFactory;
+import com.soulknight.entity.Entity;
 import com.soulknight.entity.Player;
 import com.soulknight.item.EnergyCrystal;
 import com.soulknight.item.Item;
@@ -225,7 +226,7 @@ private void updatePet(double deltaSeconds) {
             // 2. Cho đạn di chuyển
             bullet.update(deltaSeconds);
 
-            // 🎯 3. KIỂM TRA VA CHẠM TƯỜNG (Dùng hàm riêng cho Đạn thay vì isWalkable)
+            // 3. KIỂM TRA VA CHẠM TƯỜNG (Dùng hàm riêng cho Đạn thay vì isWalkable)
             if (mapManager.isBulletCollidingWithWall(bullet.getPosition().getX(), bullet.getPosition().getY())) {
                 spawnBulletExplosion(bullet.getPosition());
                 bullet.deactivate();
@@ -299,9 +300,9 @@ private void updatePet(double deltaSeconds) {
         slashEffects.removeIf(slash -> !slash.isActive());
     }
 
-    // Tao hieu ung chem truoc mat nhan vat theo huong ngam (goi tu vu khi can chien)
-    public void spawnMeleeSlash(Vector2D origin, double aimAngle, double range) {
-        slashEffects.add(new SlashEffect(origin.copy(), aimAngle, range, 0.22));
+    // Tao hieu ung chem bam theo nhan vat theo huong ngam (goi tu vu khi can chien)
+    public void spawnMeleeSlash(Entity owner, double aimAngle) {
+        slashEffects.add(new SlashEffect(owner, aimAngle));
     }
 
     private void updateItemCollection() {
@@ -365,7 +366,7 @@ private void updatePet(double deltaSeconds) {
 
 // A. Thêm các ô TƯỜNG vào Y-Sorting (Mốc Y tính ở ĐÁY ô Tile Tường)
         for (Tile wall : mapManager.getWallTiles()) {
-            double wallBottomY = wall.getY() + tileSize; // 🎯 ĐÁY Ô TƯỜNG
+            double wallBottomY = wall.getY() + tileSize; // ĐÁY Ô TƯỜNG
             renderList.add(new SortableObject(wallBottomY, () -> {
                 double screenX = camera.worldToScreenX(wall.getX());
                 double screenY = camera.worldToScreenY(wall.getY());
@@ -878,6 +879,32 @@ private void resolvePlayerEnemyCollisions(double deltaSeconds) {
             if (enemy.isAlive() && enemy.getPosition().distance(origin) <= range + enemy.getRadius()) {
                 enemy.takeDamage(damage);
             }
+        }
+    }
+
+    // Gay sat thuong theo hinh quat: chi trung ke dich nam trong tam danh
+    // va lech khong qua halfArcRadians so voi huong ngam (dung cho vu khi can chien)
+    public void damageEnemiesInArc(Vector2D origin, double aimAngle, double range, double halfArcRadians, int damage) {
+        for (Enemy enemy : enemies) {
+            if (!enemy.isAlive()) {
+                continue;
+            }
+            double dx = enemy.getPosition().getX() - origin.getX();
+            double dy = enemy.getPosition().getY() - origin.getY();
+            double distance = Math.hypot(dx, dy);
+            if (distance > range + enemy.getRadius()) {
+                continue;
+            }
+            // Ke dich dinh sat nguoi thi luon trung, khong can xet goc
+            if (distance > enemy.getRadius()) {
+                double angleToEnemy = Math.atan2(dy, dx);
+                // Chuan hoa do lech goc ve [-PI, PI] roi so voi nua goc quet
+                double diff = Math.atan2(Math.sin(angleToEnemy - aimAngle), Math.cos(angleToEnemy - aimAngle));
+                if (Math.abs(diff) > halfArcRadians) {
+                    continue;
+                }
+            }
+            enemy.takeDamage(damage);
         }
     }
     /**
