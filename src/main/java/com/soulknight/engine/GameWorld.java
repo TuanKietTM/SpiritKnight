@@ -3,7 +3,6 @@ package com.soulknight.engine;
 import com.soulknight.animation.ShadowRenderer;
 import com.soulknight.animation.SpawnEffect;
 import com.soulknight.entity.Enemy;
-import com.soulknight.entity.EnemyArchetype;
 import com.soulknight.entity.EnemyFactory;
 import com.soulknight.entity.Entity;
 import com.soulknight.entity.Player;
@@ -20,7 +19,6 @@ import com.soulknight.utils.SoundManager;
 import com.soulknight.utils.Vector2D;
 import com.soulknight.weapon.Bullet;
 import com.soulknight.weapon.ExplosionEffect;
-import com.soulknight.weapon.Gun;
 import com.soulknight.weapon.Melee;
 import com.soulknight.weapon.SlashEffect;
 import com.soulknight.weapon.Weapon;
@@ -30,10 +28,11 @@ import com.soulknight.pet.Pet;
 import com.soulknight.pet.PetFactory;
 import com.soulknight.pet.PetSelectionManager;
 import com.soulknight.pet.PetType;
-import javafx.geometry.BoundingBox;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+
+import javafx.geometry.BoundingBox;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 
@@ -71,7 +70,6 @@ public final class GameWorld {
 
     public GameWorld(InputHandler inputHandler) {
         this.inputHandler = inputHandler;
-//        startNewRun();
     }
 
     public void setGameStateListener(GameStateListener listener) {
@@ -143,14 +141,6 @@ public final class GameWorld {
             petSpawnEffect.update(deltaSeconds);
         }
 
-//        // 2. Nếu đang trong thời gian Spawning -> Dừng mọi logic di chuyển, bắn đạn và quái đánh
-//        if (playerSpawnEffect != null && playerSpawnEffect.isSpawning()) {
-//            // Vẫn cho Camera update nhẹ theo vị trí Player để không bị giật
-//            if (camera != null && player != null) {
-//                camera.update(player.getPosition(), viewportWidth, viewportHeight);
-//            }
-//            return; // BLOCK TOÀN BỘ LOGIC GAME TRONG LÚC SPAWN
-//        }
         player.update(this, deltaSeconds);
         updatePet(deltaSeconds);
 
@@ -200,22 +190,17 @@ private void updatePet(double deltaSeconds) {
     if (currentPet == null || player == null || player.getPosition() == null) {
         return;
     }
-
     // 🔥 Truyền "this" (GameWorld) để Pet thừa hưởng toàn bộ MapManager + Vật cản (Obstacle)
-    currentPet.update(
-            deltaSeconds,
-            player.getPosition().getX(),
-            player.getPosition().getY(),
-            this
-    );
+    currentPet.update(deltaSeconds, player.getPosition().getX(), player.getPosition().getY(), this);
 }
 
-    private void updateBullets(double deltaSeconds) {
+private void updateBullets(double deltaSeconds) {
         List<Obstacle> allObstacles = getObstacles();
 
         for (Bullet bullet : bullets) {
             if (!bullet.isActive()) continue;
-
+            double startX = bullet.getPosition().getX();
+            double startY = bullet.getPosition().getY();
             // KIỂM TRA ĐẠN VỪA BẮN RA ĐÃ NẰM TRONG TƯỜNG CỨNG CHƯA?
             // Tránh lỗi đạn kẹt đệ quy gây StackOverflow khi đứng sát tường
             if (mapManager.isBulletCollidingWithWall(bullet.getPosition().getX(), bullet.getPosition().getY())) {
@@ -225,6 +210,7 @@ private void updatePet(double deltaSeconds) {
 
             // 2. Cho đạn di chuyển
             bullet.update(deltaSeconds);
+
 
             // 3. KIỂM TRA VA CHẠM TƯỜNG (Dùng hàm riêng cho Đạn thay vì isWalkable)
             if (mapManager.isBulletCollidingWithWall(bullet.getPosition().getX(), bullet.getPosition().getY())) {
@@ -264,7 +250,6 @@ private void updatePet(double deltaSeconds) {
                 bullet.deactivate();
             }
         }
-
         // Xóa đạn và quái chết
         bullets.removeIf(bullet -> !bullet.isActive());
         enemies.removeIf(enemy -> !enemy.isAlive());
@@ -460,6 +445,19 @@ private void updatePet(double deltaSeconds) {
                         }));
                     }
                 }
+            }
+        }
+        // E. Thêm các ô CỬA (DOORS) vào Y-Sorting (Mốc Y tính ở ĐÁY BoundingBox Cửa)
+        for (Room room : mapManager.getRooms()) {
+            for (BoundingBox door : room.getDoors()) {
+                if (door == null) continue;
+
+                // ĐÁY CỦA Ô CỬA LÀM MỐC XẾP LỚP 2.5D
+                double doorBottomY = door.getMaxY();
+
+                renderList.add(new SortableObject(doorBottomY, () -> {
+                    room.renderSingleDoor(graphicsContext, camera, door, tileSize);
+                }));
             }
         }
 
@@ -680,19 +678,10 @@ public boolean canMoveTo(Vector2D position, double radius) {
         javafx.geometry.BoundingBox bound = room.getBound();
 
         int baseEnemyCount = enemyFactory.calculateEnemyCount();
-
-        //  Lấy số lượng quái dự kiến từ Factory dựa trên level hiện tại
         int desiredEnemyCount = baseEnemyCount + (waveNumber - 1);
-
-
-        // 2. : Đảm bảo số quái một phòng không bao giờ vượt quá mức cho phép
         final int MAX_ENEMIES_PER_ROOM = Math.min(3 + (waveNumber / 2), 6);
         int finalEnemyCount = Math.min(desiredEnemyCount, MAX_ENEMIES_PER_ROOM);
-
-        // Khoảng cách an toàn tối thiểu giữa quái và Player
         final double MIN_SAFE_DISTANCE = 140.0;
-
-        // Vòng lặp chỉ chạy đúng bằng số lượng quái cần sinh thực tế
         for (int i = 0; i < finalEnemyCount; i++) {
             Vector2D point = null;
             boolean validPointFound = false;
@@ -820,66 +809,6 @@ private void resolvePlayerEnemyCollisions(double deltaSeconds) {
         }
         return allObstacles;
     }
-
-    /**
-     * Thêm thủ công một Obstacle vào một Room cụ thể.
-     */
-    public void addObstacleToRoom(Room room, Obstacle obstacle) {
-        if (room != null && obstacle != null) {
-            room.getObstacles().add(obstacle);
-        }
-    }
-    /**
-     * Sinh số lượng vật cản ngẫu nhiên vào Room, đảm bảo không đè tường và không chồng lên nhau.
-     */
-    public void spawnObstaclesInRoom(Room room, int maxCount) {
-        if (room == null || room.getObstacles() == null) return;
-
-        javafx.geometry.BoundingBox bound = room.getBound();
-        double obsSize = 40.0;             // Kích thước vật cản
-        double minWallPadding = 80.0;       // Khoảng cách an toàn tối thiểu cách tường
-        double minObsDistance = 60.0;       // Khoảng cách tối thiểu giữa các vật cản
-
-        int attempts = 0;
-        while (room.getObstacles().size() < maxCount && attempts < 50) {
-            attempts++;
-
-            double minX = bound.getMinX() + minWallPadding;
-            double minY = bound.getMinY() + minWallPadding;
-            double maxX = bound.getMinX() + bound.getWidth() - minWallPadding - obsSize;
-            double maxY = bound.getMinY() + bound.getHeight() - minWallPadding - obsSize;
-
-            if (maxX <= minX || maxY <= minY) break;
-
-            double x = minX + random.nextDouble() * (maxX - minX);
-            double y = minY + random.nextDouble() * (maxY - minY);
-            Vector2D newPos = new Vector2D(x, y);
-
-            // Kiểm tra trùng lặp vị trí với các vật cản đã sinh trước đó
-            boolean isOverlapped = false;
-            for (Obstacle existing : room.getObstacles()) {
-                if (newPos.distance(existing.getPosition()) < minObsDistance) {
-                    isOverlapped = true;
-                    break;
-                }
-            }
-
-            // Nếu hợp lệ thì thêm vào phòng
-            if (!isOverlapped) {
-                boolean isDestructible = random.nextDouble() > 0.2; // 80% hòm gỗ (phá được), 20% cột đá
-                Obstacle obstacle = new Obstacle(newPos, obsSize, obsSize, 30, isDestructible);
-                room.getObstacles().add(obstacle);
-            }
-        }
-    }
-    public void damageEnemiesInRange(Vector2D origin, double range, int damage) {
-        for (Enemy enemy : enemies) {
-            if (enemy.isAlive() && enemy.getPosition().distance(origin) <= range + enemy.getRadius()) {
-                enemy.takeDamage(damage);
-            }
-        }
-    }
-
     // Gay sat thuong theo hinh quat: chi trung ke dich nam trong tam danh
     // va lech khong qua halfArcRadians so voi huong ngam (dung cho vu khi can chien)
     public void damageEnemiesInArc(Vector2D origin, double aimAngle, double range, double halfArcRadians, int damage) {
@@ -1043,11 +972,6 @@ public void equipPet(PetType type) {
 
         player.equipWeapon(safeType.createWeapon());
     }
-
-    public WeaponType getEquippedWeaponType() {
-        return WeaponSelectionManager.getInstance().getSelectedWeapon();
-    }
-
 }
 //NOTE : cac ham xu ly va cham
 // Player - titled (mapmanager): cua room

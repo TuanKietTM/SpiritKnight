@@ -98,10 +98,6 @@ public final class MapManager {
             gc.setFill(Color.GOLD);
             gc.fillOval(screenX - 18.0, screenY - 18.0, 36.0, 36.0);
         }
-
-        for (Room room : rooms) {
-            room.renderDoors(gc, camera, tileSize);
-        }
     }
 
     public List<Tile> getWallTiles() {
@@ -398,6 +394,18 @@ public final class MapManager {
             }
 
             return worldY >= tileTop;
+        }
+        if (tile.getType() == Tile.TileType.DOOR_OPEN) {
+            return true;
+        }
+//        Kiem tra va cham voi cua dang dong
+        if (rooms != null) {
+            for (Room room : rooms) {
+                // Kiểm tra ô (tx, ty) có chứa cửa đang đóng của phòng nào không
+                if (room.isDoorClosedAtTile(tx, ty, tileSize)) {
+                    return true;
+                }
+            }
         }
 
         return false;

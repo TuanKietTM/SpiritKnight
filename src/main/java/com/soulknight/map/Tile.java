@@ -68,7 +68,6 @@ public final class Tile {
         SPAWN,
         DOOR_OPEN,
         DOOR_CLOSED,
-        DOOR,
         PORTAL,
         BOSS
     }
