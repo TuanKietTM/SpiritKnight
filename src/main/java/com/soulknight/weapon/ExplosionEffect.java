@@ -9,9 +9,9 @@ import javafx.scene.paint.Color;
 
 public final class ExplosionEffect {
 
-    // Sprite sheet hieu ung no: 8 khung hinh xep ngang, moi khung 150x150
-    private static final String SPRITE_SHEET_PATH = "/assets/effects/danno_removebg.png";
-    private static final double FRAME_SIZE = 150.0;
+    // Sprite sheet hieu ung no pixel-art: cac khung hinh 200x200 xep doc
+    private static final String SPRITE_SHEET_PATH = "/assets/effects/danno_pixelart.png";
+    private static final double FRAME_SIZE = 200.0;
     // Anh cua hieu ung duoc tai mot lan va dung chung cho moi vu no
     private static final Image SPRITE_SHEET = ResourceLoader.image(SPRITE_SHEET_PATH);
 
@@ -27,9 +27,9 @@ public final class ExplosionEffect {
         this.maxRadius = maxRadius;
         this.duration = duration;
         this.elapsedTime = 0.0;
-        // So khung hinh suy ra tu chieu rong sprite sheet (fallback 8 neu chua tai xong)
-        int detected = (int) (SPRITE_SHEET.getWidth() / FRAME_SIZE);
-        this.frameCount = detected > 0 ? detected : 8;
+        // So khung hinh suy ra tu chieu cao sprite sheet xep doc (fallback 10 neu chua tai xong)
+        int detected = (int) (SPRITE_SHEET.getHeight() / FRAME_SIZE);
+        this.frameCount = detected > 0 ? detected : 10;
     }
 
     public void update(double deltaSeconds) {
@@ -51,7 +51,7 @@ public final class ExplosionEffect {
             frameIndex = frameCount - 1;
         }
 
-        double sourceX = frameIndex * FRAME_SIZE;
+        double sourceY = frameIndex * FRAME_SIZE;
         double zoom = camera.getZoom();
 
         // Kich thuoc ve theo world roi nhan zoom de dong bo voi cac vat the khac
@@ -60,10 +60,10 @@ public final class ExplosionEffect {
         double screenY = camera.worldToScreenY(position.getY()) - drawSize / 2.0;
 
         graphicsContext.save();
-        graphicsContext.setImageSmoothing(true);
+        graphicsContext.setImageSmoothing(false);
         graphicsContext.drawImage(
                 SPRITE_SHEET,
-                sourceX, 0.0, FRAME_SIZE, FRAME_SIZE,
+                0.0, sourceY, FRAME_SIZE, FRAME_SIZE,
                 screenX, screenY, drawSize, drawSize
         );
         graphicsContext.restore();
