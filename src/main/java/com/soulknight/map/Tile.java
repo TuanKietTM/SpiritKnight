@@ -15,8 +15,8 @@ public final class Tile {
     private static final Image WALL_TOP_IMAGE = new Image(Tile.class.getResourceAsStream("/assets/maps/front_wall.png"));
     private static final Image WALL_FRONT_SHADOW_IMAGE = new Image(Tile.class.getResourceAsStream("/assets/maps/shawdown_wall.png"));
 
-    private static final Image DOOR_OPEN_IMAGE = new Image(Tile.class.getResourceAsStream("/assets/maps/open_door_t.png"));
-    private static final Image DOOR_CLOSED_IMAGE = new Image(Tile.class.getResourceAsStream("/assets/maps/close_door_t.png"));
+    private static final Image DOOR_OPEN_IMAGE = new Image(Tile.class.getResourceAsStream("/assets/maps/opendoor.png"));
+    private static final Image DOOR_CLOSED_IMAGE = new Image(Tile.class.getResourceAsStream("/assets/maps/closedoor.png"));
 
     public Tile(double x, double y, double size, TileType type) {
         this.x = x;

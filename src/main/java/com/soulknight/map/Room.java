@@ -10,6 +10,7 @@ import com.soulknight.utils.Vector2D;
 import javafx.geometry.BoundingBox;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
+import javafx.scene.paint.Color;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -55,6 +56,10 @@ public class Room {
     private static final double RELAXED_PET_PADDING = 8.0;
     private static final double RELAXED_DOOR_PADDING = 12.0;
 
+    // --- BIẾN QUẢN LÝ ANIMATION & BÓNG CỬA 2.5D ---
+    private float doorProgress = 0.0f; // 0.0f = Mở hoàn toàn (rút xuống), 1.0f = Đóng hoàn toàn (nhô lên)
+    private static final float DOOR_ANIM_SPEED = 6.0f; // Tốc độ trượt cửa
+
     private final String name;
     private final BoundingBox bound;
     private final RoomType type;
@@ -96,9 +101,27 @@ public class Room {
     }
 
     /**
+     * Cập nhật tiến trình trượt cửa theo thời gian.
+     */
+    private void updateDoorAnimation(double deltaSeconds) {
+        if (isDoorClosed) {
+            if (doorProgress < 1.0f) {
+                doorProgress += (float) (DOOR_ANIM_SPEED * deltaSeconds);
+                if (doorProgress > 1.0f) doorProgress = 1.0f;
+            }
+        } else {
+            if (doorProgress > 0.0f) {
+                doorProgress -= (float) (DOOR_ANIM_SPEED * deltaSeconds);
+                if (doorProgress < 0.0f) doorProgress = 0.0f;
+            }
+        }
+    }
+
+    /**
      * Cập nhật trạng thái phòng theo từng frame.
      */
     public void update(GameWorld gameWorld, Player player, List<Enemy> globalEnemies, double deltaSeconds) {
+        updateDoorAnimation(deltaSeconds);
         if (type == RoomType.START || type == RoomType.REST || state == RoomState.CLEARED) {
             this.isDoorClosed = false;
             return;
@@ -480,25 +503,27 @@ public class Room {
         position.add(pushX, pushY);
     }
 
-    /**
-     * Vẽ cửa phòng khi cửa đóng.
-     */
     public void renderDoors(GraphicsContext graphicsContext, Camera camera, double tileSize) {
         if (graphicsContext == null || camera == null || tileSize <= 0.0) {
             return;
         }
 
-        Image doorTexture = Tile.getDoorImage(isDoorClosed);
-
-        if (doorTexture == null) {
-            return;
-        }
-
+        Image closedDoorTexture = Tile.getDoorImage(true);
+        Image wallShadowImage = Tile.getWallFrontShadowImage();
         double zoom = camera.getZoom();
+        double renderTileSize = tileSize * zoom;
+
+        // Độ cao nhô lên từ dưới đất
+        double maxOffsetY = renderTileSize;
+        double currentOffsetY = maxOffsetY * (1.0 - doorProgress);
 
         for (BoundingBox door : doors) {
             int tilesX = Math.max(1, (int) Math.round(door.getWidth() / tileSize));
             int tilesY = Math.max(1, (int) Math.round(door.getHeight() / tileSize));
+
+            // PHÂN BIỆT CỬA NGANG HAY CỬA DỌC
+            // Cửa ngang là cửa chạy theo chiều ngang (Width > Height) - Nằm ngay dưới Tường Bắc
+            boolean isHorizontalDoor = door.getWidth() > door.getHeight();
 
             for (int tileY = 0; tileY < tilesY; tileY++) {
                 for (int tileX = 0; tileX < tilesX; tileX++) {
@@ -507,12 +532,51 @@ public class Room {
                     double screenX = camera.worldToScreenX(worldX);
                     double screenY = camera.worldToScreenY(worldY);
 
-                    graphicsContext.drawImage(doorTexture, screenX, screenY, tileSize * zoom, tileSize * zoom);
+                    // =========================================================================
+                    // 1. FIX BÓNG TƯỜNG (CHỈ VẼ CHO CỬA NGANG VÀ CHỈ TILE ĐẦU TIÊN)
+                    // =========================================================================
+                    // Cửa dọc (trên hành lang ngang) KHÔNG BAO GIỜ có bóng tường chiếu xuống!
+                    boolean shouldDrawWallShadow = isHorizontalDoor && (tileY == 0);
+
+                    if (shouldDrawWallShadow && wallShadowImage != null && doorProgress < 0.99f) {
+                        // Cửa mở -> Hiện bóng tường. Khi cửa đóng (doorProgress tăng) -> Mờ dần và mất hẳn.
+                        graphicsContext.setGlobalAlpha(1.0 - doorProgress);
+                        graphicsContext.drawImage(wallShadowImage, screenX, screenY, renderTileSize, renderTileSize);
+                        graphicsContext.setGlobalAlpha(1.0);
+                    }
+
+                    // =========================================================================
+                    // 2. VẼ BÓNG NỀN 2.5D CỦA BẢN THÂN CỌC CỬA (KHI CỬA DẬP LÊN)
+                    // =========================================================================
+                    if (doorProgress > 0.05f) {
+                        double shadowAlpha = doorProgress * 0.35;
+                        double shadowHeight = 5.0 * zoom * doorProgress;
+
+                        graphicsContext.setGlobalAlpha(shadowAlpha);
+                        graphicsContext.setFill(Color.BLACK);
+                        graphicsContext.fillRect(screenX, screenY + renderTileSize - shadowHeight, renderTileSize, shadowHeight);
+                        graphicsContext.setGlobalAlpha(1.0);
+                    }
+
+                    // =========================================================================
+                    // 3. VẼ CỌC CỬA TRƯỢT TỪ DƯỚI LÊN
+                    // =========================================================================
+                    if (closedDoorTexture != null && doorProgress > 0.01f) {
+                        double doorRenderY = screenY + currentOffsetY;
+
+                        graphicsContext.save();
+                        graphicsContext.beginPath();
+                        graphicsContext.rect(screenX, screenY, renderTileSize, renderTileSize);
+                        graphicsContext.clip();
+
+                        graphicsContext.drawImage(closedDoorTexture, screenX, doorRenderY, renderTileSize, renderTileSize);
+
+                        graphicsContext.restore();
+                    }
                 }
             }
         }
     }
-
     public boolean isDoorBelongsToRoom(double doorX, double doorY, double doorWidth, double doorHeight) {
         BoundingBox doorBox = new BoundingBox(doorX, doorY, doorWidth, doorHeight);
         BoundingBox expandedBound = new BoundingBox(bound.getMinX() - 10.0, bound.getMinY() - 10.0, bound.getWidth() + 20.0, bound.getHeight() + 20.0);
@@ -581,8 +645,29 @@ public class Room {
     private boolean isStartRoom() {
         return name != null && (name.equalsIgnoreCase("StartRoom") || name.toLowerCase().contains("spawn"));
     }
+    public boolean isDoorClosedAtTile(int tileX, int tileY, double tileSize) {
+        if (this.doorProgress <= 0.05f) {
+            return false; // Cửa đang mở -> Coi như không đóng
+        }
 
-    // === GETTERS CHÍNH ===
+        double targetWorldX = tileX * tileSize;
+        double targetWorldY = tileY * tileSize;
+
+        for (BoundingBox door : doors) {
+            // BoundingBox trong JavaFX / AWT dùng getMinX() hoặc getX() / getWidth()
+            double minX = door.getMinX();
+            double maxX = door.getMaxX();
+            double minY = door.getMinY();
+            double maxY = door.getMaxY();
+
+            if (targetWorldX >= minX && targetWorldX < maxX &&
+                    targetWorldY >= minY && targetWorldY < maxY) {
+                return true;
+            }
+        }
+        return false;
+    }
+
 
     public String getName() {
         return name;
