@@ -49,7 +49,7 @@ public enum WeaponType {
             "/assets/WeaponImage/MeleeImage/Sprite_Old_Sword_of_Royal_Guard.png",
             "Sword_Swing",
             25, 0.35,
-            false, 0.0, 60.0
+            false, 0.0, 30.0
     ),
 
     FISH(
@@ -57,7 +57,7 @@ public enum WeaponType {
             "/assets/WeaponImage/MeleeImage/Fish.png",
             "Fish_Slap",
             18, 0.3,
-            false, 0.0, 55.0
+            false, 0.0, 28.0
     ),
 
     WAND(
@@ -65,7 +65,7 @@ public enum WeaponType {
             "/assets/WeaponImage/MeleeImage/Wand.png",
             "Magic_Cast",
             15, 0.25,
-            false, 0.0, 70.0
+            false, 0.0, 34.0
     );
 
     private final String displayName;
