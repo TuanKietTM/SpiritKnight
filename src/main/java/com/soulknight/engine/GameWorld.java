@@ -627,12 +627,10 @@ private void updatePet(double deltaSeconds) {
         }
         if (player.getWeapon() instanceof Melee) {
             // Dang cam kiem -> doi sang sung
-            player.equipWeapon(new Gun("Blaster", 12, 0.18, 580.0, 0.0)
-                    .withImage("/assets/WeaponImage/GunImage/OldPistol.png"));
+            player.equipWeapon(WeaponType.BLASTER.createWeapon());
         } else {
-            // Dang cam sung -> doi sang kiem
-            player.equipWeapon(new Melee("Old Sword", 25, 0.35, 60.0)
-                    .withImage("/assets/WeaponImage/MeleeImage/Sprite_Old_Sword_of_Royal_Guard.png"));
+            // Dang cam sung -> doi sang kiem (chi so lay tu WeaponType de khong lech tam danh)
+            player.equipWeapon(WeaponType.OLD_SWORD.createWeapon());
         }
     }
 
@@ -905,6 +903,32 @@ private void resolvePlayerEnemyCollisions(double deltaSeconds) {
                 }
             }
             enemy.takeDamage(damage);
+        }
+
+        // Nhat chem cung pha duoc vat can (hom go) trong hinh quat
+        for (Obstacle obstacle : getObstacles()) {
+            if (obstacle.isDestroyed() || !obstacle.isDestructible()) {
+                continue;
+            }
+            if (!obstacle.intersectsCircle(origin, range)) {
+                continue;
+            }
+            // Xet goc theo diem gan nhat tren vat can (vat can to nen tam co the lech ngoai cung)
+            double closestX = Math.max(obstacle.getPosition().getX(),
+                    Math.min(origin.getX(), obstacle.getPosition().getX() + obstacle.getWidth()));
+            double closestY = Math.max(obstacle.getPosition().getY(),
+                    Math.min(origin.getY(), obstacle.getPosition().getY() + obstacle.getHeight()));
+            double dx = closestX - origin.getX();
+            double dy = closestY - origin.getY();
+            // Dang dung sat vat can thi luon trung, khong can xet goc
+            if (dx != 0.0 || dy != 0.0) {
+                double angleToObstacle = Math.atan2(dy, dx);
+                double diff = Math.atan2(Math.sin(angleToObstacle - aimAngle), Math.cos(angleToObstacle - aimAngle));
+                if (Math.abs(diff) > halfArcRadians) {
+                    continue;
+                }
+            }
+            obstacle.takeDamage(damage);
         }
     }
     /**
