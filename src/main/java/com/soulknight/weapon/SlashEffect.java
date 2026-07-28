@@ -1,43 +1,47 @@
 package com.soulknight.weapon;
 
 import com.soulknight.engine.Camera;
+import com.soulknight.entity.Entity;
 import com.soulknight.utils.ResourceLoader;
-import com.soulknight.utils.Vector2D;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
 
 // Hieu ung chem cua vu khi can chien (kiem).
+// Sprite sheet da chua san thanh kiem, nen khi chay hieu ung nay
+// Player se an vu khi dang cam de tranh ve 2 thanh kiem chong nhau.
 
 public final class SlashEffect {
 
-    private static final String SPRITE_PATH = "/assets/effects/Buff_Melee_Range-removebg.png";
-    // Anh cung chem tai mot lan, dung chung cho moi nhat chem
+    private static final String SPRITE_PATH = "/assets/effects/slash_effect.png";
+    // Sprite sheet 7 frame xep doc: kiem nghi -> vung chem -> kiem ve vi tri cu
     private static final Image SPRITE = ResourceLoader.image(SPRITE_PATH);
+    private static final int FRAME_COUNT = 7;
+    // Tong thoi luong mot nhat chem (giay), dung chung voi Player de an/hien vu khi
+    public static final double SWING_DURATION = 0.22;
 
-    // Ti le be rong hieu ung so voi tam danh (range) -> giu vua khung, khong qua to
-    private static final double WIDTH_TO_RANGE = 1.0;
-    // Khoang cach day hieu ung ra truoc mat theo huong ngam (theo range)
-    private static final double FORWARD_TO_RANGE = 0.5;
-    // Bien do quet cung (radian) tao cam giac vung tay chem
-    private static final double SWING_ARC = 0.5;
+    // Vung pixel cua thanh kiem trong frame nghi (do truc tiep tu sprite sheet 200x121/frame)
+    private static final double SWORD_PIXEL_LEFT = 12.0;
+    private static final double SWORD_PIXEL_RIGHT = 189.0;
+    private static final double SWORD_PIXEL_CENTER_Y = 59.5;
 
-    private final Vector2D origin;
+    // Hinh hoc thanh kiem dang cam (phai khop voi Player.renderWeapon):
+    // dau kiem tai MUZZLE_DISTANCE, chieu dai MUZZLE_DISTANCE + 6 (phan chuoi nam sau diem xoay)
+    private static final double SWORD_TIP_WORLD = Gun.MUZZLE_DISTANCE;
+    private static final double SWORD_WORLD_LENGTH = Gun.MUZZLE_DISTANCE + 6.0;
+
+    private final Entity owner;
     private final double aimAngle;
-    private final double range;
-    private final double duration;
     private double elapsedTime;
     private boolean active = true;
 
-    public SlashEffect(Vector2D origin, double aimAngle, double range, double duration) {
-        this.origin = origin.copy();
+    public SlashEffect(Entity owner, double aimAngle) {
+        this.owner = owner;
         this.aimAngle = aimAngle;
-        this.range = range;
-        this.duration = duration;
     }
 
     public void update(double deltaSeconds) {
         elapsedTime += deltaSeconds;
-        if (elapsedTime >= duration) {
+        if (elapsedTime >= SWING_DURATION) {
             active = false;
         }
     }
@@ -47,36 +51,40 @@ public final class SlashEffect {
             return;
         }
 
-        double progress = Math.min(1.0, elapsedTime / duration);
+        double progress = Math.min(1.0, elapsedTime / SWING_DURATION);
         double zoom = camera.getZoom();
 
-        // Kich thuoc ve giu nguyen ti le anh goc
-        double drawWidth = range * WIDTH_TO_RANGE * zoom;
-        double drawHeight = drawWidth * (SPRITE.getHeight() / SPRITE.getWidth());
+        // Chon frame theo tien do (frame cuoi giu den het thoi luong)
+        int frameIndex = Math.min(FRAME_COUNT - 1, (int) (progress * FRAME_COUNT));
+        double frameWidth = SPRITE.getWidth();
+        double frameHeight = SPRITE.getHeight() / FRAME_COUNT;
+        double sourceY = frameIndex * frameHeight;
 
-        // Hoat anh: phong to nhe (0.75 -> 1.10) + mo dan ve cuoi (dam luc dau)
-        double scale = 0.75 + 0.35 * progress;
-        double alpha = 1.0 - progress * progress;
-        // Quet cung theo tien do tao dong tac vung tay chem
-        double swing = (progress - 0.5) * SWING_ARC;
+        // Ti le world/pixel sao cho thanh kiem trong frame trung kich thuoc kiem dang cam
+        double worldPerPixel = SWORD_WORLD_LENGTH / (SWORD_PIXEL_RIGHT - SWORD_PIXEL_LEFT);
+        double drawWidth = frameWidth * worldPerPixel * zoom;
+        double drawHeight = frameHeight * worldPerPixel * zoom;
+        // Can chinh de pixel dau/cuoi thanh kiem nam dung vi tri kiem dang cam,
+        // truc luoi kiem (CENTER_Y) nam tren duong ngam (y = 0)
+        double drawLeft = (SWORD_TIP_WORLD - SWORD_WORLD_LENGTH - SWORD_PIXEL_LEFT * worldPerPixel) * zoom;
+        double drawTop = -SWORD_PIXEL_CENTER_Y * worldPerPixel * zoom;
 
-        double pivotX = camera.worldToScreenX(origin.getX());
-        double pivotY = camera.worldToScreenY(origin.getY());
-        double forward = range * FORWARD_TO_RANGE * zoom;
+        // Bam theo vi tri nhan vat de nhat chem khong bi "roi lai" khi vua chem vua chay
+        double pivotX = camera.worldToScreenX(owner.getPosition().getX());
+        double pivotY = camera.worldToScreenY(owner.getPosition().getY());
 
         gc.save();
-        gc.setGlobalAlpha(alpha);
-        gc.setImageSmoothing(true);
-        // Dua he toa do ve tam nhan vat va xoay theo huong ngam
+        gc.setImageSmoothing(false);
+        // Dua he toa do ve tam nhan vat va xoay theo huong ngam (giong Player.renderWeapon)
         gc.translate(pivotX, pivotY);
-        gc.rotate(Math.toDegrees(aimAngle + swing));
-        // Khi ngam sang trai, lat doc de cung chem khong bi nguoc (dong bo voi cach ve vu khi)
+        gc.rotate(Math.toDegrees(aimAngle));
+        // Khi ngam sang trai, lat doc de nhat chem khong bi nguoc (dong bo voi cach ve vu khi)
         if (Math.cos(aimAngle) < 0.0) {
             gc.scale(1, -1);
         }
-        double w = drawWidth * scale;
-        double h = drawHeight * scale;
-        gc.drawImage(SPRITE, forward - w / 2.0, -h / 2.0, w, h);
+        gc.drawImage(SPRITE,
+                0, sourceY, frameWidth, frameHeight,
+                drawLeft, drawTop, drawWidth, drawHeight);
         gc.restore();
     }
 

@@ -4,6 +4,7 @@ import com.soulknight.engine.GameWorld;
 import com.soulknight.utils.Constants;
 import com.soulknight.utils.Vector2D;
 import com.soulknight.weapon.Gun;
+import com.soulknight.weapon.SlashEffect;
 import com.soulknight.weapon.Weapon;
 import com.soulknight.entity.PlayerAnimator;
 import javafx.scene.image.Image;
@@ -29,6 +30,9 @@ public final class Player extends Entity {
     private double invulnerabilityTimer = 0.0;
     // Thời gian bất tử khi trúng đòn
     private final double MAX_INVULNERABILITY_TIME = 0.3;
+    // Dem nguoc thoi gian vung chem: khi > 0 thi an vu khi dang cam,
+    // vi SlashEffect da ve san thanh kiem trong sprite sheet
+    private double meleeSwingTimer = 0.0;
 
     public Player(Vector2D spawnPoint) {
         super(spawnPoint, Constants.PLAYER_RADIUS, Constants.PLAYER_HEALTH, Color.DODGERBLUE);
@@ -57,10 +61,18 @@ public final class Player extends Entity {
         this.invulnerabilityTimer = MAX_INVULNERABILITY_TIME;
     }
 
+    // Bat dau vung chem: an kiem dang cam trong suot thoi luong hieu ung chem
+    public void startMeleeSwing() {
+        meleeSwingTimer = SlashEffect.SWING_DURATION;
+    }
+
     @Override
     public void update(GameWorld world, double deltaSeconds) {
         if (invulnerabilityTimer > 0.0) {
             invulnerabilityTimer = Math.max(0.0, invulnerabilityTimer - deltaSeconds);
+        }
+        if (meleeSwingTimer > 0.0) {
+            meleeSwingTimer = Math.max(0.0, meleeSwingTimer - deltaSeconds);
         }
         weapon.tick(deltaSeconds);
 
@@ -211,6 +223,10 @@ public final class Player extends Entity {
      */
     private void renderWeapon(javafx.scene.canvas.GraphicsContext gc, com.soulknight.engine.Camera camera) {
         if (weapon == null) {
+            return;
+        }
+        // Dang vung chem: SlashEffect ve thanh kiem thay the, an kiem dang cam
+        if (meleeSwingTimer > 0.0) {
             return;
         }
         Image weaponImage = weapon.getImage();
