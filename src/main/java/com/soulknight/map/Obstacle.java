@@ -4,8 +4,12 @@ import com.soulknight.engine.Camera;
 import com.soulknight.utils.Vector2D;
 import javafx.geometry.BoundingBox;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.image.Image;
 import javafx.scene.paint.Color;
 
+/**
+ * class phu trach vat can
+ */
 public class Obstacle {
     private Vector2D position;
     private double width;
@@ -14,13 +18,16 @@ public class Obstacle {
     private int maxHp;
     private boolean destructible;
 
-    public Obstacle(Vector2D position, double width, double height, int hp, boolean destructible) {
+    private Image sprite;
+
+    public Obstacle(Vector2D position, double width, double height, int hp, boolean destructible, Image sprite) {
         this.position = position;
         this.width = width;
         this.height = height;
         this.hp = hp;
         this.maxHp = hp;
         this.destructible = destructible;
+        this.sprite = sprite;
     }
 
     public void takeDamage(int amount) {
@@ -32,13 +39,6 @@ public class Obstacle {
     public boolean isDestroyed() {
         return destructible && hp <= 0;
     }
-
-    // Lấy hộp va chạm BoundingBox
-    public BoundingBox getBoundingBox() {
-        return new BoundingBox(position.getX(), position.getY(), width, height);
-    }
-
-    // Kiểm tra va chạm tròn (cho đạn, player, enemy)
     public boolean intersectsCircle(Vector2D center, double radius) {
         double closestX = Math.max(position.getX(), Math.min(center.getX(), position.getX() + width));
         double closestY = Math.max(position.getY(), Math.min(center.getY(), position.getY() + height));
@@ -49,46 +49,51 @@ public class Obstacle {
         return (distanceX * distanceX + distanceY * distanceY) < (radius * radius);
     }
 
+    /**
+     * Dùng cho Y-Sorting (Sắp xếp độ sâu):
+     * Trả về chân của vật cản trên mặt đất để so sánh vị trí Y với Player/Enemy.
+     */
+    public double getRenderY() {
+        return position.getY() + height;
+    }
+
+    /**
+     * Vẽ Tile/Image của vật cản dựa trên tọa độ Camera
+     */
     public void render(GraphicsContext gc, Camera camera) {
+        if (sprite == null) return;
+
         double screenX = camera.worldToScreenX(position.getX());
         double screenY = camera.worldToScreenY(position.getY());
         double zoom = camera.getZoom();
 
-        if (destructible) {
-            // Hòm gỗ có thể phá hủy
-            gc.setFill(Color.BROWN);
-            gc.fillRect(screenX, screenY, width * zoom, height * zoom);
-            gc.setStroke(Color.SADDLEBROWN);
-            gc.setLineWidth(2.0 * zoom);
-            gc.strokeRect(screenX, screenY, width * zoom, height * zoom);
-        } else {
-            // Cột đá không thể phá hủy
-            gc.setFill(Color.GRAY);
-            gc.fillRect(screenX, screenY, width * zoom, height * zoom);
-            gc.setStroke(Color.DARKGRAY);
-            gc.setLineWidth(2.0 * zoom);
-            gc.strokeRect(screenX, screenY, width * zoom, height * zoom);
-        }
-        // Vẽ thanh máu cho vật cản phá hủy được khi bị mất máu
-        if (destructible && hp < maxHp && hp > 0) {
-            double barWidth = width * zoom;
-            double barHeight = 4.0 * zoom;
-            double barX = screenX;
-            double barY = screenY - 8.0 * zoom; // Vẽ phía trên vật cản
-
-            // Phông nền thanh máu (màu đỏ)
-            gc.setFill(Color.RED);
-            gc.fillRect(barX, barY, barWidth, barHeight);
-
-            // Phần máu còn lại (màu xanh lá)
-            gc.setFill(Color.LIME);
-            gc.fillRect(barX, barY, barWidth * ((double) hp / maxHp), barHeight);
-        }
+        // Chỉ vẽ hình ảnh Sprite của vật cản (Không vẽ thanh máu nữa)
+        gc.drawImage(sprite, screenX, screenY, width * zoom, height * zoom);
     }
+    /**
+     * Ve bong mo duoi chan ( co the cai tien them )
+     */
+    public void renderShadow(GraphicsContext gc, Camera camera) {
+        double zoom = camera.getZoom();
+        double screenX = camera.worldToScreenX(position.getX());
+        double screenY = camera.worldToScreenY(position.getY());
+        double shadowWidth = width * zoom * 0.9;
+        double shadowHeight = height * zoom * 0.35;
+        double shadowX = screenX + (width * zoom - shadowWidth) / 2.0;
+        double shadowY = screenY + (height * zoom) - (shadowHeight / 2.0);
 
+        gc.save();
+        gc.setFill(Color.rgb(0, 0, 0, 0.35));
+        gc.fillOval(shadowX, shadowY, shadowWidth, shadowHeight);
+        gc.restore();
+    }
     public Vector2D getPosition() { return position; }
     public double getWidth() { return width; }
     public double getHeight() { return height; }
     public boolean isDestructible() { return destructible; }
-    public Vector2D getCenter() { return new Vector2D(position.getX() + width / 2.0, position.getY() + height / 2.0); }
+    public Image getSprite() { return sprite; }
+    public void setSprite(Image sprite) { this.sprite = sprite; }
+    public Vector2D getCenter() {
+        return new Vector2D(position.getX() + width / 2.0, position.getY() + height / 2.0);
+    }
 }

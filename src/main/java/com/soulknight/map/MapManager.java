@@ -240,22 +240,30 @@ public final class MapManager {
 
                 double pixelX = x * tileSize;
                 double pixelY = y * tileSize;
-
                 if (tileId == 0) {
-                    this.tiles[y][x] = null;
+                    this.tiles[y][x] = new Tile(pixelX, pixelY, tileSize, Tile.TileType.BACK);
                     continue;
                 }
-
-                // Nhận diện theo firstgid trong file JSON Tiled Map của bạn:
-                // wall.tsx  -> 1 đến 6
-                // door.tsx  -> 7 đến 10
-                // floor.tsx -> 11 trở đi
                 if (tileId >= 1 && tileId <= 6) {
                     this.tiles[y][x] = new Tile(pixelX, pixelY, tileSize, Tile.TileType.WALL);
-                } else if (tileId >= 7 && tileId <= 10) {
+                }
+                else if (tileId >= 7 && tileId <= 10) {
                     this.tiles[y][x] = new Tile(pixelX, pixelY, tileSize, Tile.TileType.DOOR_OPEN);
-                } else {
+                }
+                else if (tileId >= 11 && tileId <= 14) {
                     this.tiles[y][x] = new Tile(pixelX, pixelY, tileSize, Tile.TileType.FLOOR);
+                }
+                else if (tileId >= 15 && tileId <= 29) {
+                    this.tiles[y][x] = new Tile(pixelX, pixelY, tileSize, Tile.TileType.OBSTACLE, Tile.getBoxImage());
+                }
+                else if (tileId >= 30 && tileId <= 44) {
+                    this.tiles[y][x] = new Tile(pixelX, pixelY, tileSize, Tile.TileType.OBSTACLE, Tile.getTreeImage());
+                }
+                else if (tileId >= 45) {
+                    this.tiles[y][x] = new Tile(pixelX, pixelY, tileSize, Tile.TileType.FLOOR, Tile.getFireImage());
+                }
+                else {
+                    this.tiles[y][x] = new Tile(pixelX, pixelY, tileSize, Tile.TileType.BACK);
                 }
             }
         }
@@ -409,6 +417,17 @@ public final class MapManager {
         }
 
         return false;
+    }
+//    doi kieu title : de phuc vu viec vat can bi pha
+    public void setTileType(int gridX, int gridY, Tile.TileType newType) {
+        if (tiles != null && gridY >= 0 && gridY < height && gridX >= 0 && gridX < width) {
+            if (tiles[gridY][gridX] != null) {
+                double x = tiles[gridY][gridX].getX();
+                double y = tiles[gridY][gridX].getY();
+//khoi tao thanh o moi
+                tiles[gridY][gridX] = new Tile(x, y, tileSize, newType);
+            }
+        }
     }
 
     public double getWorldWidth() {
