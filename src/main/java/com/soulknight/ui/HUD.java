@@ -52,19 +52,28 @@ public final class HUD {
     @FXML
     private Label weaponLabel;
 
-    // ImageView hiển thị icon vũ khí trên HUD
+    @FXML
+    private Label goldLabel;
+
+    @FXML
+    private Label gemsLabel;
+
+    @FXML
+    private Label scoreLabel;
+
     @FXML
     private ImageView weaponIcon;
 
     @FXML
     private StackPane joystickContainer;
+
     @FXML
     private Circle joystickThumb;
 
     @FXML
     private Canvas minimapCanvas;
-    private MinimapRenderer minimapRenderer;
 
+    private MinimapRenderer minimapRenderer;
     private Runnable onPauseRequested;
     private Runnable onWeaponSwitchRequested;
     private String currentWeaponImagePath = "";
@@ -72,16 +81,16 @@ public final class HUD {
     @FXML
     private void initialize() {
         if (minimapCanvas != null) {
-            this.minimapRenderer = new MinimapRenderer(minimapCanvas);
+            minimapRenderer = new MinimapRenderer(minimapCanvas);
         }
     }
 
     public void setOnPauseRequested(Runnable callback) {
-        this.onPauseRequested = callback;
+        onPauseRequested = callback;
     }
 
     public void setOnWeaponSwitchRequested(Runnable callback) {
-        this.onWeaponSwitchRequested = callback;
+        onWeaponSwitchRequested = callback;
     }
 
     @FXML
@@ -98,15 +107,20 @@ public final class HUD {
         }
     }
 
-    public void updateData(GameWorld world, Player player, LevelManager levelManager, MissionManager missionManager,
-                           int enemyCount, int itemCount) {
-        if (hpLabel == null) return;
+    public void updateData(GameWorld world, Player player, LevelManager levelManager,
+                           MissionManager missionManager, int enemyCount, int itemCount) {
 
         if (player != null) {
             int currentHp = player.getHealth();
             int maxHp = player.getMaxHealth();
-            hpLabel.setText(currentHp + "/" + maxHp);
-            hpBar.setProgress(maxHp > 0 ? (double) currentHp / maxHp : 0.0);
+
+            if (hpLabel != null) {
+                hpLabel.setText(currentHp + "/" + maxHp);
+            }
+
+            if (hpBar != null) {
+                hpBar.setProgress(maxHp > 0 ? (double) currentHp / maxHp : 0.0);
+            }
 
             updateWeaponUI(player);
         }
@@ -114,6 +128,7 @@ public final class HUD {
         if (shieldLabel != null && shieldBar != null) {
             int currentShield = 6;
             int maxShield = 6;
+
             shieldLabel.setText(currentShield + "/" + maxShield);
             shieldBar.setProgress((double) currentShield / maxShield);
         }
@@ -121,6 +136,7 @@ public final class HUD {
         if (manaLabel != null && manaBar != null) {
             int currentMana = 200;
             int maxMana = 200;
+
             manaLabel.setText(currentMana + "/" + maxMana);
             manaBar.setProgress((double) currentMana / maxMana);
         }
@@ -128,30 +144,52 @@ public final class HUD {
         if (levelManager != null && levelBannerLabel != null) {
             levelBannerLabel.setText(levelManager.getLevelBanner());
         }
+
         if (missionManager != null) {
-            if (missionTitleLabel != null) missionTitleLabel.setText("Mission: " + missionManager.getMissionTitle());
-            if (missionProgressLabel != null) missionProgressLabel.setText("Progress: " + missionManager.getMissionProgress());
+            if (missionTitleLabel != null) {
+                missionTitleLabel.setText("Mission: " + missionManager.getMissionTitle());
+            }
+
+            if (missionProgressLabel != null) {
+                missionProgressLabel.setText("Progress: " + missionManager.getMissionProgress());
+            }
         }
+
         if (entitiesLabel != null) {
-            entitiesLabel.setText(String.valueOf(itemCount));
+            entitiesLabel.setText(String.valueOf(enemyCount));
+        }
+
+        if (world != null) {
+            if (goldLabel != null) {
+                goldLabel.setText(String.valueOf(world.getGold()));
+            }
+
+            if (gemsLabel != null) {
+                gemsLabel.setText(String.valueOf(world.getGems()));
+            }
+
+            if (scoreLabel != null) {
+                scoreLabel.setText(String.valueOf(world.getScore()));
+            }
         }
 
         updateJoystickUI(world);
-
-//      cap nhat render mini map
         updateMinimapUI(world, player);
     }
 
     private void updateMinimapUI(GameWorld world, Player player) {
         if (minimapCanvas == null) return;
+
         if (minimapRenderer == null) {
             minimapRenderer = new MinimapRenderer(minimapCanvas);
         }
+
         minimapRenderer.render(world, player);
     }
 
     private void updateWeaponUI(Player player) {
         String currentName = player.getWeaponName();
+
         if (currentName == null || currentName.isBlank()) return;
 
         if (weaponLabel != null) {
@@ -161,38 +199,40 @@ public final class HUD {
         if (weaponIcon == null) return;
 
         WeaponType matchedType = findWeaponTypeByName(currentName);
+        String imagePath = matchedType != null ? matchedType.getImagePath() : null;
 
-        String imagePath = null;
-        if (matchedType != null) {
-            imagePath = matchedType.getImagePath();
-        }
         if (imagePath != null) {
             if (!imagePath.equals(currentWeaponImagePath)) {
                 currentWeaponImagePath = imagePath;
-                Image img = loadImage(imagePath);
-                weaponIcon.setImage(img);
+                weaponIcon.setImage(loadImage(imagePath));
             }
         } else {
             currentWeaponImagePath = "";
+            weaponIcon.setImage(null);
         }
 
         weaponIcon.setSmooth(false);
         weaponIcon.setPreserveRatio(true);
     }
 
-    // Tìm thông tin vũ khí trong WeaponType
     private WeaponType findWeaponTypeByName(String rawName) {
         if (rawName == null) return null;
 
         String normalizedInput = rawName.replaceAll("[^a-zA-Z0-9]", "").toLowerCase();
 
         for (WeaponType type : WeaponType.values()) {
-            String normalizedDisplayName = type.getDisplayName().replaceAll("[^a-zA-Z0-9]", "").toLowerCase();
+            String normalizedDisplayName = type.getDisplayName()
+                    .replaceAll("[^a-zA-Z0-9]", "")
+                    .toLowerCase();
+
             if (normalizedDisplayName.equals(normalizedInput)) {
                 return type;
             }
 
-            String normalizedEnumName = type.name().replaceAll("[^a-zA-Z0-9]", "").toLowerCase();
+            String normalizedEnumName = type.name()
+                    .replaceAll("[^a-zA-Z0-9]", "")
+                    .toLowerCase();
+
             if (normalizedEnumName.equals(normalizedInput)) {
                 return type;
             }
@@ -210,6 +250,7 @@ public final class HUD {
 
         if (world.getInputHandler().isTouchpadModeEnabled()) {
             TouchpadJoystick joystick = world.getInputHandler().getTouchpadJoystick();
+
             if (joystick != null && joystick.isActive()) {
                 dir = joystick.getMoveDirection();
             }
@@ -217,20 +258,28 @@ public final class HUD {
             double dx = 0.0;
             double dy = 0.0;
 
-            if (world.getInputHandler().isDown(javafx.scene.input.KeyCode.W) || world.getInputHandler().isDown(javafx.scene.input.KeyCode.UP)) {
+            if (world.getInputHandler().isDown(javafx.scene.input.KeyCode.W)
+                    || world.getInputHandler().isDown(javafx.scene.input.KeyCode.UP)) {
                 dy -= 1.0;
             }
-            if (world.getInputHandler().isDown(javafx.scene.input.KeyCode.S) || world.getInputHandler().isDown(javafx.scene.input.KeyCode.DOWN)) {
+
+            if (world.getInputHandler().isDown(javafx.scene.input.KeyCode.S)
+                    || world.getInputHandler().isDown(javafx.scene.input.KeyCode.DOWN)) {
                 dy += 1.0;
             }
-            if (world.getInputHandler().isDown(javafx.scene.input.KeyCode.A) || world.getInputHandler().isDown(javafx.scene.input.KeyCode.LEFT)) {
+
+            if (world.getInputHandler().isDown(javafx.scene.input.KeyCode.A)
+                    || world.getInputHandler().isDown(javafx.scene.input.KeyCode.LEFT)) {
                 dx -= 1.0;
             }
-            if (world.getInputHandler().isDown(javafx.scene.input.KeyCode.D) || world.getInputHandler().isDown(javafx.scene.input.KeyCode.RIGHT)) {
+
+            if (world.getInputHandler().isDown(javafx.scene.input.KeyCode.D)
+                    || world.getInputHandler().isDown(javafx.scene.input.KeyCode.RIGHT)) {
                 dx += 1.0;
             }
 
             Vector2D moveDir = new Vector2D(dx, dy);
+
             if (moveDir.length() > 0.0) {
                 moveDir.normalize();
                 dir = moveDir;
@@ -249,8 +298,11 @@ public final class HUD {
 
     private Image loadImage(String path) {
         if (path == null || path.isBlank()) return null;
+
         URL resource = getClass().getResource(path);
+
         if (resource == null) return null;
+
         return new Image(resource.toExternalForm(), false);
     }
 }

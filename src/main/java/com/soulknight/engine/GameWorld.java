@@ -8,6 +8,8 @@ import com.soulknight.entity.EnemyFactory;
 import com.soulknight.entity.Entity;
 import com.soulknight.entity.Player;
 import com.soulknight.item.EnergyCrystal;
+import com.soulknight.item.GemItem;
+import com.soulknight.item.GoldItem;
 import com.soulknight.item.Item;
 import com.soulknight.level.LevelManager;
 import com.soulknight.map.MapManager;
@@ -29,6 +31,9 @@ import com.soulknight.pet.Pet;
 import com.soulknight.pet.PetFactory;
 import com.soulknight.pet.PetSelectionManager;
 import com.soulknight.pet.PetType;
+import com.soulknight.database.PlayerSave;
+import com.soulknight.database.PlayerSaveDAO;
+import com.soulknight.database.PlayerSaveMapper;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -51,6 +56,19 @@ public final class GameWorld {
     private MapManager mapManager;
     private Player player;
     private Pet currentPet;
+    private String currentPlayerName = "Knight";
+
+    private int gold = 0;
+    private int gems = 0;
+    private int score = 0;
+    private int currentRoomNumber = 1;
+
+    private double autoSaveTimer = 0.0;
+    private static final double AUTO_SAVE_INTERVAL = 30.0;
+    private double playerEnergy = 100.0;
+
+    private PlayerSave pendingPlayerSave;
+
     private final List<Enemy> enemies = new ArrayList<>();
     private final List<Bullet> bullets = new ArrayList<>();
     // Danh sach hieu ung no khi dan va cham (tuong hoac muc tieu)
@@ -63,7 +81,7 @@ public final class GameWorld {
     private GameState state = GameState.INTRO;
     private double enemySpawnTimer;
     private Vector2D pendingPortalPosition;
-//    Bien cho hieu ung dau tien cua start room
+    //    Bien cho hieu ung dau tien cua start room
     private SpawnEffect playerSpawnEffect;
     private SpawnEffect petSpawnEffect;
 
@@ -148,6 +166,7 @@ public final class GameWorld {
 
         player.update(this, deltaSeconds);
         updatePet(deltaSeconds);
+        updateCurrentRoom();
 
         if (mapManager != null && mapManager.getRooms() != null) {
             for (com.soulknight.map.Room room : mapManager.getRooms()) {
@@ -167,6 +186,7 @@ public final class GameWorld {
         updateExplosions(deltaSeconds);
         updateSlashEffects(deltaSeconds);
         updateItemCollection();
+        updateAutoSave(deltaSeconds);
 
         if (allowSpawns) {
             updateSpawnTimers(deltaSeconds);
@@ -177,6 +197,8 @@ public final class GameWorld {
         if (!player.isAlive()) {
             inputHandler.consumeConfirmRequest();
             changeState(GameState.GAME_OVER);
+            addScore(100);
+            saveGameAsync();
             return;
         }
         if (particleManager != null) {
@@ -193,16 +215,16 @@ public final class GameWorld {
             advanceToNextLevel();
         }
     }
-//    update pet
-private void updatePet(double deltaSeconds) {
-    if (currentPet == null || player == null || player.getPosition() == null) {
-        return;
+    //    update pet
+    private void updatePet(double deltaSeconds) {
+        if (currentPet == null || player == null || player.getPosition() == null) {
+            return;
+        }
+        // 🔥 Truyền "this" (GameWorld) để Pet thừa hưởng toàn bộ MapManager + Vật cản (Obstacle)
+        currentPet.update(deltaSeconds, player.getPosition().getX(), player.getPosition().getY(), this);
     }
-    // 🔥 Truyền "this" (GameWorld) để Pet thừa hưởng toàn bộ MapManager + Vật cản (Obstacle)
-    currentPet.update(deltaSeconds, player.getPosition().getX(), player.getPosition().getY(), this);
-}
 
-private void updateBullets(double deltaSeconds) {
+    private void updateBullets(double deltaSeconds) {
         List<Obstacle> allObstacles = getObstacles();
 
         for (Bullet bullet : bullets) {
@@ -278,28 +300,28 @@ private void updateBullets(double deltaSeconds) {
         }
         // Xóa đạn và quái chết
         bullets.removeIf(bullet -> !bullet.isActive());
-        enemies.removeIf(enemy -> !enemy.isAlive());
+        removeDeadEnemiesAndGiveRewards();
 
 //       xoa vat can
-    if (mapManager != null && mapManager.getRooms() != null) {
-        double tileSize = mapManager.getTileSize();
+        if (mapManager != null && mapManager.getRooms() != null) {
+            double tileSize = mapManager.getTileSize();
 
-        for (Room room : mapManager.getRooms()) {
-            if (room.getObstacles() != null) {
+            for (Room room : mapManager.getRooms()) {
+                if (room.getObstacles() != null) {
 //                loc ra cac vat can co the pha duoc chuyen thanh floor sau khi pha
-                for (Obstacle obstacle : room.getObstacles()) {
-                    if (obstacle.isDestroyed()) {
-                        int gridX = (int) (obstacle.getPosition().getX() / tileSize);
-                        int gridY = (int) (obstacle.getPosition().getY() / tileSize);
+                    for (Obstacle obstacle : room.getObstacles()) {
+                        if (obstacle.isDestroyed()) {
+                            int gridX = (int) (obstacle.getPosition().getX() / tileSize);
+                            int gridY = (int) (obstacle.getPosition().getY() / tileSize);
 
-                        mapManager.setTileType(gridX, gridY, Tile.TileType.FLOOR);
+                            mapManager.setTileType(gridX, gridY, Tile.TileType.FLOOR);
+                        }
                     }
-                }
 
-                room.getObstacles().removeIf(Obstacle::isDestroyed);
+                    room.getObstacles().removeIf(Obstacle::isDestroyed);
+                }
             }
         }
-    }
     }
 
     // Tao hieu ung no tai vi tri dan va cham (tuong hoac muc tieu)
@@ -329,11 +351,30 @@ private void updateBullets(double deltaSeconds) {
     }
 
     private void updateItemCollection() {
-        for (Item item : items) {
-            if (!item.isCollected() && item.intersects(player.getPosition(), player.getRadius())) {
-                item.collect();
-            }
+        if (player == null || player.getPosition() == null) {
+            return;
         }
+
+        for (Item item : items) {
+            if (item.isCollected()) {
+                continue;
+            }
+
+            if (!item.intersects(player.getPosition(), player.getRadius())) {
+                continue;
+            }
+
+            if (item instanceof GoldItem goldItem) {
+                addGold(goldItem.getAmount());
+                System.out.println("Đã nhặt " + goldItem.getAmount() + " vàng.");
+            } else if (item instanceof GemItem gemItem) {
+                addGems(gemItem.getAmount());
+                System.out.println("Đã nhặt " + gemItem.getAmount() + " kim cương.");
+            }
+
+            item.collect();
+        }
+
         items.removeIf(Item::isCollected);
     }
 
@@ -535,6 +576,7 @@ private void updateBullets(double deltaSeconds) {
 
     private void startNewRun() {
         levelManager.startNewRun();
+        currentRoomNumber = 1;
         loadCurrentLevel(true);
         SoundManager.getInstance().playBGM("/assets/Audio/StartGame.mp3");
     }
@@ -561,6 +603,15 @@ private void updateBullets(double deltaSeconds) {
         } else {
             this.player.getPosition().set(spawnPoint);
         }
+
+
+        /*
+         * Player phải được tạo trước rồi mới khôi phục HP
+         * và các dữ liệu trong database.
+         */
+        applyPendingPlayerSave();
+//        dua player den phong da luu
+        restorePlayerRoomPosition();
 
         // 4. Khởi tạo Pet đi theo
         createSelectedPet();
@@ -655,8 +706,10 @@ private void updateBullets(double deltaSeconds) {
         if (levelManager.advanceLevel()) {
             loadCurrentLevel(false);
             changeState(GameState.PLAYING);
+            saveGameAsync();
         } else {
             changeState(GameState.GAME_VICTORY);
+            saveGameAsync();
         }
     }
     public GameState getState() { return state; }
@@ -673,6 +726,97 @@ private void updateBullets(double deltaSeconds) {
     public Camera getCamera() { return camera; }
     public LevelManager getLevelManager() { return levelManager; }
     public MissionManager getMissionManager() { return missionManager; }
+
+
+    public String getCurrentPlayerName() {
+        return currentPlayerName;
+    }
+
+    public void setCurrentPlayerName(String currentPlayerName) {
+        if (currentPlayerName == null || currentPlayerName.isBlank()) {
+            this.currentPlayerName = "Knight";
+            return;
+        }
+
+        this.currentPlayerName = currentPlayerName.trim();
+    }
+
+    public int getGold() {
+        return gold;
+    }
+
+    public void setGold(int gold) {
+        this.gold = Math.max(0, gold);
+    }
+
+    public void addGold(int amount) {
+        if (amount > 0) {
+            gold += amount;
+        }
+    }
+
+    public boolean spendGold(int amount) {
+        if (amount <= 0 || gold < amount) {
+            return false;
+        }
+
+        gold -= amount;
+        return true;
+    }
+
+    public int getGems() {
+        return gems;
+    }
+
+    public void setGems(int gems) {
+        this.gems = Math.max(0, gems);
+    }
+
+    public void addGems(int amount) {
+        if (amount > 0) {
+            gems += amount;
+        }
+    }
+
+    public boolean spendGems(int amount) {
+        if (amount <= 0 || gems < amount) {
+            return false;
+        }
+
+        gems -= amount;
+        return true;
+    }
+
+    public int getScore() {
+        return score;
+    }
+
+    public void setScore(int score) {
+        this.score = Math.max(0, score);
+    }
+
+    public void addScore(int amount) {
+        if (amount > 0) {
+            score += amount;
+        }
+    }
+
+    public int getCurrentRoomNumber() {
+        return currentRoomNumber;
+    }
+
+    public void setCurrentRoomNumber(int currentRoomNumber) {
+        this.currentRoomNumber = Math.max(1, currentRoomNumber);
+    }
+
+    public double getPlayerEnergy() {
+        return playerEnergy;
+    }
+
+    public void setPlayerEnergy(double playerEnergy) {
+        this.playerEnergy = Math.max(0.0, playerEnergy);
+    }
+
 
     // Doi qua lai giua sung va kiem (bam nut vu khi tren HUD de test)
     public void switchPlayerWeapon() {
@@ -692,39 +836,39 @@ private void updateBullets(double deltaSeconds) {
 //        xu li ngam ban tu chuot
         return camera.screenToWorld(inputHandler.getMousePosition());
     }
-//Kiem tra xem di duoc khong
-public boolean canMoveTo(Vector2D position, double radius) {
-    if (position == null || mapManager == null || radius < 0.0) {
-        return false;
-    }
-
-    /*
-     * Kiểm tra:
-     * - Tile
-     * - Tường
-     * - Biên map
-     * - Cửa phòng đang đóng
-     */
-    if (!mapManager.isWalkable(position.getX(), position.getY(), radius)) {
-        return false;
-    }
-
-    /*
-     * Kiểm tra vật cản động trong các Room.
-     */
-    for (Obstacle obstacle : getObstacles()) {
-        if (obstacle == null || obstacle.isDestroyed()) {
-            continue;
-        }
-
-        if (obstacle.intersectsCircle(position, radius
-        )) {
+    //Kiem tra xem di duoc khong
+    public boolean canMoveTo(Vector2D position, double radius) {
+        if (position == null || mapManager == null || radius < 0.0) {
             return false;
         }
-    }
 
-    return true;
-}
+        /*
+         * Kiểm tra:
+         * - Tile
+         * - Tường
+         * - Biên map
+         * - Cửa phòng đang đóng
+         */
+        if (!mapManager.isWalkable(position.getX(), position.getY(), radius)) {
+            return false;
+        }
+
+        /*
+         * Kiểm tra vật cản động trong các Room.
+         */
+        for (Obstacle obstacle : getObstacles()) {
+            if (obstacle == null || obstacle.isDestroyed()) {
+                continue;
+            }
+
+            if (obstacle.intersectsCircle(position, radius
+            )) {
+                return false;
+            }
+        }
+
+        return true;
+    }
 
     public boolean isPlaying() {
         return state == GameState.PLAYING;
@@ -792,46 +936,46 @@ public boolean canMoveTo(Vector2D position, double radius) {
             enemies.add(enemy);
         }
     }
-//    xu li va cham giua entity va entity - giua quai va player
+    //    xu li va cham giua entity va entity - giua quai va player
 //  Thêm thuật toán đẩy lùi, tạo vùng cấm không cho quái chồng lấn lên hình Player
-private void resolvePlayerEnemyCollisions(double deltaSeconds) {
-    if (player == null || !player.isAlive()) return;
+    private void resolvePlayerEnemyCollisions(double deltaSeconds) {
+        if (player == null || !player.isAlive()) return;
 
-    Vector2D pPos = player.getPosition();
-    double pRadius = player.getRadius();
+        Vector2D pPos = player.getPosition();
+        double pRadius = player.getRadius();
 
-    for (Enemy enemy : enemies) {
-        if (!enemy.isAlive()) continue;
+        for (Enemy enemy : enemies) {
+            if (!enemy.isAlive()) continue;
 
-        Vector2D ePos = enemy.getPosition();
-        double eRadius = enemy.getRadius();
+            Vector2D ePos = enemy.getPosition();
+            double eRadius = enemy.getRadius();
 
-        double distance = pPos.distance(ePos);
-        double minDist = pRadius + eRadius; // Khoảng cách tối thiểu để không chạm lề hình của nhau
+            double distance = pPos.distance(ePos);
+            double minDist = pRadius + eRadius; // Khoảng cách tối thiểu để không chạm lề hình của nhau
 
-        // Nếu khoảng cách thực tế nhỏ hơn tổng bán kính -> Đang bị đè hình!
-        if (distance < minDist) {
-            double overlap = minDist - distance; // Độ sâu bị lún hình vào nhau
+            // Nếu khoảng cách thực tế nhỏ hơn tổng bán kính -> Đang bị đè hình!
+            if (distance < minDist) {
+                double overlap = minDist - distance; // Độ sâu bị lún hình vào nhau
 
-            // Hướng đẩy từ tâm Player hướng thẳng ra tâm Quái
-            Vector2D pushDirection = ePos.copy().subtract(pPos);
+                // Hướng đẩy từ tâm Player hướng thẳng ra tâm Quái
+                Vector2D pushDirection = ePos.copy().subtract(pPos);
 
-            if (pushDirection.length() == 0.0) {
-                // Tránh trường hợp 2 tâm trùng khít hoàn toàn (Length = 0 không tạo được vector)
-                pushDirection = new Vector2D(1.0, 0.0);
+                if (pushDirection.length() == 0.0) {
+                    // Tránh trường hợp 2 tâm trùng khít hoàn toàn (Length = 0 không tạo được vector)
+                    pushDirection = new Vector2D(1.0, 0.0);
+                }
+
+                pushDirection.normalize();
+
+                // Đẩy quái ra xa 1 nửa khoảng cách lún
+                Vector2D pushEnemy = pushDirection.scale(overlap * 0.5);
+                enemy.move(this, pushEnemy.getX(), pushEnemy.getY());
+
+                // Đẩy ngược Player về phía sau 1 nửa khoảng cách lún để tạo phản lực mượt mà
+                player.move(this, -pushEnemy.getX(), -pushEnemy.getY());
             }
-
-            pushDirection.normalize();
-
-            // Đẩy quái ra xa 1 nửa khoảng cách lún
-            Vector2D pushEnemy = pushDirection.scale(overlap * 0.5);
-            enemy.move(this, pushEnemy.getX(), pushEnemy.getY());
-
-            // Đẩy ngược Player về phía sau 1 nửa khoảng cách lún để tạo phản lực mượt mà
-            player.move(this, -pushEnemy.getX(), -pushEnemy.getY());
         }
     }
-}
     /**
      * (cuong)Xu li he thong ESC, Mute
      * goi lien tuc o moi frame de tranh bi fxml button de len
@@ -988,30 +1132,30 @@ private void resolvePlayerEnemyCollisions(double deltaSeconds) {
 
         return (ua >= 0.0 && ua <= 1.0 && ub >= 0.0 && ub <= 1.0);
     }
-//    cac phuong thuc pet
-public void equipPet(PetType type) {
-    PetType safeType = (type != null) ? type : PetType.NONE;
+    //    cac phuong thuc pet
+    public void equipPet(PetType type) {
+        PetType safeType = (type != null) ? type : PetType.NONE;
 
-    // Luu lua chon
-    PetSelectionManager.getInstance().selectPet(safeType);
+        // Luu lua chon
+        PetSelectionManager.getInstance().selectPet(safeType);
 
-    // Chua co player thi chi can luu lua chon
-    if (player == null) {
-        currentPet = null;
-        return;
+        // Chua co player thi chi can luu lua chon
+        if (player == null) {
+            currentPet = null;
+            return;
+        }
+
+        // Khoi tao instance pet
+        if (safeType.hasPet()) {
+            currentPet = PetFactory.create(
+                    safeType,
+                    player.getPosition().getX(),
+                    player.getPosition().getY()
+            );
+        } else {
+            currentPet = null;
+        }
     }
-
-    // Khoi tao instance pet
-    if (safeType.hasPet()) {
-        currentPet = PetFactory.create(
-                safeType,
-                player.getPosition().getX(),
-                player.getPosition().getY()
-        );
-    } else {
-        currentPet = null;
-    }
-}
     public void removePet() {
         equipPet(PetType.NONE);
     }
@@ -1035,6 +1179,198 @@ public void equipPet(PetType type) {
         }
 
         player.equipWeapon(safeType.createWeapon());
+    }
+    //    data base
+    public void saveGameAsync() {
+        if (player == null) {
+            System.out.println("Chưa có Player nên chưa thể lưu game.");
+            return;
+        }
+        PlayerSave save;
+        try {
+            save = PlayerSaveMapper.fromWorld(this);
+        } catch (RuntimeException exception) {
+            System.err.println("Không thể tạo dữ liệu save: " + exception.getMessage());
+            return;
+        }
+
+        Thread saveThread = new Thread(() -> {
+            PlayerSaveDAO dao = new PlayerSaveDAO();
+
+            if (dao.save(save)) {
+                System.out.println("Cloud Save thành công: " + save.getPlayerName());
+            } else {
+                System.err.println("Cloud Save thất bại: " + save.getPlayerName()
+                );
+            }
+        });
+
+        saveThread.setName("cloud-save-thread");
+        saveThread.setDaemon(true);
+        saveThread.start();
+    }
+    public void loadGameAsync(String playerName) {
+        String safePlayerName = playerName == null || playerName.isBlank() ? "Knight" : playerName.trim();
+
+        Thread loadThread = new Thread(() -> {PlayerSaveDAO dao = new PlayerSaveDAO();
+
+            dao.findByName(safePlayerName).ifPresentOrElse(save -> {
+                        /*
+                         * Không sửa trực tiếp dữ liệu game từ thread database.
+                         * Chuyển về JavaFX Application Thread.
+                         */
+                        javafx.application.Platform.runLater(() -> {pendingPlayerSave = save;
+
+                            /*
+                             * Nếu Player đã tồn tại thì áp dụng ngay.
+                             * Nếu chưa tồn tại, loadCurrentLevel sẽ áp dụng sau.
+                             */
+                            if (player != null) {
+                                applyPendingPlayerSave();
+                                restorePlayerRoomPosition();
+                            }
+
+                            System.out.println("Cloud Load thành công: " + safePlayerName);
+                        });
+                    },
+
+                    () -> System.out.println("Chưa có save của " + safePlayerName + ". Sẽ bắt đầu game mới."
+                    )
+            );
+        });
+
+        loadThread.setName("cloud-load-thread");
+        loadThread.setDaemon(true);
+        loadThread.start();
+    }
+    private void applyPendingPlayerSave() {
+        if (pendingPlayerSave == null || player == null) {
+            return;
+        }
+
+        PlayerSaveMapper.applyToWorld(this, pendingPlayerSave);
+
+        System.out.println("Đã áp dụng save vào Player.");
+
+        pendingPlayerSave = null;
+    }
+    public boolean saveGameNow() {
+        if (player == null) {
+            return false;
+        }
+
+        try {
+            PlayerSave save = PlayerSaveMapper.fromWorld(this);
+
+            PlayerSaveDAO dao = new PlayerSaveDAO();
+
+            boolean result = dao.save(save);
+
+            if (result) {
+                System.out.println("Đã lưu game trước khi thoát.");
+            }
+            return result;
+
+        } catch (RuntimeException exception) {
+            System.err.println("Lỗi lưu khi thoát: " + exception.getMessage()
+            );
+            return false;
+        }
+    }
+    private void removeDeadEnemiesAndGiveRewards() {
+        for (int i = enemies.size() - 1; i >= 0; i--) {
+            Enemy enemy = enemies.get(i);
+
+            if (!enemy.isAlive()) {
+                giveEnemyReward(enemy);
+                enemies.remove(i);
+            }
+        }
+    }
+    private void giveEnemyReward(Enemy enemy) {
+        if (enemy == null || enemy.getPosition() == null) {
+            return;
+        }
+
+        int scoreReward = 100;
+        int goldReward = random.nextInt(6) + 5;
+        double gemDropChance = 0.15;
+
+        addScore(scoreReward);
+
+        Vector2D enemyPosition = enemy.getPosition().copy();
+        Vector2D goldPosition = enemyPosition.copy().add(-8.0, 0.0);
+        items.add(new GoldItem(goldPosition, goldReward, null));
+
+        boolean droppedGem = random.nextDouble() < gemDropChance;
+        if (droppedGem) {
+            Vector2D gemPosition = enemyPosition.copy().add(8.0, 0.0);
+            items.add(new GemItem(gemPosition, 1, null));
+        }
+
+        System.out.println("Đã tiêu diệt quái | +" + scoreReward + " điểm");
+        System.out.println("Quái rơi " + goldReward + " vàng" + (droppedGem ? " và 1 kim cương." : "."));
+    }
+    private void updateAutoSave(double deltaSeconds) {
+        autoSaveTimer += deltaSeconds;
+
+        if (autoSaveTimer >= AUTO_SAVE_INTERVAL) {
+            autoSaveTimer = 0.0;
+            saveGameAsync();
+        }
+    }
+    private void updateCurrentRoom() {
+        if (player == null || player.getPosition() == null || mapManager == null || mapManager.getRooms() == null) {
+            return;
+        }
+        List<Room> rooms = mapManager.getRooms();
+        for (int i = 0; i < rooms.size(); i++) {
+            Room room = rooms.get(i);
+
+            if (room == null || room.getBound() == null) {
+                continue;
+            }
+
+            boolean playerInsideRoom = room.getBound().contains(player.getPosition().getX(), player.getPosition().getY());
+            if (!playerInsideRoom) {
+                continue;
+            }
+
+            int detectedRoomNumber = i + 1;
+            if (detectedRoomNumber != currentRoomNumber) {
+                currentRoomNumber = detectedRoomNumber;
+
+                System.out.println("Player đã vào phòng " + currentRoomNumber);
+                saveGameAsync();
+            }
+            return;
+        }
+    }
+    private void restorePlayerRoomPosition() {
+        if (player == null || mapManager == null || mapManager.getRooms() == null || mapManager.getRooms().isEmpty()) {
+            return;
+        }
+        int roomIndex = currentRoomNumber - 1;
+        if (roomIndex < 0 || roomIndex >= mapManager.getRooms().size()) {
+            currentRoomNumber = 1;
+            return;
+        }
+
+        Room savedRoom = mapManager.getRooms().get(roomIndex);
+
+        if (savedRoom == null || savedRoom.getBound() == null) {
+            currentRoomNumber = 1;
+            return;
+        }
+
+        double roomCenterX = savedRoom.getBound().getMinX() + savedRoom.getBound().getWidth() / 2.0;
+        double roomCenterY = savedRoom.getBound().getMinY() + savedRoom.getBound().getHeight() / 2.0;
+        Vector2D roomCenter = new Vector2D(roomCenterX, roomCenterY);
+        if (canMoveTo(roomCenter, player.getRadius())) {
+            player.getPosition().set(roomCenter);
+            System.out.println("Đã khôi phục Player tại phòng " + currentRoomNumber
+            );
+        }
     }
 }
 //NOTE : cac ham xu ly va cham
