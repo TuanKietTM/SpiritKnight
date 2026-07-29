@@ -6,10 +6,10 @@ import com.soulknight.entity.Player;
 import com.soulknight.level.LevelManager;
 import com.soulknight.mission.MissionManager;
 import com.soulknight.utils.Vector2D;
-import com.soulknight.weapon.Weapon;
 import com.soulknight.weapon.WeaponType;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.scene.canvas.Canvas;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.image.Image;
@@ -52,7 +52,7 @@ public final class HUD {
     @FXML
     private Label weaponLabel;
 
-    // Thêm ImageView hiển thị icon vũ khí trên HUD
+    // ImageView hiển thị icon vũ khí trên HUD
     @FXML
     private ImageView weaponIcon;
 
@@ -61,9 +61,20 @@ public final class HUD {
     @FXML
     private Circle joystickThumb;
 
+    @FXML
+    private Canvas minimapCanvas;
+    private MinimapRenderer minimapRenderer;
+
     private Runnable onPauseRequested;
     private Runnable onWeaponSwitchRequested;
     private String currentWeaponImagePath = "";
+
+    @FXML
+    private void initialize() {
+        if (minimapCanvas != null) {
+            this.minimapRenderer = new MinimapRenderer(minimapCanvas);
+        }
+    }
 
     public void setOnPauseRequested(Runnable callback) {
         this.onPauseRequested = callback;
@@ -80,7 +91,6 @@ public final class HUD {
         }
     }
 
-    // Bấm vào vòng vũ khí trên HUD để đổi giữa súng và kiếm
     @FXML
     private void onWeaponButtonClicked(MouseEvent event) {
         if (onWeaponSwitchRequested != null) {
@@ -88,23 +98,19 @@ public final class HUD {
         }
     }
 
-    // Cập nhật dữ liệu HUD
     public void updateData(GameWorld world, Player player, LevelManager levelManager, MissionManager missionManager,
                            int enemyCount, int itemCount) {
         if (hpLabel == null) return;
 
-        // Cập nhật HP & vũ khí
         if (player != null) {
             int currentHp = player.getHealth();
             int maxHp = player.getMaxHealth();
             hpLabel.setText(currentHp + "/" + maxHp);
             hpBar.setProgress(maxHp > 0 ? (double) currentHp / maxHp : 0.0);
 
-            // Cập nhật tên & hình ảnh vũ khí
             updateWeaponUI(player);
         }
 
-        // Cập nhật giáp (Shield)
         if (shieldLabel != null && shieldBar != null) {
             int currentShield = 6;
             int maxShield = 6;
@@ -112,7 +118,6 @@ public final class HUD {
             shieldBar.setProgress((double) currentShield / maxShield);
         }
 
-        //  Cập nhật Mana
         if (manaLabel != null && manaBar != null) {
             int currentMana = 200;
             int maxMana = 200;
@@ -120,7 +125,6 @@ public final class HUD {
             manaBar.setProgress((double) currentMana / maxMana);
         }
 
-        // Các thông tin nhiệm vụ & Level
         if (levelManager != null && levelBannerLabel != null) {
             levelBannerLabel.setText(levelManager.getLevelBanner());
         }
@@ -132,22 +136,30 @@ public final class HUD {
             entitiesLabel.setText(String.valueOf(itemCount));
         }
 
-        //  Cập nhật vị trí Joystick
         updateJoystickUI(world);
+
+//      cap nhat render mini map
+        updateMinimapUI(world, player);
     }
-    //  Cập nhật UI Vũ khí
+
+    private void updateMinimapUI(GameWorld world, Player player) {
+        if (minimapCanvas == null) return;
+        if (minimapRenderer == null) {
+            minimapRenderer = new MinimapRenderer(minimapCanvas);
+        }
+        minimapRenderer.render(world, player);
+    }
+
     private void updateWeaponUI(Player player) {
         String currentName = player.getWeaponName();
         if (currentName == null || currentName.isBlank()) return;
 
-        // Cập nhật Tên lên Label
         if (weaponLabel != null) {
             weaponLabel.setText(currentName.toUpperCase());
         }
 
         if (weaponIcon == null) return;
 
-        // Tìm WeaponType tương ứng
         WeaponType matchedType = findWeaponTypeByName(currentName);
 
         String imagePath = null;
@@ -167,7 +179,8 @@ public final class HUD {
         weaponIcon.setSmooth(false);
         weaponIcon.setPreserveRatio(true);
     }
-//    tim thong tin vu khi trong WeaponType
+
+    // Tìm thông tin vũ khí trong WeaponType
     private WeaponType findWeaponTypeByName(String rawName) {
         if (rawName == null) return null;
 
@@ -187,6 +200,7 @@ public final class HUD {
 
         return null;
     }
+
     private void updateJoystickUI(GameWorld world) {
         if (joystickContainer == null || joystickThumb == null || world == null) return;
         if (world.getInputHandler() == null) return;
