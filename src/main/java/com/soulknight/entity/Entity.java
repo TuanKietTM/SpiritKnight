@@ -72,4 +72,7 @@ public abstract class Entity {
     public int getMaxHealth() {
         return maxHealth;
     }
+    public void setHealth(int health) {
+        this.health = Math.max(0, health);
+    }
 }

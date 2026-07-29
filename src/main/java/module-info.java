@@ -6,6 +6,7 @@ module com.soulknight {
     requires com.fasterxml.jackson.annotation;
     requires com.fasterxml.jackson.databind;
     requires javafx.base;
+    requires java.sql;
     opens com.soulknight.ui to javafx.fxml;
     opens com.soulknight to javafx.graphics, javafx.fxml;
     opens com.soulknight.map.json to com.fasterxml.jackson.databind;
