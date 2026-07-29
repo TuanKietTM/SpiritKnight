@@ -150,9 +150,25 @@
     -fx-stroke-width: 2px;
 }
 
-/* Cần gạt di chuyển màu Neon */
+
+/* Cần gạt di chuyển màu Xám t */
 .joystick-thumb {
-    -fx-fill: rgba(0, 220, 255, 0.7);
-    -fx-stroke: rgba(255, 255, 255, 0.8);
-    -fx-stroke-width: 1.5px;
+    -fx-fill: rgba(120, 120, 120, 0.75);
+    -fx-stroke: rgba(200, 200, 200, 0.85);
+    -fx-stroke-width: 2px;
+}
+
+.joystick-base {
+    -fx-fill: rgba(0, 0, 0, 0.35);
+    -fx-stroke: rgba(100, 100, 100, 0.5);
+    -fx-stroke-width: 2px;
+}
+/*  mini map */
+.minimap-container {
+    -fx-background-color: rgba(15, 15, 15, 0.6);
+    -fx-border-color: #555555;
+    -fx-border-width: 2px;
+    -fx-border-radius: 10px;
+    -fx-background-radius: 10px;
+    -fx-padding: 3px;
 }

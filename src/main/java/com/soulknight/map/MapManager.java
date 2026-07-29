@@ -461,4 +461,39 @@ public final class MapManager {
     public List<Room> getRooms() {
         return rooms;
     }
+
+
+    /**
+     * Ham lay so luong o de dai dien cho hanh lang trong mini map
+     */
+    public List<javafx.geometry.BoundingBox> getCorridors() {
+        List<javafx.geometry.BoundingBox> corridors = new ArrayList<>();
+        if (tiles == null) return corridors;
+
+        // Quét toàn bộ ma trận tile, lấy các ô sàn / cửa
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                Tile tile = tiles[y][x];
+                if (tile != null && (tile.getType() == Tile.TileType.FLOOR || tile.getType() == Tile.TileType.DOOR_OPEN)) {
+                    double worldX = x * tileSize;
+                    double worldY = y * tileSize;
+
+                    // Kiểm tra xem ô này có nằm TRONG phòng nào không
+                    boolean insideRoom = false;
+                    for (Room room : rooms) {
+                        if (room.getBound() != null && room.getBound().contains(worldX + tileSize / 2.0, worldY + tileSize / 2.0)) {
+                            insideRoom = true;
+                            break;
+                        }
+                    }
+
+                    // Nếu ô FLOOR/DOOR_OPEN nằm NGOÀI các phòng -> Nó chính là HÀNH LÀNG!
+                    if (!insideRoom) {
+                        corridors.add(new javafx.geometry.BoundingBox(worldX, worldY, tileSize, tileSize));
+                    }
+                }
+            }
+        }
+        return corridors;
+    }
 }
