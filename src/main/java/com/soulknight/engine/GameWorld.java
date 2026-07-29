@@ -63,6 +63,7 @@ public final class GameWorld {
 //    Bien cho hieu ung dau tien cua start room
     private SpawnEffect playerSpawnEffect;
     private SpawnEffect petSpawnEffect;
+    private Tile[][] tiles;
 
     public interface GameStateListener {
         void onStateChanged(GameState newState);
@@ -254,14 +255,26 @@ private void updateBullets(double deltaSeconds) {
         bullets.removeIf(bullet -> !bullet.isActive());
         enemies.removeIf(enemy -> !enemy.isAlive());
 
-        // Xóa vật cản nếu bị phá hủy
-        if (mapManager != null && mapManager.getRooms() != null) {
-            for (Room room : mapManager.getRooms()) {
-                if (room.getObstacles() != null) {
-                    room.getObstacles().removeIf(Obstacle::isDestroyed);
+//       xoa vat can
+    if (mapManager != null && mapManager.getRooms() != null) {
+        double tileSize = mapManager.getTileSize();
+
+        for (Room room : mapManager.getRooms()) {
+            if (room.getObstacles() != null) {
+//                loc ra cac vat can co the pha duoc chuyen thanh floor sau khi pha
+                for (Obstacle obstacle : room.getObstacles()) {
+                    if (obstacle.isDestroyed()) {
+                        int gridX = (int) (obstacle.getPosition().getX() / tileSize);
+                        int gridY = (int) (obstacle.getPosition().getY() / tileSize);
+
+                        mapManager.setTileType(gridX, gridY, Tile.TileType.FLOOR);
+                    }
                 }
+
+                room.getObstacles().removeIf(Obstacle::isDestroyed);
             }
         }
+    }
     }
 
     // Tao hieu ung no tai vi tri dan va cham (tuong hoac muc tieu)
@@ -335,6 +348,18 @@ private void updateBullets(double deltaSeconds) {
     private void renderWorld(GraphicsContext graphicsContext, double renderWidth, double renderHeight) {
         // 1. Vẽ sàn nhà bẹt dưới cùng trước
         mapManager.renderFloor(graphicsContext, camera, renderWidth, renderHeight);
+//        ve bong duoi chan vat can
+        if (mapManager != null && mapManager.getRooms() != null) {
+            for (Room room : mapManager.getRooms()) {
+                room.loadObstaclesFromTiles(mapManager.getTiles());
+                if (room.getObstacles() != null) {
+                    for (Obstacle obstacle : room.getObstacles()) {
+                        // Call hàm vẽ bóng oval độc lập đã tạo ở Bước 1
+                        obstacle.renderShadow(graphicsContext, camera);
+                    }
+                }
+            }
+        }
 
         // 2. Danh sách Y-Sorting
         class SortableObject {
@@ -434,13 +459,16 @@ private void updateBullets(double deltaSeconds) {
             }));
         }
 
-        // E. Thêm OBSTACLES (Vật cản)
+        // E. Thêm OBSTACLES (Vật cản) vào Y-Sorting
         if (mapManager != null && mapManager.getRooms() != null) {
             for (Room room : mapManager.getRooms()) {
                 if (room.getObstacles() != null) {
                     for (Obstacle obstacle : room.getObstacles()) {
-                        double obsY = obstacle.getPosition().getY() + 16.0;
-                        renderList.add(new SortableObject(obsY, () -> {
+                        // Mốc Y chuẩn là ĐÁY của vật cản (position.getY() + height)
+                        double obsBottomY = obstacle.getPosition().getY() + obstacle.getHeight();
+
+                        renderList.add(new SortableObject(obsBottomY, () -> {
+                            // Chỉ vẽ thân/sprite vật cản (Bóng đã vẽ ở trên Sàn)
                             obstacle.render(graphicsContext, camera);
                         }));
                     }
@@ -493,7 +521,7 @@ private void updateBullets(double deltaSeconds) {
             for (Room room : this.mapManager.getRooms()) {
                 if (room.getType() == Room.RoomType.FIGHT || room.getType() == Room.RoomType.BOSS) {
                     // Tự động sinh vật cản thông minh tránh Player, Pet và Cửa
-                    room.generateObstacles(this.random, this);
+                    room.loadObstaclesFromTiles(this.tiles);
                 }
             }
         }
