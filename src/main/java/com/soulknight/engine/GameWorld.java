@@ -1,5 +1,6 @@
 package com.soulknight.engine;
 
+import com.soulknight.animation.ParticleManager;
 import com.soulknight.animation.ShadowRenderer;
 import com.soulknight.animation.SpawnEffect;
 import com.soulknight.entity.Enemy;
@@ -57,12 +58,15 @@ public final class GameWorld {
     // Danh sach hieu ung chem cua vu khi can chien (kiem)
     private final List<SlashEffect> slashEffects = new ArrayList<>();
     private final List<Item> items = new ArrayList<>();
+    // Sửa tên biến từ effectManager -> particleManager
+    private final ParticleManager particleManager = new ParticleManager();
     private GameState state = GameState.INTRO;
     private double enemySpawnTimer;
     private Vector2D pendingPortalPosition;
 //    Bien cho hieu ung dau tien cua start room
     private SpawnEffect playerSpawnEffect;
     private SpawnEffect petSpawnEffect;
+
     private Tile[][] tiles;
 
     public interface GameStateListener {
@@ -175,6 +179,9 @@ public final class GameWorld {
             changeState(GameState.GAME_OVER);
             return;
         }
+        if (particleManager != null) {
+            particleManager.update(deltaSeconds);
+        }
     }
 
     private void updateLevelClear(double deltaSeconds, double viewportWidth, double viewportHeight) {
@@ -225,14 +232,32 @@ private void updateBullets(double deltaSeconds) {
             for (Obstacle obstacle : allObstacles) {
                 if (obstacle.intersectsCircle(bullet.getPosition(), bullet.getRadius())) {
                     obstacle.takeDamage(bullet.getDamage());
-                    spawnBulletExplosion(bullet.getPosition());
+
+//                    hieu ung tia lua khi dan trung vat can
+
+                    particleManager.spawnHitImpact(bullet.getPosition());
                     bullet.deactivate();
                     hitObstacle = true;
                     break;
                 }
             }
-            if (hitObstacle) {
-                continue;
+
+            // Xử lý vật cản bị vỡ
+            for (Room room : mapManager.getRooms()) {
+                double tileSize = mapManager.getTileSize();
+                if (room.getObstacles() != null) {
+                    for (Obstacle obstacle : room.getObstacles()) {
+                        if (obstacle.isDestroyed()) {
+//                            hieu uong vun go
+                            particleManager.spawnWoodDebris(obstacle.getCenter());
+
+                            int gridX = (int) (obstacle.getPosition().getX() / tileSize);
+                            int gridY = (int) (obstacle.getPosition().getY() / tileSize);
+                            mapManager.setTileType(gridX, gridY, Tile.TileType.FLOOR);
+                        }
+                    }
+                    room.getObstacles().removeIf(Obstacle::isDestroyed);
+                }
             }
 
             // 5. Va chạm với Entity (Enemy / Player)
@@ -502,6 +527,9 @@ private void updateBullets(double deltaSeconds) {
         for (Bullet bullet : bullets) bullet.render(graphicsContext, camera);
         for (SlashEffect slash : slashEffects) slash.render(graphicsContext, camera);
         for (ExplosionEffect explosion : explosions) explosion.render(graphicsContext, camera);
+        if (particleManager != null) {
+            particleManager.render(graphicsContext, camera);
+        }
     }
 
 
@@ -860,6 +888,10 @@ private void resolvePlayerEnemyCollisions(double deltaSeconds) {
                 }
             }
             enemy.takeDamage(damage);
+//            chem enemy sing ra tia lua
+            if (particleManager != null) {
+                particleManager.spawnHitImpact(enemy.getPosition());
+            }
         }
 
         // Nhat chem cung pha duoc vat can (hom go) trong hinh quat
@@ -886,6 +918,10 @@ private void resolvePlayerEnemyCollisions(double deltaSeconds) {
                 }
             }
             obstacle.takeDamage(damage);
+            if (particleManager != null) {
+                Vector2D impactPoint = new Vector2D(closestX, closestY);
+                particleManager.spawnMeleeObstacleImpact(impactPoint, aimAngle);
+            }
         }
     }
     /**
