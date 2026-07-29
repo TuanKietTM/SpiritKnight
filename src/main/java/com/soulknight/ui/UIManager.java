@@ -5,7 +5,6 @@ import com.soulknight.engine.GameWorld;
 import com.soulknight.entity.Player;
 import com.soulknight.utils.Constants;
 import com.soulknight.utils.SoundManager;
-import com.soulknight.pet.PetType;
 import com.soulknight.weapon.Weapon;
 import com.soulknight.weapon.WeaponType;
 import javafx.animation.FadeTransition;
@@ -32,7 +31,7 @@ public final class UIManager {
     private ShopController shopController;
 
     private Parent introRoot;
-    private Parent storyIntroRoot; // <-- Thêm Parent Story
+    private Parent storyIntroRoot;
     private Parent hudRoot;
     private Parent menuRoot;
     private Parent levelClearRoot;
