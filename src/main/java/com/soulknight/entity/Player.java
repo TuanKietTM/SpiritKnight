@@ -199,8 +199,8 @@ public final class Player extends Entity {
 
     @Override
     public void render(javafx.scene.canvas.GraphicsContext graphicsContext, com.soulknight.engine.Camera camera) {
-        double worldWidth = 32.0;
-        double worldHeight = 43.0;
+        double worldWidth = 24.0;
+        double worldHeight = 24.0;
         animator.render(graphicsContext, camera, getPosition().getX(), getPosition().getY(), worldWidth, worldHeight,
                 getRadius(), isFacingLeft
         );

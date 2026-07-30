@@ -20,9 +20,21 @@ public class Enemy extends Entity {
     private final GameEventListener eventListener;
     private double attackCooldown;
     private boolean defeatNotified;
+    private double patrolStuckTimer = 0.0; // Bo dem thoi gian chong ket khi di tuan
 
     private final EnemyAnimator animator;
     private boolean isFacingLeft = false;
+    // State Machine cho AI
+    public enum State { PATROL, CHASE }
+    private State currentState = State.PATROL;
+
+    // Biến cho logic Patrol (Đi tuần)
+    private Vector2D spawnPoint;        // Điểm xuất phát ban đầu để quanh quẩn
+    private Vector2D patrolTarget;     // Điểm ngẫu nhiên đang hướng tới
+    private double patrolWaitTimer = 0; // Thời gian dừng nghỉ giữa các điểm tuần
+    private final double detectionRadius = 120.0; // Bán kính phát hiện Player (nếu vào tầm)
+    private Vector2D lastKnownPlayerPos = null; // Vị trí cuối cùng nhìn thấy Player
+
 
     public Enemy(EnemyArchetype archetype, Vector2D spawnPoint, double radius, int health, double moveSpeed,
                  int contactDamage, Weapon rangedWeapon, GameEventListener eventListener) {
@@ -33,6 +45,11 @@ public class Enemy extends Entity {
         this.rangedWeapon = rangedWeapon;
         this.eventListener = eventListener;
         this.animator = new EnemyAnimator(archetype);
+
+        this.spawnPoint = spawnPoint.copy();
+        this.patrolTarget = spawnPoint.copy(); // Đặt tạm bằng spawnPoint
+        this.currentState = State.PATROL;     // Mặc định ban đầu đi tuần
+        this.patrolWaitTimer = 0.5;           // Sau 0.5s chạy update() nó sẽ tự tìm điểm tuần chuẩn có world
     }
 
     @Override
@@ -56,9 +73,9 @@ public class Enemy extends Entity {
 
 //        Chia tung loai quai
         switch (archetype) {
-            case SLIME -> standardChaseAndContact(world, playerPos, deltaSeconds);
-            case SKELETON_ARCHER -> guardianAI(world, playerPos, distanceToPlayer, deltaSeconds);
-            case ELITE_MINION -> wildBoarAI(world, playerPos, distanceToPlayer, deltaSeconds);
+            case SLIME -> meleeAI(world, playerPos, distanceToPlayer, deltaSeconds);
+            case SKELETON_ARCHER -> meleeAI(world, playerPos, distanceToPlayer, deltaSeconds);
+            case ELITE_MINION -> meleeAI(world, playerPos, distanceToPlayer, deltaSeconds);
         }
 
         // Cập nhật khung hình Animator
@@ -212,36 +229,94 @@ public class Enemy extends Entity {
         }
     }
 
-    private void standardChaseAndContact(GameWorld world, Vector2D playerPos, double deltaSeconds) {
-        Vector2D direction = playerPos.copy().subtract(getPosition());
-        double distance = direction.length();
+    private void meleeAI(GameWorld world, Vector2D playerPos, double distanceToPlayer, double deltaSeconds) {
+        boolean canSeePlayer = world.hasClearLineOfSight(getPosition(), playerPos);
 
-        double minAllowedDistance = world.getPlayer().getRadius() + this.getRadius() + 5.0;
+        // ==========================================
+        // 1. CHUYỂN ĐỔI TRẠNG THÁI (STATE TRANSITION)
 
-        if (distance > minAllowedDistance) {
-            if (distance > 0.0) {
-                direction.normalize().scale(moveSpeed * deltaSeconds);
-                move(world, direction.getX(), direction.getY());
-            }
-        } else {
-            Vector2D pushOut = getPosition().copy().subtract(playerPos);
-            if (pushOut.length() > 0.0) {
-                pushOut.normalize().scale(40.0 * deltaSeconds);
-                move(world, pushOut.getX(), pushOut.getY());
+        if (canSeePlayer && distanceToPlayer <= detectionRadius) { // 👈 Thêm điều kiện khoảng cách ở đây
+            // Chỉ khi nhìn thấy VÀ Player nằm trong bán kính detectionRadius thì mới đuổi
+            this.lastKnownPlayerPos = playerPos.copy();
+            this.currentState = State.CHASE;
+        } else if (currentState == State.CHASE) {
+            // Nếu BỊ KHUẤT TẦM NHÌN hoặc Player CHẠY QUÁ XA (vượt quá detectionRadius * 1.5):
+            if (lastKnownPlayerPos != null) {
+                double distToLastPos = getPosition().distance(lastKnownPlayerPos);
+
+                // Nếu đã chạy tới điểm nhìn thấy cuối cùng HOẶC Player đã chạy quá xa tầm mắt
+                if (distToLastPos <= 20.0 || distanceToPlayer > detectionRadius * 1.5) {
+                    this.currentState = State.PATROL;
+                    this.lastKnownPlayerPos = null;
+                    this.patrolWaitTimer = 1.0;
+                    this.patrolTarget = generateNewPatrolTarget(world, getPosition(), 120.0);
+                }
+            } else {
+                this.currentState = State.PATROL;
+                this.patrolTarget = generateNewPatrolTarget(world, getPosition(), 120.0);
             }
         }
 
-        if (distance <= minAllowedDistance + 2.0 && attackCooldown <= 0.0) {
-            world.getPlayer().takeDamage(contactDamage);
-            attackCooldown = 0.9;
+        // ==========================================
+        // 2. THỰC THI HÀNH VI (STATE EXECUTION)
+        // ==========================================
+        if (currentState == State.PATROL) {
+            // 🚶 LOGIC ĐI TUẦN (PATROL)
+            if (patrolWaitTimer > 0) {
+                patrolWaitTimer -= deltaSeconds;
+            } else {
+                // Nếu chưa có điểm tuần hoặc đã đi gần tới điểm tuần -> Tìm điểm mới
+                if (patrolTarget == null || getPosition().distance(patrolTarget) < 15.0) {
+                    patrolWaitTimer = 1.0 + Math.random() * 1.5; // Đứng nghỉ 1~2.5s
+                    patrolTarget = generateNewPatrolTarget(world, getPosition(), 100.0);
+                } else {
+                    // Di chuyển tới điểm đi tuần
+                    Vector2D dir = patrolTarget.copy().subtract(getPosition());
+                    if (dir.length() > 0) {
+                        dir.normalize().scale(moveSpeed * 0.4 * deltaSeconds); // Tốc độ đi tuần bằng 40% tốc độ chạy
+                        move(world, dir.getX(), dir.getY());
+                    }
+                }
+            }
+        } // Trong ham meleeAI cua Enemy.java
+        else {
+            // LOGIC DUOI BAT (CHASE)
+
+            // 1. Xac dinh muc tieu: Neu thay thi duoi Player, neu khuat thi chay den vi tri thay lan cuoi
+            Vector2D targetPos = canSeePlayer ? playerPos : lastKnownPlayerPos;
+
+            if (targetPos != null) {
+                double distToTarget = getPosition().distance(targetPos);
+
+                // Khoang cach toi thieu de khong bi de len nguoi Player
+                double minAllowedDistance = world.getPlayer().getRadius() + getRadius() + 4.0;
+
+                if (distToTarget > minAllowedDistance) {
+                    // Su dung smartMoveTo thay vi move() de tu dong lach mép tuong doc
+                    smartMoveTo(world, targetPos, deltaSeconds);
+                } else if (canSeePlayer) {
+                    // Day nhe ra neu quai va cham qua sat Player
+                    Vector2D pushOut = getPosition().copy().subtract(playerPos);
+                    if (pushOut.length() > 0) {
+                        pushOut.normalize().scale(30.0 * deltaSeconds);
+                        move(world, pushOut.getX(), pushOut.getY());
+                    }
+                }
+
+                // Gay sat thuong khi ap sat va co tam nhin
+                if (canSeePlayer && distanceToPlayer <= minAllowedDistance + 3.0 && attackCooldown <= 0.0) {
+                    world.getPlayer().takeDamage(contactDamage);
+                    attackCooldown = 0.8;
+                }
+            }
         }
     }
-
     public void coverAI(GameWorld world, Vector2D playerPos, double deltaSeconds) {
         List<Obstacle> obstacles = world.getObstacles();
+        double distanceToPlayer = getPosition().distance(playerPos);
 
         if (obstacles == null || obstacles.isEmpty()) {
-            standardChaseAndContact(world, playerPos, deltaSeconds);
+            meleeAI(world, playerPos, distanceToPlayer, deltaSeconds);
             return;
         }
 
@@ -285,6 +360,73 @@ public class Enemy extends Entity {
                 eventListener.onEnemyDefeated(this);
             }
         }
+    }
+
+    private Vector2D generateNewPatrolTarget(GameWorld world, Vector2D center, double radius) {
+        java.util.Random rand = new java.util.Random();
+
+        for (int i = 0; i < 20; i++) {
+            double angle = rand.nextDouble() * Math.PI * 2;
+            // Giảm bán kính đi tuần xuống vừa phải (60px - 100px) để tránh đâm ra quá xa
+            double dist = 40.0 + rand.nextDouble() * (radius - 40.0);
+            double targetX = center.getX() + Math.cos(angle) * dist;
+            double targetY = center.getY() + Math.sin(angle) * dist;
+
+            Vector2D candidate = new Vector2D(targetX, targetY);
+
+            if (world != null) {
+                // Điểm đích phải di chuyển tới được với BÁN KÍNH CÓ KHOẢNG ĐỆM (+4px)
+                if (!world.canMoveTo(candidate, getRadius() + 4.0)) continue;
+
+                // Đường đi từ Quái tới Điểm đích phải hoàn toàn trống trải (LOS)
+                if (world.hasClearLineOfSight(center, candidate)) {
+                    return candidate;
+                }
+            }
+        }
+        // Nếu xung quanh quá chật hẹp, đứng im tại chỗ chờ lượt sau
+        return center.copy();
+    }
+
+    private void smartMoveTo(GameWorld world, Vector2D targetPos, double deltaSeconds) {
+        Vector2D dir = targetPos.copy().subtract(getPosition());
+        if (dir.length() == 0) return;
+
+        dir.normalize();
+        double stepSize = moveSpeed * deltaSeconds;
+
+        // 1. Thach thuc di thang trực tiep toi target
+        Vector2D directStep = new Vector2D(
+                getPosition().getX() + dir.getX() * stepSize,
+                getPosition().getY() + dir.getY() * stepSize
+        );
+
+        // Neu di thang duoc va khong bi vuong tuong -> Di luon
+        if (world.canMoveTo(directStep, getRadius())) {
+            move(world, dir.getX() * stepSize, dir.getY() * stepSize);
+            return;
+        }
+
+        // 2. Neu huong chinh bi vuong tuong -> Quet cac goc lach 30, 60, 90 do sang 2 ben
+        double baseAngle = Math.atan2(dir.getY(), dir.getX());
+        double[] offsets = { Math.PI / 6, -Math.PI / 6, Math.PI / 3, -Math.PI / 3, Math.PI / 2, -Math.PI / 2 };
+
+        for (double offset : offsets) {
+            double testAngle = baseAngle + offset;
+            Vector2D testDir = new Vector2D(Math.cos(testAngle), Math.sin(testAngle));
+            Vector2D testPos = new Vector2D(
+                    getPosition().getX() + testDir.getX() * stepSize,
+                    getPosition().getY() + testDir.getY() * stepSize
+            );
+
+            if (world.canMoveTo(testPos, getRadius())) {
+                move(world, testDir.getX() * stepSize, testDir.getY() * stepSize);
+                return;
+            }
+        }
+
+        // 3. Neu tat ca goc nghieng deu nghen, dung Slide Physics X/Y mac dinh
+        move(world, dir.getX() * stepSize, dir.getY() * stepSize);
     }
 
     public EnemyArchetype getArchetype() {

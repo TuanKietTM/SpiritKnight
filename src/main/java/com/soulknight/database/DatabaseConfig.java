@@ -9,6 +9,7 @@ public final class DatabaseConfig {
     private static final String USER = System.getenv("DB_USER");
     private static final String PASSWORD = System.getenv("DB_PASSWORD");
 
+
     public static final String URL =
             "jdbc:mysql://" + HOST + ":" + PORT + "/" + DATABASE
                     + "?sslMode=REQUIRED"
