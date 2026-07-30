@@ -9,9 +9,7 @@ public final class UserSession {
 
     public static void login(UserAccount account) {
         if (account == null) {
-            throw new IllegalArgumentException(
-                    "Account khong duoc null."
-            );
+            throw new IllegalArgumentException("Account khong duoc null.");
         }
 
         currentUser = account;
@@ -37,5 +35,16 @@ public final class UserSession {
 
     public static String getCurrentUsername() {
         return getCurrentUser().getUsername();
+    }
+    public static int getCurrentUserId() {
+        return getCurrentUser().getId();
+    }
+
+    public static boolean isFirstPlay() {
+        return getCurrentUser().isFirstPlay();
+    }
+
+    public static void setFirstPlay(boolean firstPlay) {
+        getCurrentUser().setFirstPlay(firstPlay);
     }
 }
