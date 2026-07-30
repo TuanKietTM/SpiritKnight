@@ -94,6 +94,7 @@ public final class GameWorld {
     private final List<Obstacle> readOnlyObstacles = java.util.Collections.unmodifiableList(obstacles);
     private final List<Obstacle> destroyedObstacleQueue = new ArrayList<>();
 
+
     private final ExecutorService databaseExecutor =
             Executors.newSingleThreadExecutor(runnable -> {
                 Thread thread = new Thread(runnable, "soul-knight-database-worker");

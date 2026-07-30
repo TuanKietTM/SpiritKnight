@@ -11,7 +11,7 @@ public final class Constants {
     public static final int PLAYER_RADIUS = 12;
     public static final int PLAYER_HEALTH = 100;
     public static final double PLAYER_SPEED = 200.0;
-    public static final int ENEMY_RADIUS = 14;
+    public static final int ENEMY_RADIUS = 10;
     public static final int ENEMY_HEALTH = 30;
     public static final double ENEMY_SPEED = 10.0;
     public static final int ENEMY_DAMAGE = 10;
