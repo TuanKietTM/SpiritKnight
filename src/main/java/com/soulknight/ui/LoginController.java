@@ -42,7 +42,7 @@ public final class LoginController {
         String password = passwordField.getText();
 
         setLoading(true);
-        messageLabel.setText("Đang đăng nhập...");
+        messageLabel.setText("Logging in...");
 
         Task<UserDAO.LoginResult> task = new Task<>() {
             @Override
@@ -73,7 +73,7 @@ public final class LoginController {
         task.setOnFailed(event -> {
             setLoading(false);
             messageLabel.setText(
-                    "Không thể kết nối đến database."
+                    "Unable to connect to the database."
             );
 
             if (task.getException() != null) {

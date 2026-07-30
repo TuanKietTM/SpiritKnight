@@ -7,6 +7,8 @@ import com.soulknight.utils.Constants;
 import com.soulknight.utils.SoundManager;
 import com.soulknight.weapon.Weapon;
 import com.soulknight.weapon.WeaponType;
+import com.soulknight.database.UserDAO;
+import com.soulknight.database.UserSession;
 import javafx.animation.FadeTransition;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
@@ -45,8 +47,9 @@ public final class UIManager {
     private Parent loginRoot;
     private Parent registerRoot;
 
-    // Cờ đánh dấu xem người chơi đã xem cốt truyện lần đầu chưa
-    private boolean isFirstRun = true;
+    private final UserDAO userDAO = new UserDAO();
+
+
 
     public UIManager(StackPane rootNode) {
         this.rootNode = rootNode;
@@ -257,27 +260,35 @@ public final class UIManager {
 
         introController.setOnIntroFinished(() -> {
             Platform.runLater(() -> {
-                FadeTransition fadeIntro =
-                        new FadeTransition(
-                                Duration.seconds(0.5),
-                                introRoot
-                        );
 
-                fadeIntro.setFromValue(1.0);
-                fadeIntro.setToValue(0.0);
+                // Chuẩn bị Login ở phía sau Intro
+                loginRoot.setOpacity(0.0);
+                loginRoot.setVisible(true);
+                loginRoot.toBack();
+                introRoot.toFront();
 
-                fadeIntro.setOnFinished(event -> {
+                FadeTransition fadeOut =
+                        new FadeTransition(Duration.seconds(0.6), introRoot);
+
+                fadeOut.setFromValue(1.0);
+                fadeOut.setToValue(0.0);
+
+                FadeTransition fadeIn =
+                        new FadeTransition(Duration.seconds(0.6), loginRoot);
+
+                fadeIn.setFromValue(0.0);
+                fadeIn.setToValue(1.0);
+
+                fadeOut.play();
+                fadeIn.play();
+
+                fadeOut.setOnFinished(event -> {
                     introRoot.setVisible(false);
                     introRoot.setOpacity(1.0);
 
-                    /*
-                     * Sau Intro không đổi sang MAIN_MENU.
-                     * Chỉ hiện màn hình đăng nhập.
-                     */
-                    showLoginScreen();
+                    loginRoot.setOpacity(1.0);
+                    loginRoot.toFront();
                 });
-
-                fadeIntro.play();
             });
         });
     }
@@ -339,7 +350,7 @@ public final class UIManager {
                 sound.playSFX("button");
 
                 // KIỂM TRA LẦN ĐẦU CHƠI:
-                if (isFirstRun && storyIntroController != null) {
+                if (UserSession.isFirstPlay() && storyIntroController != null) {
                     // 1. Ẩn Main Menu
                     menuRoot.setVisible(false);
 
@@ -349,10 +360,13 @@ public final class UIManager {
 
                     // 3. Đăng ký sự kiện khi cốt truyện chạy xong (hoặc bị skip)
                     storyIntroController.setOnIntroFinished(() -> {
-                        Platform.runLater(() -> {
-                            isFirstRun = false; // Đánh dấu đã xem xong
+                        Platform.runLater(() -> {UserSession.setFirstPlay(false);
+
+                            new Thread(() -> userDAO.setFirstPlay(UserSession.getCurrentUserId(),
+                                    false)).start();
+
                             storyIntroRoot.setVisible(false);
-                            world.changeState(GameState.PLAYING); // Bắt đầu vào game
+                            world.changeState(GameState.PLAYING);
                         });
                     });
 
@@ -501,11 +515,12 @@ public final class UIManager {
         return null;
     }
     private void showLoginScreen() {
-        hideAllScreens();
 
-        loginRoot.setOpacity(1.0);
+        loginRoot.setOpacity(1);
         loginRoot.setVisible(true);
         loginRoot.toFront();
+
+        introRoot.setVisible(false);
     }
 
     private void showRegisterScreen() {

@@ -45,17 +45,12 @@ public final class RegisterController {
                 confirmPasswordField.getText();
 
         setLoading(true);
-        messageLabel.setText("Đang tạo tài khoản...");
+        messageLabel.setText("Creating account...");
 
         Task<UserDAO.RegisterResult> task = new Task<>() {
             @Override
             protected UserDAO.RegisterResult call() {
-                UserDAO.RegisterResult result =
-                        userDAO.register(
-                                username,
-                                password,
-                                confirmPassword
-                        );
+                UserDAO.RegisterResult result = userDAO.register(username, password, confirmPassword);
 
                 if (!result.success()) {
                     return result;
@@ -66,24 +61,13 @@ public final class RegisterController {
                  * username cũng chính là player_name.
                  */
                 PlayerSave defaultSave = new PlayerSave(
-                        result.account().getUsername(),
-                        1,
-                        0,
-                        0,
-                        100,
-                        100,
-                        1,
-                        0
-                );
+                        result.account().getUsername(), 1, 0, 0, 100, 100, 1, 0);
 
                 boolean saveCreated =
                         playerSaveDAO.save(defaultSave);
 
                 if (!saveCreated) {
-                    System.err.println(
-                            "Tai khoan da tao nhung "
-                                    + "chua tao duoc save mac dinh."
-                    );
+                    System.err.println("Tai khoan da tao nhung " + "chua tao duoc save mac dinh.");
                 }
 
                 return result;
@@ -102,7 +86,7 @@ public final class RegisterController {
             }
 
             messageLabel.setText(
-                    "Đăng ký thành công."
+                    "Registration successful."
             );
 
             passwordField.clear();
@@ -116,7 +100,7 @@ public final class RegisterController {
         task.setOnFailed(event -> {
             setLoading(false);
             messageLabel.setText(
-                    "Không thể kết nối đến database."
+                    "Unable to connect to the database."
             );
 
             if (task.getException() != null) {
