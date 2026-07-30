@@ -7,19 +7,18 @@ public final class Camera {
     private double offsetX;
     private double offsetY;
 
-
-    private double zoom = 1.0;
+    private double zoom = 2.0;
 
     public void follow(Vector2D target, double viewportWidth, double viewportHeight, double worldWidth, double worldHeight) {
+        if (target == null) return;
+
         double zoomedViewportWidth = viewportWidth / zoom;
         double zoomedViewportHeight = viewportHeight / zoom;
 
-        // 2. Nếu kích thước bản đồ thực tế nhỏ hơn khung nhìn viewport ảo:
-        // Căn giữa camera vào giữa bản đồ thay vì khóa biên ở góc trái (0,0)
+        // 1. Căn giữa camera vào giữa bản đồ nếu map quá nhỏ
         if (worldWidth <= zoomedViewportWidth) {
             offsetX = (worldWidth - zoomedViewportWidth) / 2.0;
         } else {
-            // Ngược lại, cho camera bám theo Player và khóa biên lại
             offsetX = clamp(target.getX() - zoomedViewportWidth / 2.0, 0.0, worldWidth - zoomedViewportWidth);
         }
 
@@ -30,17 +29,16 @@ public final class Camera {
         }
     }
 
+    // Làm tròn tọa độ Pixel thành số nguyên để JavaFX Render nét căng, không bị Anti-Aliasing nhấp nháy viền Tile
     public double worldToScreenX(double worldX) {
-        // Chuyển đổi tọa độ thế giới thực sang tọa độ pixel hiển thị trên màn hình
-        return (worldX - offsetX) * zoom;
+        return Math.floor((worldX - offsetX) * zoom);
     }
 
     public double worldToScreenY(double worldY) {
-        return (worldY - offsetY) * zoom;
+        return Math.floor((worldY - offsetY) * zoom);
     }
 
     public double screenToWorldX(double screenX) {
-        // Dịch ngược từ pixel màn hình về tọa độ thế giới thực (dành cho logic bắn súng theo chuột)
         return (screenX / zoom) + offsetX;
     }
 
@@ -49,7 +47,13 @@ public final class Camera {
     }
 
     public Vector2D screenToWorld(Vector2D screenPosition) {
+        if (screenPosition == null) return new Vector2D();
         return new Vector2D(screenToWorldX(screenPosition.getX()), screenToWorldY(screenPosition.getY()));
+    }
+
+    public Vector2D worldToScreen(Vector2D worldPosition) {
+        if (worldPosition == null) return new Vector2D();
+        return new Vector2D(worldToScreenX(worldPosition.getX()), worldToScreenY(worldPosition.getY()));
     }
 
     private double clamp(double value, double min, double max) {
@@ -61,18 +65,7 @@ public final class Camera {
     }
 
     public void setZoom(double zoom) {
-        // Giới hạn zoom tối thiểu là 0.5 và tối đa là 4.0 để tránh lỗi vỡ hình hoặc quá nhỏ
         this.zoom = Math.max(0.5, Math.min(4.0, zoom));
-    }
-    public Vector2D worldToScreen(Vector2D worldPosition) {
-        if (worldPosition == null) {
-            return new Vector2D();
-        }
-
-        return new Vector2D(
-                worldPosition.getX() - offsetX,
-                worldPosition.getY() - offsetY
-        );
     }
 
     public double getOffsetX() { return offsetX; }
