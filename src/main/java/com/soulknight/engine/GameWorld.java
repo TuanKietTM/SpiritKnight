@@ -61,7 +61,7 @@ public final class GameWorld {
     private MapManager mapManager;
     private Player player;
     private Pet currentPet;
-    private String currentPlayerName = "Knight";
+    private String currentPlayerName = "";
 
     private int gold = 0;
     private int gems = 0;
@@ -102,6 +102,7 @@ public final class GameWorld {
             });
 
     private final AtomicBoolean saveInProgress = new AtomicBoolean(false);
+    private final AtomicBoolean saveLoadInProgress = new AtomicBoolean(false);
 
     public interface GameStateListener {
         void onStateChanged(GameState newState);
@@ -145,9 +146,7 @@ public final class GameWorld {
 
         switch (state) {
             case INTRO -> {
-                if (inputHandler.consumeConfirmRequest()) {
-                    changeState(GameState.MAIN_MENU);
-                }
+                inputHandler.consumeConfirmRequest();
             }
             case MAIN_MENU -> {
                 inputHandler.consumeConfirmRequest();
@@ -630,7 +629,9 @@ public final class GameWorld {
 
     private void startNewRun() {
         levelManager.startNewRun();
-        currentRoomNumber = 1;
+        if (pendingPlayerSave == null) {
+            currentRoomNumber = 1;
+        }
         loadCurrentLevel(true);
         SoundManager.getInstance().playBGM("/assets/Audio/StartGame.mp3");
     }
@@ -660,7 +661,6 @@ public final class GameWorld {
         applyPendingPlayerSave();
 //        dua player den phong da luu
         restorePlayerRoomPosition();
-        refreshCurrentRoomReference();
 
         // 4. Khởi tạo Pet đi theo
         createSelectedPet();
@@ -825,13 +825,18 @@ public final class GameWorld {
         return currentPlayerName;
     }
 
-    public void setCurrentPlayerName(String currentPlayerName) {
-        if (currentPlayerName == null || currentPlayerName.isBlank()) {
-            this.currentPlayerName = "Knight";
+    public void setCurrentPlayerName(
+            String currentPlayerName
+    ) {
+        if (currentPlayerName == null
+                || currentPlayerName.isBlank()) {
+
+            this.currentPlayerName = "";
             return;
         }
 
-        this.currentPlayerName = currentPlayerName.trim();
+        this.currentPlayerName =
+                currentPlayerName.trim();
     }
 
     public int getGold() {
@@ -1263,6 +1268,9 @@ public final class GameWorld {
     }
     //    data base
     public void saveGameAsync() {
+        if (currentPlayerName == null || currentPlayerName.isBlank()) {
+            return;
+        }
         if (player == null) {
             debug("Chưa có Player nên chưa thể lưu game.");
             return;
@@ -1298,25 +1306,37 @@ public final class GameWorld {
     }
 
     public void loadGameAsync(String playerName) {
-        String safePlayerName = playerName == null || playerName.isBlank() ? "Knight" : playerName.trim();
-
+        if (playerName == null || playerName.isBlank()) {
+            System.err.println("Không thể load save vì username trống.");
+            return;
+        }
+        String safePlayerName = playerName.trim();
+        pendingPlayerSave = null;
+        saveLoadInProgress.set(true);
         databaseExecutor.submit(() -> {
             try {
                 PlayerSaveDAO dao = new PlayerSaveDAO();
-                dao.findByName(safePlayerName).ifPresentOrElse(
-                        save -> javafx.application.Platform.runLater(() -> {
-                            pendingPlayerSave = save;
-                            if (player != null) {
-                                applyPendingPlayerSave();
-                                restorePlayerRoomPosition();
-                                refreshCurrentRoomReference();
-                            }
-                            debug("Cloud Load thành công: " + safePlayerName);
-                        }),
-                        () -> debug("Chưa có save của " + safePlayerName + ". Sẽ bắt đầu game mới.")
-                );
+
+                dao.findByName(safePlayerName).ifPresentOrElse(save -> javafx.application.Platform
+                                        .runLater(() -> {pendingPlayerSave = save;
+                                            System.out.println("Đã tải save của " + safePlayerName + ": room=" + save.getCurrentRoom()
+                                            );
+                                            if (player != null && mapManager != null) {
+                                                applyPendingPlayerSave();
+                                                restorePlayerRoomPosition();
+                                            }
+                                            saveLoadInProgress.set(false);
+                                        }),
+
+                                () -> javafx.application.Platform.runLater(() -> {
+                                            System.out.println("Chưa có save của " + safePlayerName + ". Bắt đầu game mới.");
+                                            saveLoadInProgress.set(false);
+                                        })
+                        );
+
             } catch (RuntimeException exception) {
                 System.err.println("Cloud Load lỗi: " + exception.getMessage());
+                saveLoadInProgress.set(false);
             }
         });
     }
@@ -1329,15 +1349,14 @@ public final class GameWorld {
         if (pendingPlayerSave == null || player == null) {
             return;
         }
-
-        PlayerSaveMapper.applyToWorld(this, pendingPlayerSave);
-
-        debug("Đã áp dụng save vào Player.");
+        PlayerSave saveToApply = pendingPlayerSave;
+        PlayerSaveMapper.applyToWorld(this, saveToApply);
 
         pendingPlayerSave = null;
+        System.out.println("Đã áp dụng save vào Player: player=" + saveToApply.getPlayerName() + ", room=" + currentRoomNumber);
     }
     public boolean saveGameNow() {
-        if (player == null) {
+        if (player == null || currentPlayerName.isBlank()) {
             return false;
         }
 
@@ -1434,11 +1453,15 @@ public final class GameWorld {
         }
     }
     private void restorePlayerRoomPosition() {
-        if (player == null || mapManager == null || mapManager.getRooms() == null || mapManager.getRooms().isEmpty()) {
+        if (player == null || player.getPosition() == null || mapManager == null
+                || mapManager.getRooms() == null || mapManager.getRooms().isEmpty()) {
             return;
         }
-        int roomIndex = currentRoomNumber - 1;
+
+        int savedRoomNumber = currentRoomNumber;
+        int roomIndex = savedRoomNumber - 1;
         if (roomIndex < 0 || roomIndex >= mapManager.getRooms().size()) {
+            System.err.println("Phòng đã lưu không hợp lệ: " + savedRoomNumber);
             currentRoomNumber = 1;
             return;
         }
@@ -1446,17 +1469,92 @@ public final class GameWorld {
         Room savedRoom = mapManager.getRooms().get(roomIndex);
 
         if (savedRoom == null || savedRoom.getBound() == null) {
+            System.err.println("Không tìm thấy dữ liệu phòng: " + savedRoomNumber);
             currentRoomNumber = 1;
             return;
         }
 
-        double roomCenterX = savedRoom.getBound().getMinX() + savedRoom.getBound().getWidth() / 2.0;
-        double roomCenterY = savedRoom.getBound().getMinY() + savedRoom.getBound().getHeight() / 2.0;
-        Vector2D roomCenter = new Vector2D(roomCenterX, roomCenterY);
-        if (canMoveTo(roomCenter, player.getRadius())) {
-            player.getPosition().set(roomCenter);
-            debug("Đã khôi phục Player tại phòng " + currentRoomNumber);
+        /*
+         * Thử vị trí trung tâm phòng trước.
+         */
+        double centerX = savedRoom.getBound().getMinX() + savedRoom.getBound().getWidth() / 2.0;
+
+        double centerY = savedRoom.getBound().getMinY() + savedRoom.getBound().getHeight() / 2.0;
+
+        Vector2D targetPosition = new Vector2D(centerX, centerY);
+
+        /*
+         * Nếu tâm phòng bị tường hoặc obstacle chặn,
+         * tìm một vị trí đi được khác trong chính phòng đó.
+         */
+        if (!canMoveTo(targetPosition, player.getRadius())) {
+            targetPosition = findWalkablePositionInSavedRoom(savedRoom);
         }
+
+        if (targetPosition == null) {
+            System.err.println("Không tìm được vị trí hợp lệ trong phòng " + savedRoomNumber);
+
+            /*
+             * Không gán currentRoomNumber về 1 ở đây.
+             * Giữ nguyên số phòng save để dễ phát hiện lỗi.
+             */
+            return;
+        }
+        player.getPosition().set(targetPosition);
+        currentRoom = savedRoom;
+        currentRoomNumber = savedRoomNumber;
+
+        System.out.println("Đã khôi phục Player tại phòng " + currentRoomNumber + " | position=" + player.getPosition());
+    }
+    private Vector2D findWalkablePositionInSavedRoom(Room savedRoom) {
+        if (savedRoom == null || savedRoom.getBound() == null || mapManager == null || player == null) {
+            return null;
+        }
+        /*
+         * Ưu tiên dùng hàm tìm vị trí ngẫu nhiên
+         * trong phòng đã có sẵn trong MapManager.
+         */
+        for (int attempt = 0; attempt < 50; attempt++) {
+            Vector2D candidate =
+                    mapManager.findRandomWalkablePositionInRoom(savedRoom, random, player.getRadius());
+
+            if (candidate == null) {
+                continue;
+            }
+
+            if (!savedRoom.getBound().contains(candidate.getX(), candidate.getY())) {
+                continue;
+            }
+
+            if (canMoveTo(candidate, player.getRadius())) {
+                return candidate;
+            }
+        }
+
+        /*
+         * Fallback: quét các điểm trong phòng theo tile,
+         * tránh phụ thuộc hoàn toàn vào random.
+         */
+        double tileSize = mapManager.getTileSize();
+
+        double minX = savedRoom.getBound().getMinX() + tileSize;
+
+        double minY = savedRoom.getBound().getMinY() + tileSize;
+
+        double maxX = savedRoom.getBound().getMaxX() - tileSize;
+
+        double maxY = savedRoom.getBound().getMaxY() - tileSize;
+
+        for (double y = minY; y <= maxY; y += tileSize) {
+            for (double x = minX; x <= maxX; x += tileSize) {
+                Vector2D candidate = new Vector2D(x, y);
+                if (canMoveTo(candidate, player.getRadius())) {
+                    return candidate;
+                }
+            }
+        }
+
+        return null;
     }
     // Cache obstacle để các phép va chạm không phải tạo ArrayList mới mỗi lần gọi.
     private void rebuildObstacleCache() {
@@ -1513,6 +1611,9 @@ public final class GameWorld {
         if (obstacle.isDestroyed() && !destroyedObstacleQueue.contains(obstacle)) {
             destroyedObstacleQueue.add(obstacle);
         }
+    }
+    public boolean isSaveLoadInProgress() {
+        return saveLoadInProgress.get();
     }
 
 }
