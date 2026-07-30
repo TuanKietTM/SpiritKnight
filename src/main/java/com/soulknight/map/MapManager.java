@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Random;
 
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.image.Image;
 import javafx.scene.paint.Color;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -38,66 +39,274 @@ public final class MapManager {
     public MapManager(String JsonPath) {
         loadMapFromJson(JsonPath);
         generateWorldTiles();
+        generateFloorDecorations();
         linkDoorsToRooms();
     }
 
+
     /**
-     * floor , wall , door
+     * Render theo đúng thứ tự layer:
+     * BACK/FLOOR -> trang trí nền -> cửa -> bóng tường -> tường
+     * -> vật cản -> portal.
      */
-    public void renderFloor(GraphicsContext gc, Camera camera, double renderWidth, double renderHeight) {
+    private static final Color FLOOR_COLOR = Color.rgb(47, 171, 105);
+
+    public void renderFloor(
+            GraphicsContext gc,
+            Camera camera,
+            double renderWidth,
+            double renderHeight
+    ) {
+        gc.setImageSmoothing(false);
+
         gc.setFill(Color.BLACK);
         gc.fillRect(0.0, 0.0, renderWidth, renderHeight);
 
         double zoom = camera.getZoom();
+        double drawSize = tileSize * zoom;
 
-        // Layer 1 ve san va cua mo
+        /*
+         * Layer 1: nền BACK và nền FLOOR.
+         * FLOOR được tô màu phẳng để không lộ đường nối giữa các tile.
+         */
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
                 Tile tile = tiles[y][x];
-                if (tile != null && tile.getType() != Tile.TileType.WALL) {
-                    double screenX = camera.worldToScreenX(x * tileSize);
-                    double screenY = camera.worldToScreenY(y * tileSize);
-                    gc.drawImage(tile.getTexture(), screenX, screenY, tileSize * zoom, tileSize * zoom);
+
+                if (tile == null) {
+                    continue;
                 }
-            }
-        }
 
-        // ve do bong len chan tuong
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                Tile tile = tiles[y][x];
-                if (tile != null && tile.getType() == Tile.TileType.WALL) {
-                    boolean isWallBelow = (y + 1 < height) &&
-                            tiles[y + 1][x] != null &&
-                            tiles[y + 1][x].getType() == Tile.TileType.WALL;
-                    if (!isWallBelow) {
-                        double screenX = camera.worldToScreenX(x * tileSize);
-                        double screenY = camera.worldToScreenY((y + 1) * tileSize);
-                        gc.drawImage(Tile.getWallFrontShadowImage(), screenX, screenY, tileSize * zoom, tileSize * zoom);
+                double screenX = camera.worldToScreenX(x * tileSize);
+                double screenY = camera.worldToScreenY(y * tileSize);
+
+                if (!isInsideScreen(
+                        screenX,
+                        screenY,
+                        drawSize,
+                        drawSize,
+                        renderWidth,
+                        renderHeight
+                )) {
+                    continue;
+                }
+
+                switch (tile.getType()) {
+                    case FLOOR, SPAWN -> {
+                        gc.setFill(FLOOR_COLOR);
+                        gc.fillRect(
+                                Math.floor(screenX),
+                                Math.floor(screenY),
+                                Math.ceil(drawSize) + 1.0,
+                                Math.ceil(drawSize) + 1.0
+                        );
+                    }
+
+                    case BACK -> {
+                        Image texture = tile.getTexture();
+                        if (texture != null) {
+                            gc.drawImage(
+                                    texture,
+                                    Math.floor(screenX),
+                                    Math.floor(screenY),
+                                    Math.ceil(drawSize) + 1.0,
+                                    Math.ceil(drawSize) + 1.0
+                            );
+                        }
+                    }
+
+                    default -> {
+                        // Các layer còn lại được vẽ ở phía dưới.
                     }
                 }
             }
         }
 
-        // Layer 3 Ve mat dinh cua tuong
+        /*
+         * Layer 2: các ảnh cỏ, bụi, vết đất...
+         * Danh sách này chỉ được sinh một lần khi tải map,
+         * không sinh lại ở từng frame.
+         */
+        renderFloorDecorations(gc, camera, renderWidth, renderHeight);
+
+        // Layer 3: cửa mở.
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
                 Tile tile = tiles[y][x];
-                if (tile != null && tile.getType() == Tile.TileType.WALL) {
-                    double screenX = camera.worldToScreenX(x * tileSize);
-                    double screenY = camera.worldToScreenY(y * tileSize);
-                    gc.drawImage(Tile.getWallTopImage(), screenX, screenY, tileSize * zoom, tileSize * zoom);
+
+                if (tile == null || tile.getType() != Tile.TileType.DOOR_OPEN) {
+                    continue;
+                }
+
+                double screenX = camera.worldToScreenX(x * tileSize);
+                double screenY = camera.worldToScreenY(y * tileSize);
+
+                if (!isInsideScreen(
+                        screenX,
+                        screenY,
+                        drawSize,
+                        drawSize,
+                        renderWidth,
+                        renderHeight
+                )) {
+                    continue;
+                }
+
+                Image texture = tile.getTexture();
+                if (texture != null) {
+                    gc.drawImage(
+                            texture,
+                            Math.floor(screenX),
+                            Math.floor(screenY),
+                            Math.ceil(drawSize) + 1.0,
+                            Math.ceil(drawSize) + 1.0
+                    );
                 }
             }
         }
 
-        // Layer 4 ve portal va cua phong khi dong
+        // Layer 4: bóng phía trước chân tường.
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                Tile tile = tiles[y][x];
+
+                if (tile == null || tile.getType() != Tile.TileType.WALL) {
+                    continue;
+                }
+
+                boolean isWallBelow =
+                        y + 1 < height
+                                && tiles[y + 1][x] != null
+                                && tiles[y + 1][x].getType() == Tile.TileType.WALL;
+
+                if (isWallBelow) {
+                    continue;
+                }
+
+                double screenX = camera.worldToScreenX(x * tileSize);
+                double screenY = camera.worldToScreenY((y + 1) * tileSize);
+
+                if (!isInsideScreen(
+                        screenX,
+                        screenY,
+                        drawSize,
+                        drawSize,
+                        renderWidth,
+                        renderHeight
+                )) {
+                    continue;
+                }
+
+                gc.drawImage(
+                        Tile.getWallFrontShadowImage(),
+                        Math.floor(screenX),
+                        Math.floor(screenY),
+                        Math.ceil(drawSize),
+                        Math.ceil(drawSize)
+                );
+            }
+        }
+
+        // Layer 5: mặt trên của tường.
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                Tile tile = tiles[y][x];
+
+                if (tile == null || tile.getType() != Tile.TileType.WALL) {
+                    continue;
+                }
+
+                double screenX = camera.worldToScreenX(x * tileSize);
+                double screenY = camera.worldToScreenY(y * tileSize);
+
+                if (!isInsideScreen(
+                        screenX,
+                        screenY,
+                        drawSize,
+                        drawSize,
+                        renderWidth,
+                        renderHeight
+                )) {
+                    continue;
+                }
+
+                gc.drawImage(
+                        Tile.getWallTopImage(),
+                        Math.floor(screenX),
+                        Math.floor(screenY),
+                        Math.ceil(drawSize),
+                        Math.ceil(drawSize)
+                );
+            }
+        }
+
+        /*
+         * Layer 6: vật cản.
+         * Vẽ sau trang trí nền để cỏ/bụi không đè lên cây, thùng...
+         */
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                Tile tile = tiles[y][x];
+
+                if (tile == null || tile.getType() != Tile.TileType.OBSTACLE) {
+                    continue;
+                }
+
+                double screenX = camera.worldToScreenX(x * tileSize);
+                double screenY = camera.worldToScreenY(y * tileSize);
+
+                if (!isInsideScreen(
+                        screenX,
+                        screenY,
+                        drawSize,
+                        drawSize,
+                        renderWidth,
+                        renderHeight
+                )) {
+                    continue;
+                }
+
+                Image texture = tile.getTexture();
+                if (texture != null) {
+                    gc.drawImage(
+                            texture,
+                            Math.floor(screenX),
+                            Math.floor(screenY),
+                            Math.ceil(drawSize),
+                            Math.ceil(drawSize)
+                    );
+                }
+            }
+        }
+
+        // Layer 7: portal.
         if (exitPortalOpen && exitPortalPosition != null) {
             double screenX = camera.worldToScreenX(exitPortalPosition.getX());
             double screenY = camera.worldToScreenY(exitPortalPosition.getY());
+            double portalRadius = 18.0 * zoom;
+
             gc.setFill(Color.GOLD);
-            gc.fillOval(screenX - 18.0, screenY - 18.0, 36.0, 36.0);
+            gc.fillOval(
+                    screenX - portalRadius,
+                    screenY - portalRadius,
+                    portalRadius * 2.0,
+                    portalRadius * 2.0
+            );
         }
+    }
+
+    private boolean isInsideScreen(
+            double screenX,
+            double screenY,
+            double width,
+            double height,
+            double renderWidth,
+            double renderHeight
+    ) {
+        return screenX + width >= 0.0
+                && screenY + height >= 0.0
+                && screenX <= renderWidth
+                && screenY <= renderHeight;
     }
 
     public List<Tile> getWallTiles() {
@@ -418,7 +627,7 @@ public final class MapManager {
 
         return false;
     }
-//    doi kieu title : de phuc vu viec vat can bi pha
+    //    doi kieu title : de phuc vu viec vat can bi pha
     public void setTileType(int gridX, int gridY, Tile.TileType newType) {
         if (tiles != null && gridY >= 0 && gridY < height && gridX >= 0 && gridX < width) {
             if (tiles[gridY][gridX] != null) {
@@ -427,6 +636,128 @@ public final class MapManager {
 //khoi tao thanh o moi
                 tiles[gridY][gridX] = new Tile(x, y, tileSize, newType);
             }
+        }
+    }
+    //test trang tri
+    private final List<FloorDecoration> floorDecorations = new ArrayList<>();
+
+    private static final Image GRASS_1 = new Image(
+            MapManager.class.getResourceAsStream(
+                    "/assets/maps/dust_particles_01.png"
+            )
+    );
+
+    private static final Image GRASS_2 = new Image(
+            MapManager.class.getResourceAsStream(
+                    "/assets/maps/fences.png"
+            )
+    );
+
+    private static final Image DIRT_1 = new Image(
+            MapManager.class.getResourceAsStream(
+                    "/assets/maps/grass.png"
+            )
+    );
+    private void generateFloorDecorations() {
+        floorDecorations.clear();
+
+        /*
+         * Seed cố định để mỗi lần chạy game,
+         * cách bố trí hoa văn không thay đổi.
+         */
+        Random random = new Random(20260730L);
+
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                Tile tile = tiles[y][x];
+
+                if (tile == null || tile.getType() != Tile.TileType.FLOOR) {
+                    continue;
+                }
+
+                /*
+                 * Chỉ khoảng 5% ô có trang trí.
+                 * Không nên đặt chi tiết lên mọi ô.
+                 */
+                if (random.nextDouble() > 0.10) {
+                    continue;
+                }
+
+                Image detailImage;
+
+                int detailType = random.nextInt(3);
+
+                if (detailType == 0) {
+                    detailImage = GRASS_1;
+                } else if (detailType == 1) {
+                    detailImage = GRASS_2;
+                } else {
+                    detailImage = DIRT_1;
+                }
+
+                double worldX = x * tileSize;
+                double worldY = y * tileSize;
+
+                /*
+                 * Cho chi tiết lệch khỏi tâm tile để giảm cảm giác dạng lưới.
+                 */
+                double offsetX = random.nextDouble() * tileSize - tileSize * 0.5;
+                double offsetY = random.nextDouble() * tileSize - tileSize * 0.5;
+
+                double decorationSize =
+                        tileSize * (0.8 + random.nextDouble() * 1.2);
+
+                floorDecorations.add(
+                        new FloorDecoration(
+                                worldX + offsetX,
+                                worldY + offsetY,
+                                decorationSize,
+                                decorationSize,
+                                detailImage
+                        )
+                );
+            }
+        }
+    }
+
+    private void renderFloorDecorations(
+            GraphicsContext gc,
+            Camera camera,
+            double renderWidth,
+            double renderHeight
+    ) {
+        double zoom = camera.getZoom();
+
+        for (FloorDecoration decoration : floorDecorations) {
+            Image image = decoration.getImage();
+
+            if (image == null || image.isError()) {
+                continue;
+            }
+
+            double screenX = camera.worldToScreenX(decoration.getWorldX());
+            double screenY = camera.worldToScreenY(decoration.getWorldY());
+            double drawWidth = decoration.getWidth() * zoom;
+            double drawHeight = decoration.getHeight() * zoom;
+
+            if (!isInsideScreen(
+                    screenX,
+                    screenY,
+                    drawWidth,
+                    drawHeight,
+                    renderWidth,
+                    renderHeight
+            )) {
+                continue;
+            }
+
+            gc.drawImage(
+                    image,
+                    Math.floor(screenX),
+                    Math.floor(screenY),
+                    Math.ceil(drawWidth),
+                    Math.ceil(drawHeight)
+            );
         }
     }
 
