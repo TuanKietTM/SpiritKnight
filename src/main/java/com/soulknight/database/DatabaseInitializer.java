@@ -10,6 +10,16 @@ public final class DatabaseInitializer {
     }
 
     public static boolean initialize() {
+        String createUsersTable = """
+                CREATE TABLE IF NOT EXISTS users (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    username VARCHAR(50) NOT NULL UNIQUE,
+                    password_hash VARCHAR(255) NOT NULL,
+                    created_at TIMESTAMP NOT NULL
+                        DEFAULT CURRENT_TIMESTAMP
+                )
+                """;
+
         String createPlayerSavesTable = """
                 CREATE TABLE IF NOT EXISTS player_saves (
                     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -31,16 +41,19 @@ public final class DatabaseInitializer {
                 Connection connection = DatabaseManager.getConnection();
                 Statement statement = connection.createStatement()
         ) {
+            statement.executeUpdate(createUsersTable);
             statement.executeUpdate(createPlayerSavesTable);
 
-            System.out.println(
-                    "player_saves da san sang ."
-            );
+            System.out.println("Bang users da san sang.");
+            System.out.println("Bang player_saves da san sang.");
+
             return true;
 
         } catch (SQLException exception) {
-            System.err.println("Khong the tao bang .");
-            exception.printStackTrace();
+            System.err.println(
+                    "Khong the khoi tao database: "
+                            + exception.getMessage()
+            );
             return false;
         }
     }

@@ -29,6 +29,8 @@ public final class UIManager {
     private PauseScreen pauseController;
     private SettingScreen settingController;
     private ShopController shopController;
+    private LoginController loginController;
+    private RegisterController registerController;
 
     private Parent introRoot;
     private Parent storyIntroRoot;
@@ -40,6 +42,8 @@ public final class UIManager {
     private Parent pauseRoot;
     private Parent settingRoot;
     private Parent shopRoot;
+    private Parent loginRoot;
+    private Parent registerRoot;
 
     // Cờ đánh dấu xem người chơi đã xem cốt truyện lần đầu chưa
     private boolean isFirstRun = true;
@@ -61,6 +65,16 @@ public final class UIManager {
             storyIntroRoot = storyIntroLoader.load();
             storyIntroController = storyIntroLoader.getController();
             configFullRegion(storyIntroRoot);
+//            Tai FXML login , register
+            FXMLLoader loginLoader = new FXMLLoader(com.soulknight.Main.class.getResource("/assets/fxml/Login.fxml"));
+            loginRoot = loginLoader.load();
+            loginController = loginLoader.getController();
+            configFullRegion(loginRoot);
+
+            FXMLLoader registerLoader = new FXMLLoader(com.soulknight.Main.class.getResource("/assets/fxml/Register.fxml"));
+            registerRoot = registerLoader.load();
+            registerController = registerLoader.getController();
+            configFullRegion(registerRoot);
 
             FXMLLoader menuLoader = new FXMLLoader(com.soulknight.Main.class.getResource("/assets/fxml/Menu.fxml"));
             menuRoot = menuLoader.load();
@@ -111,7 +125,7 @@ public final class UIManager {
             victoryRoot.setPickOnBounds(false);
             gameOverRoot.setPickOnBounds(false);
 
-            rootNode.getChildren().addAll(introRoot, storyIntroRoot, menuRoot, hudRoot, levelClearRoot, victoryRoot,
+            rootNode.getChildren().addAll(introRoot, loginRoot, registerRoot, storyIntroRoot, menuRoot, hudRoot, levelClearRoot, victoryRoot,
                     gameOverRoot, pauseRoot, settingRoot,shopRoot);
 
             StackPane.setAlignment(introRoot, Pos.CENTER);
@@ -123,6 +137,8 @@ public final class UIManager {
             StackPane.setAlignment(gameOverRoot, Pos.CENTER);
             StackPane.setAlignment(pauseRoot, Pos.CENTER);
             StackPane.setAlignment(settingRoot, Pos.CENTER);
+            StackPane.setAlignment(loginRoot, Pos.CENTER);
+            StackPane.setAlignment(registerRoot, Pos.CENTER);
 
             hideAllScreens();
             introRoot.setVisible(true);
@@ -223,33 +239,94 @@ public final class UIManager {
     }
 
     public void bindGameWorld(GameWorld world) {
-        if (world == null) return;
+        if (world == null) {
+            return;
+        }
 
         world.setGameStateListener(this::handleStateChange);
 
-        if (introController != null) {
-            introController.setOnIntroFinished(() -> {
-                Platform.runLater(() -> {
-                    FadeTransition fadeIntro = new FadeTransition(Duration.seconds(0.5), introRoot);
-                    fadeIntro.setFromValue(1.0);
-                    fadeIntro.setToValue(0.0);
-                    fadeIntro.setOnFinished(event -> {
-                        introRoot.setVisible(false);
-
-                        // Chuyen sang main menu
-                        world.changeState(GameState.MAIN_MENU);
-                        menuRoot.setOpacity(0.0);
-                        menuRoot.setVisible(true);
-                        FadeTransition fadeInMenu = new FadeTransition(Duration.seconds(0.6), menuRoot);
-                        fadeInMenu.setFromValue(0.0);
-                        fadeInMenu.setToValue(1.0);
-                        fadeInMenu.play();
-                    });
-                    fadeIntro.play();
-                });
-            });
-        }
+        bindIntroActions(world);
+        bindLoginActions(world);
+        bindRegisterActions();
         bindGameActions(world);
+    }
+    private void bindIntroActions(GameWorld world) {
+        if (introController == null) {
+            return;
+        }
+
+        introController.setOnIntroFinished(() -> {
+            Platform.runLater(() -> {
+                FadeTransition fadeIntro =
+                        new FadeTransition(
+                                Duration.seconds(0.5),
+                                introRoot
+                        );
+
+                fadeIntro.setFromValue(1.0);
+                fadeIntro.setToValue(0.0);
+
+                fadeIntro.setOnFinished(event -> {
+                    introRoot.setVisible(false);
+                    introRoot.setOpacity(1.0);
+
+                    /*
+                     * Sau Intro không đổi sang MAIN_MENU.
+                     * Chỉ hiện màn hình đăng nhập.
+                     */
+                    showLoginScreen();
+                });
+
+                fadeIntro.play();
+            });
+        });
+    }
+
+    private void bindLoginActions(GameWorld world) {
+        if (loginController == null) {
+            return;
+        }
+
+        loginController.setOnRegisterRequested(
+                this::showRegisterScreen
+        );
+
+        loginController.setOnLoginSuccess(() -> {
+            String username =
+                    com.soulknight.database.UserSession
+                            .getCurrentUsername();
+
+            /*
+             * Username đăng nhập trở thành player_name
+             * dùng cho hệ thống save hiện tại.
+             */
+            world.setCurrentPlayerName(username);
+
+            /*
+             * Chỉ load save sau khi người chơi
+             * đăng nhập thành công.
+             */
+            world.loadGameAsync(username);
+
+            showMainMenu(world);
+        });
+    }
+
+    private void bindRegisterActions() {
+        if (registerController == null) {
+            return;
+        }
+
+        registerController.setOnLoginRequested(() -> {
+            String username =
+                    registerController.getEnteredUsername();
+
+            showLoginScreen();
+
+            if (loginController != null) {
+                loginController.setUsername(username);
+            }
+        });
     }
 
     public void bindGameActions(GameWorld world) {
@@ -423,10 +500,37 @@ public final class UIManager {
 
         return null;
     }
+    private void showLoginScreen() {
+        hideAllScreens();
+
+        loginRoot.setOpacity(1.0);
+        loginRoot.setVisible(true);
+        loginRoot.toFront();
+    }
+
+    private void showRegisterScreen() {
+        hideAllScreens();
+
+        registerRoot.setOpacity(1.0);
+        registerRoot.setVisible(true);
+        registerRoot.toFront();
+    }
+
+    private void showMainMenu(GameWorld world) {
+        hideAllScreens();
+
+        world.changeState(GameState.MAIN_MENU);
+
+        menuRoot.setOpacity(1.0);
+        menuRoot.setVisible(true);
+        menuRoot.toFront();
+    }
 
     private void hideAllScreens() {
         if (introRoot != null) introRoot.setVisible(false);
-        if (storyIntroRoot != null) storyIntroRoot.setVisible(false); // <-- Reset cả màn Story
+        if (loginRoot != null) loginRoot.setVisible(false);
+        if (registerRoot != null) registerRoot.setVisible(false);
+        if (storyIntroRoot != null) storyIntroRoot.setVisible(false);
         if (menuRoot != null) menuRoot.setVisible(false);
         if (hudRoot != null) hudRoot.setVisible(false);
         if (levelClearRoot != null) levelClearRoot.setVisible(false);

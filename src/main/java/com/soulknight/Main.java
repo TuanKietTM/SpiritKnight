@@ -2,7 +2,10 @@ package com.soulknight;
 
 import com.soulknight.database.DatabaseInitializer;
 import com.soulknight.database.DatabaseManager;
-import com.soulknight.engine.*;
+import com.soulknight.engine.GameLoop;
+import com.soulknight.engine.GameState;
+import com.soulknight.engine.GameWorld;
+import com.soulknight.engine.InputHandler;
 import com.soulknight.ui.UIManager;
 import com.soulknight.utils.Constants;
 import javafx.application.Application;
@@ -14,16 +17,17 @@ import javafx.stage.Stage;
 
 public final class Main extends Application {
 
-    private static final String PLAYER_NAME = "Knight";
-
     @Override
     public void start(Stage stage) {
 
         Canvas canvas = new Canvas(Constants.WINDOW_WIDTH, Constants.WINDOW_HEIGHT);
+
         canvas.setFocusTraversable(true);
+
         GraphicsContext gc = canvas.getGraphicsContext2D();
 
         StackPane root = new StackPane(canvas);
+
         Scene scene = new Scene(root, Constants.WINDOW_WIDTH, Constants.WINDOW_HEIGHT);
 
         canvas.widthProperty().bind(scene.widthProperty());
@@ -33,20 +37,19 @@ public final class Main extends Application {
         inputHandler.bind(scene);
 
         GameWorld world = new GameWorld(inputHandler);
-        world.setCurrentPlayerName(PLAYER_NAME);
+
 
         UIManager uiManager = new UIManager(root);
-        world.setGameStateListener(uiManager::handleStateChange);
-        uiManager.bindGameActions(world);
+        uiManager.bindGameWorld(world);
 
-        GameLoop gameLoop = new GameLoop(delta -> {
-            world.handleGlobalInput();
+        GameLoop gameLoop = new GameLoop(delta -> {world.handleGlobalInput();
 
-            if (world.getState() == GameState.PAUSED) {
-                world.render(gc, canvas.getWidth(), canvas.getHeight());
+            if (world.getState() == GameState.PAUSED) {world.render(gc, canvas.getWidth(), canvas.getHeight());
             } else {
                 world.update(delta, canvas.getWidth(), canvas.getHeight());
+
                 world.render(gc, canvas.getWidth(), canvas.getHeight());
+
                 uiManager.updateHUD(world);
             }
         });
@@ -59,12 +62,10 @@ public final class Main extends Application {
 
             System.out.println("Aiven MySQL đang hoạt động.");
 
-            if (DatabaseInitializer.initialize()) {
-                world.loadGameAsync(PLAYER_NAME);
-            }
+            DatabaseInitializer.initialize();
         });
 
-        databaseThread.setName("database-thread");
+        databaseThread.setName("database-initializer-thread");
         databaseThread.setDaemon(true);
         databaseThread.start();
 
@@ -75,15 +76,20 @@ public final class Main extends Application {
 
         stage.setOnCloseRequest(event -> {
             gameLoop.stop();
+            if (com.soulknight.database.UserSession.isLoggedIn()) {
+                Thread saveThread = new Thread(world::saveGameNow);
 
-            Thread saveThread = new Thread(world::saveGameNow);
-            saveThread.start();
+                saveThread.setName("shutdown-save-thread");
 
-            try {
-                saveThread.join(3000);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
+                saveThread.start();
+
+                try {saveThread.join(3000);
+                } catch (InterruptedException exception) {
+                    Thread.currentThread().interrupt();
+                }
             }
+
+            world.shutdown();
         });
 
         stage.show();
