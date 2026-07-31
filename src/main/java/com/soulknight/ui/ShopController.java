@@ -6,6 +6,9 @@ import com.soulknight.pet.PetType;
 import com.soulknight.utils.SoundManager;
 import com.soulknight.weapon.WeaponSelectionManager;
 import com.soulknight.weapon.WeaponType;
+import com.soulknight.database.ShopDAO;
+import com.soulknight.database.UserSession;
+import javafx.application.Platform;
 import javafx.animation.AnimationTimer;
 import javafx.fxml.FXML;
 import javafx.geometry.Pos;
@@ -16,10 +19,14 @@ import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.VBox;
-
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 public class ShopController {
 
@@ -45,7 +52,24 @@ public class ShopController {
     private long lastTime = 0;
     private static final double SHOP_CANVAS_SIZE = 80.0;
     private static final double SHOP_PET_SIZE = 64.0;
+    private static final String ITEM_TYPE_PET = "PET";
+    private static final String ITEM_TYPE_WEAPON = "WEAPON";
 
+    private static final PetType STARTER_PET = PetType.CAT;
+    private static final WeaponType STARTER_WEAPON = WeaponType.BLASTER;
+
+    private final ShopDAO shopDAO = new ShopDAO();
+
+    private final Set<PetType> ownedPets = new HashSet<>();
+    private final Set<WeaponType> ownedWeapons = new HashSet<>();
+
+    private int currentGold;
+    private boolean shopLoading;
+    private boolean shopDataLoaded = false;
+    private int loadedUserId = -1;
+
+    // Luu anh da tai de khong doc lai file moi lan mo shop
+    private final Map<String, Image> imageCache = new HashMap<>();
     private final List<PetCanvasRenderer> activeRenderers = new ArrayList<>();
 
     private record PetCanvasRenderer(PetType pet, Canvas canvas, Image idleSheet) {}
@@ -69,20 +93,150 @@ public class ShopController {
     public void setup(GameWorld world, Runnable onClose) {
         this.gameWorld = world;
         this.onCloseCallback = onClose;
-
-        switchTab(tabPet, this::loadPetShop);
+        selectedPet = null;
+        selectedWeapon = null;
+        actionButton.setVisible(false);
         startAnimation();
+
+        int currentUserId = UserSession.getCurrentUserId();
+
+        // Mo lai shop thi hien du lieu trong RAM ngay, sau do cap nhat vang ngam
+        if (shopDataLoaded && loadedUserId == currentUserId) {
+            setShopLoading(false);
+            updateCoinLabel();
+            showTab(tabPet, this::loadPetShop);
+            refreshGold();
+            return;
+        }
+
+        setShopLoading(true);
+        loadShopData();
+    }
+    private void loadShopData() {
+        int userId = UserSession.getCurrentUserId();
+        String username = UserSession.getCurrentUsername();
+
+        // Chi cap do khoi dau truoc, cac du lieu con lai tai song song de giam thoi gian cho
+        CompletableFuture
+                .runAsync(() -> shopDAO.grantStarterItems(userId, STARTER_PET.name(), STARTER_WEAPON.name()))
+                .thenCompose(ignored -> {
+                    CompletableFuture<Set<String>> petsFuture = CompletableFuture.supplyAsync(
+                            () -> shopDAO.getOwnedItems(userId, ITEM_TYPE_PET)
+                    );
+                    CompletableFuture<Set<String>> weaponsFuture = CompletableFuture.supplyAsync(
+                            () -> shopDAO.getOwnedItems(userId, ITEM_TYPE_WEAPON)
+                    );
+                    CompletableFuture<Integer> goldFuture = CompletableFuture.supplyAsync(
+                            () -> shopDAO.getGold(username)
+                    );
+
+                    return CompletableFuture.allOf(petsFuture, weaponsFuture, goldFuture)
+                            .thenApply(value -> new ShopData(
+                                    petsFuture.join(), weaponsFuture.join(), goldFuture.join()
+                            ));
+                })
+                .thenAccept(data -> Platform.runLater(() -> applyShopData(userId, data)))
+                .exceptionally(exception -> {
+                    exception.printStackTrace();
+                    Platform.runLater(() -> showDatabaseError());
+                    return null;
+                });
+    }
+
+    private void applyShopData(int userId, ShopData data) {
+        ownedPets.clear();
+        ownedWeapons.clear();
+
+        addOwnedPets(data.petCodes());
+        addOwnedWeapons(data.weaponCodes());
+
+        currentGold = data.gold();
+        loadedUserId = userId;
+        shopDataLoaded = true;
+
+        updateCoinLabel();
+        setShopLoading(false);
+        showTab(tabPet, this::loadPetShop);
+    }
+
+    private void addOwnedPets(Set<String> petCodes) {
+        for (String code : petCodes) {
+            try {
+                ownedPets.add(PetType.valueOf(code));
+            } catch (IllegalArgumentException ignored) {
+                System.err.println("Pet trong DB khong ton tai trong enum: " + code);
+            }
+        }
+    }
+
+    private void addOwnedWeapons(Set<String> weaponCodes) {
+        for (String code : weaponCodes) {
+            try {
+                ownedWeapons.add(WeaponType.valueOf(code));
+            } catch (IllegalArgumentException ignored) {
+                System.err.println("Weapon trong DB khong ton tai trong enum: " + code);
+            }
+        }
+    }
+
+    // Chi tai lai vang khi mo lai shop, khong tai lai toan bo inventory
+    private void refreshGold() {
+        String username = UserSession.getCurrentUsername();
+
+        CompletableFuture
+                .supplyAsync(() -> shopDAO.getGold(username))
+                .thenAccept(gold -> Platform.runLater(() -> {
+                    currentGold = gold;
+                    updateCoinLabel();
+                }))
+                .exceptionally(exception -> {
+                    exception.printStackTrace();
+                    return null;
+                });
+    }
+
+    private void showDatabaseError() {
+        setShopLoading(false);
+        selectedItemName.setText("DATABASE ERROR");
+        selectedItemDesc.setText("Khong the tai du lieu cua hang.");
+        actionButton.setVisible(false);
+    }
+
+    private void setShopLoading(boolean loading) {
+        shopLoading = loading;
+
+        tabPet.setDisable(loading);
+        tabWeapon.setDisable(loading);
+        tabHero.setDisable(loading);
+        tabUpgrade.setDisable(loading);
+        actionButton.setDisable(loading);
+
+        if (loading) {
+            coinLabel.setText("Loading...");
+        }
+    }
+
+    private void updateCoinLabel() {
+        coinLabel.setText(String.valueOf(currentGold));
     }
 
     private void switchTab(Button selectedTab, Runnable loadContent) {
+        if (shopLoading) return;
         SoundManager.getInstance().playSFX("button");
+        showTab(selectedTab, loadContent);
+    }
 
+    // Dung khi code tu mo tab de khong phat am thanh nut
+    private void showTab(Button selectedTab, Runnable loadContent) {
         tabPet.getStyleClass().remove("tab-active");
         tabWeapon.getStyleClass().remove("tab-active");
         tabHero.getStyleClass().remove("tab-active");
         tabUpgrade.getStyleClass().remove("tab-active");
 
         selectedTab.getStyleClass().add("tab-active");
+        selectedPet = null;
+        selectedWeapon = null;
+        actionButton.setVisible(false);
         loadContent.run();
     }
 
@@ -105,10 +259,17 @@ public class ShopController {
         card.setAlignment(Pos.CENTER);
         card.getStyleClass().add("item-card");
 
+        boolean isOwned = ownedPets.contains(pet);
         boolean isEquipped = (pet == equippedPet);
+
         if (isEquipped) {
             card.getStyleClass().add("item-card-equipped");
         }
+
+        if (!isOwned) {
+            card.getStyleClass().add("item-card-locked");
+        }
+
         Canvas canvas = new Canvas(SHOP_CANVAS_SIZE, SHOP_CANVAS_SIZE);
         Image idleSheet = loadImage(pet.getIdleImagePath());
 
@@ -122,47 +283,190 @@ public class ShopController {
         card.getChildren().addAll(canvas, nameLabel);
 
         card.setOnMouseClicked(e -> {
-            SoundManager.getInstance().stopAllSFX();
-            if (pet.getSoundPath() != null && !pet.getSoundPath().isBlank()) {
-                SoundManager.getInstance().playSFX(pet.getSoundPath());
-            } else {
-                SoundManager.getInstance().playSFX("button");
+            if (shopLoading) {
+                return;
             }
-            itemGrid.getChildren().forEach(n -> n.getStyleClass().remove("item-card-selected"));
+
+            playPetSound(pet);
+
+            itemGrid.getChildren().forEach(
+                    node -> node.getStyleClass().remove("item-card-selected")
+            );
             card.getStyleClass().add("item-card-selected");
 
             this.selectedPet = pet;
-            selectedItemName.setText(pet.getDisplayName());
-            selectedItemDesc.setText("PACE: " + pet.getMoveSpeed() + " | Supporter");
+            this.selectedWeapon = null;
 
+            selectedItemName.setText(pet.getDisplayName());
+
+            boolean isCurrentOwned = ownedPets.contains(pet);
+            boolean isCurrentEquipped =
+                    PetSelectionManager.getInstance().isSelected(pet);
+
+            String description =
+                    "PACE: " + pet.getMoveSpeed() + " | Supporter";
+
+            if (!isCurrentOwned) {
+                description += " | PRICE: " + pet.getPrice() + " GOLD";
+            }
+
+            selectedItemDesc.setText(description);
             actionButton.setVisible(true);
 
-            boolean isCurrentEquipped = PetSelectionManager.getInstance().isSelected(pet);
             if (isCurrentEquipped) {
-                actionButton.setText("Equipment");
+                actionButton.setText("EQUIPPED");
                 actionButton.setDisable(true);
-            } else {
-                actionButton.setText("CHOSE PET");
+                actionButton.setOnAction(null);
+
+            } else if (isCurrentOwned) {
+                actionButton.setText("EQUIP PET");
                 actionButton.setDisable(false);
                 actionButton.setOnAction(evt -> {
-//                    tat moi am thanh SFX khac de tranh de tieng
-                    SoundManager.getInstance().stopAllSFX();
-                    if (pet.getSoundPath() != null && !pet.getSoundPath().isBlank()) {
-//                        phat tieng cua moi con khi chon
-                        SoundManager.getInstance().playSFX(pet.getSoundPath());
-                    } else {
-                        SoundManager.getInstance().playSFX("button");
-                    }
-                    PetSelectionManager.getInstance().selectPet(pet);
-                    if (gameWorld != null) {
-                        gameWorld.equipPet(pet);
-                    }
-                    loadPetShop();
+                    playPetSound(pet);
+                    equipPet(pet);
+                });
+
+            } else {
+                actionButton.setText("BUY - " + pet.getPrice() + " GOLD");
+                actionButton.setDisable(false);
+                actionButton.setOnAction(evt -> {
+                    SoundManager.getInstance().playSFX("button");
+                    purchasePet(pet);
                 });
             }
         });
 
         return card;
+    }
+
+    private void purchasePet(PetType pet) {
+        if (shopLoading || ownedPets.contains(pet)) {
+            return;
+        }
+
+        int price = pet.getPrice();
+        setShopLoading(true);
+
+        CompletableFuture
+                .supplyAsync(() ->
+                        shopDAO.purchaseItem(
+                                UserSession.getCurrentUserId(),
+                                UserSession.getCurrentUser().getUsername(),
+                                ITEM_TYPE_PET,
+                                pet.name(),
+                                price
+                        )
+                )
+                .thenAccept(result -> Platform.runLater(() -> {
+                    setShopLoading(false);
+
+                    switch (result) {
+                        case SUCCESS -> {
+                            ownedPets.add(pet);
+                            currentGold = Math.max(0, currentGold - price);
+                            updateCoinLabel();
+
+                            selectedItemName.setText(pet.getDisplayName());
+                            selectedItemDesc.setText("PURCHASE SUCCESS");
+
+                            loadPetShop();
+                        }
+
+                        case ALREADY_OWNED -> {
+                            ownedPets.add(pet);
+                            updateCoinLabel();
+                            selectedItemDesc.setText("Ban da so huu pet nay.");
+                            loadPetShop();
+                        }
+
+                        case NOT_ENOUGH_GOLD -> {
+                            updateCoinLabel();
+                            selectedItemDesc.setText("Khong du vang.");
+                        }
+
+                        case SAVE_NOT_FOUND -> {
+                            updateCoinLabel();
+                            selectedItemDesc.setText(
+                                    "Khong tim thay du lieu nguoi choi."
+                            );
+                        }
+                    }
+                }))
+                .exceptionally(exception -> {
+                    exception.printStackTrace();
+
+                    Platform.runLater(() -> {
+                        setShopLoading(false);
+                        updateCoinLabel();
+                        selectedItemDesc.setText("Khong the mua pet.");
+                    });
+
+                    return null;
+                });
+    }
+
+    private void equipPet(PetType pet) {
+        if (shopLoading || !ownedPets.contains(pet)) {
+            return;
+        }
+
+        setShopLoading(true);
+
+        CompletableFuture
+                .supplyAsync(() ->
+                        shopDAO.equipItem(
+                                UserSession.getCurrentUserId(),
+                                ITEM_TYPE_PET,
+                                pet.name()
+                        )
+                )
+                .thenAccept(success -> Platform.runLater(() -> {
+                    setShopLoading(false);
+                    updateCoinLabel();
+
+                    if (!success) {
+                        selectedItemDesc.setText(
+                                "Ban chua so huu pet nay."
+                        );
+                        return;
+                    }
+
+                    PetSelectionManager.getInstance().selectPet(pet);
+
+                    if (gameWorld != null) {
+                        gameWorld.equipPet(pet);
+                    }
+
+                    selectedItemDesc.setText(
+                            "Da trang bi " + pet.getDisplayName()
+                    );
+
+                    loadPetShop();
+                }))
+                .exceptionally(exception -> {
+                    exception.printStackTrace();
+
+                    Platform.runLater(() -> {
+                        setShopLoading(false);
+                        updateCoinLabel();
+                        selectedItemDesc.setText(
+                                "Khong the trang bi pet."
+                        );
+                    });
+
+                    return null;
+                });
+    }
+
+    private void playPetSound(PetType pet) {
+        SoundManager.getInstance().stopAllSFX();
+
+        if (pet.getSoundPath() != null
+                && !pet.getSoundPath().isBlank()) {
+            SoundManager.getInstance().playSFX(pet.getSoundPath());
+        } else {
+            SoundManager.getInstance().playSFX("button");
+        }
     }
 
     private void loadWeaponShop() {
@@ -182,9 +486,15 @@ public class ShopController {
         card.setAlignment(Pos.CENTER);
         card.getStyleClass().add("item-card");
 
+        boolean isOwned = ownedWeapons.contains(weapon);
         boolean isEquipped = (weapon == equippedWeapon);
+
         if (isEquipped) {
             card.getStyleClass().add("item-card-equipped");
+        }
+
+        if (!isOwned) {
+            card.getStyleClass().add("item-card-locked");
         }
 
         Canvas canvas = new Canvas(SHOP_CANVAS_SIZE, SHOP_CANVAS_SIZE);
@@ -197,45 +507,202 @@ public class ShopController {
         card.getChildren().addAll(canvas, nameLabel);
 
         card.setOnMouseClicked(e -> {
-            SoundManager.getInstance().stopAllSFX();
-            if (weapon.getSoundPath() != null && !weapon.getSoundPath().isBlank()) {
-                SoundManager.getInstance().playSFX(weapon.getSoundPath());
-            } else {
-                SoundManager.getInstance().playSFX("button");
+            if (shopLoading) {
+                return;
             }
-            itemGrid.getChildren().forEach(n -> n.getStyleClass().remove("item-card-selected"));
+
+            playWeaponSound(weapon);
+
+            itemGrid.getChildren().forEach(
+                    node -> node.getStyleClass().remove("item-card-selected")
+            );
             card.getStyleClass().add("item-card-selected");
 
             this.selectedWeapon = weapon;
-            selectedItemName.setText(weapon.getDisplayName());
-            selectedItemDesc.setText(buildWeaponDesc(weapon));
+            this.selectedPet = null;
 
+            selectedItemName.setText(weapon.getDisplayName());
+
+            boolean isCurrentOwned = ownedWeapons.contains(weapon);
+            boolean isCurrentEquipped =
+                    WeaponSelectionManager.getInstance().isSelected(weapon);
+
+            String description = buildWeaponDesc(weapon);
+
+            if (!isCurrentOwned) {
+                description +=
+                        " | PRICE: " + weapon.getPrice() + " GOLD";
+            }
+
+            selectedItemDesc.setText(description);
             actionButton.setVisible(true);
 
-            boolean isCurrentEquipped = WeaponSelectionManager.getInstance().isSelected(weapon);
             if (isCurrentEquipped) {
-                actionButton.setText("Equipment");
+                actionButton.setText("EQUIPPED");
                 actionButton.setDisable(true);
-            } else {
-                actionButton.setText("CHOSE WEAPON");
+                actionButton.setOnAction(null);
+
+            } else if (isCurrentOwned) {
+                actionButton.setText("EQUIP WEAPON");
                 actionButton.setDisable(false);
                 actionButton.setOnAction(evt -> {
-                    SoundManager.getInstance().stopAllSFX();
-                    if (weapon.getSoundPath() != null && !weapon.getSoundPath().isBlank()) {
-                        SoundManager.getInstance().playSFX(weapon.getSoundPath());
-                    } else {
-                        SoundManager.getInstance().playSFX("button");
-                    }
-                    WeaponSelectionManager.getInstance().selectWeapon(weapon);
-                    if (gameWorld != null) {
-                        gameWorld.equipWeapon(weapon);
-                    }
-                    loadWeaponShop();
+                    playWeaponSound(weapon);
+                    equipWeapon(weapon);
+                });
+
+            } else {
+                actionButton.setText(
+                        "BUY - " + weapon.getPrice() + " GOLD"
+                );
+                actionButton.setDisable(false);
+                actionButton.setOnAction(evt -> {
+                    SoundManager.getInstance().playSFX("button");
+                    purchaseWeapon(weapon);
                 });
             }
         });
 
         return card;
+    }
+
+    private void purchaseWeapon(WeaponType weapon) {
+        if (shopLoading || ownedWeapons.contains(weapon)) {
+            return;
+        }
+
+        int price = weapon.getPrice();
+        setShopLoading(true);
+
+        CompletableFuture
+                .supplyAsync(() ->
+                        shopDAO.purchaseItem(
+                                UserSession.getCurrentUserId(),
+                                UserSession.getCurrentUser().getUsername(),
+                                ITEM_TYPE_WEAPON,
+                                weapon.name(),
+                                price
+                        )
+                )
+                .thenAccept(result -> Platform.runLater(() -> {
+                    setShopLoading(false);
+
+                    switch (result) {
+                        case SUCCESS -> {
+                            ownedWeapons.add(weapon);
+                            currentGold = Math.max(0, currentGold - price);
+                            updateCoinLabel();
+
+                            selectedItemName.setText(
+                                    weapon.getDisplayName()
+                            );
+                            selectedItemDesc.setText("PURCHASE SUCCESS");
+
+                            loadWeaponShop();
+                        }
+
+                        case ALREADY_OWNED -> {
+                            ownedWeapons.add(weapon);
+                            updateCoinLabel();
+                            selectedItemDesc.setText(
+                                    "Ban da so huu weapon nay."
+                            );
+                            loadWeaponShop();
+                        }
+
+                        case NOT_ENOUGH_GOLD -> {
+                            updateCoinLabel();
+                            selectedItemDesc.setText("Khong du vang.");
+                        }
+
+                        case SAVE_NOT_FOUND -> {
+                            updateCoinLabel();
+                            selectedItemDesc.setText(
+                                    "Khong tim thay du lieu nguoi choi."
+                            );
+                        }
+                    }
+                }))
+                .exceptionally(exception -> {
+                    exception.printStackTrace();
+
+                    Platform.runLater(() -> {
+                        setShopLoading(false);
+                        updateCoinLabel();
+                        selectedItemDesc.setText(
+                                "Khong the mua weapon."
+                        );
+                    });
+
+                    return null;
+                });
+    }
+
+    private void equipWeapon(WeaponType weapon) {
+        if (shopLoading || !ownedWeapons.contains(weapon)) {
+            return;
+        }
+
+        setShopLoading(true);
+
+        CompletableFuture
+                .supplyAsync(() ->
+                        shopDAO.equipItem(
+                                UserSession.getCurrentUserId(),
+                                ITEM_TYPE_WEAPON,
+                                weapon.name()
+                        )
+                )
+                .thenAccept(success -> Platform.runLater(() -> {
+                    setShopLoading(false);
+                    updateCoinLabel();
+
+                    if (!success) {
+                        selectedItemDesc.setText(
+                                "Ban chua so huu weapon nay."
+                        );
+                        return;
+                    }
+
+                    WeaponSelectionManager
+                            .getInstance()
+                            .selectWeapon(weapon);
+
+                    if (gameWorld != null) {
+                        gameWorld.equipWeapon(weapon);
+                    }
+
+                    selectedItemDesc.setText(
+                            "Da trang bi " + weapon.getDisplayName()
+                    );
+
+                    loadWeaponShop();
+                }))
+                .exceptionally(exception -> {
+                    exception.printStackTrace();
+
+                    Platform.runLater(() -> {
+                        setShopLoading(false);
+                        updateCoinLabel();
+                        selectedItemDesc.setText(
+                                "Khong the trang bi weapon."
+                        );
+                    });
+
+                    return null;
+                });
+    }
+
+    private void playWeaponSound(WeaponType weapon) {
+        SoundManager.getInstance().stopAllSFX();
+
+        if (weapon.getSoundPath() != null
+                && !weapon.getSoundPath().isBlank()) {
+            SoundManager.getInstance().playSFX(
+                    weapon.getSoundPath()
+            );
+        } else {
+            SoundManager.getInstance().playSFX("button");
+        }
     }
 
     private String buildWeaponDesc(WeaponType weapon) {
@@ -331,8 +798,20 @@ public class ShopController {
 
     private Image loadImage(String path) {
         if (path == null || path.isBlank()) return null;
+
+        Image cachedImage = imageCache.get(path);
+        if (cachedImage != null) return cachedImage;
+
         URL resource = getClass().getResource(path);
-        if (resource == null) return null;
-        return new Image(resource.toExternalForm(), false);
+        if (resource == null) {
+            System.err.println("Khong tim thay anh shop: " + path);
+            return null;
+        }
+
+        Image image = new Image(resource.toExternalForm(), false);
+        imageCache.put(path, image);
+        return image;
     }
+
+    private record ShopData(Set<String> petCodes, Set<String> weaponCodes, int gold) {}
 }

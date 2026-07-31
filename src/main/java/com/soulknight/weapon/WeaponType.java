@@ -9,7 +9,8 @@ public enum WeaponType {
             "/assets/WeaponImage/GunImage/OldPistol.png",
             "Blaster_Fire",
             12, 0.18,
-            true, 580.0, 0.0
+            true, 580.0, 0.0,
+            0
     ),
 
     OLD_PISTOL(
@@ -17,7 +18,7 @@ public enum WeaponType {
             "/assets/WeaponImage/GunImage/OldPistol.png",
             "Pistol_Fire",
             12, 0.18,
-            true, 580.0, 0.0
+            true, 580.0, 0.0,100
     ),
 
     SMG(
@@ -25,7 +26,7 @@ public enum WeaponType {
             "/assets/WeaponImage/GunImage/SMG.png",
             "SMG_Fire",
             8, 0.09,
-            true, 620.0, 0.0
+            true, 620.0, 0.0,1000
     ),
 
     SHOTGUN(
@@ -33,7 +34,7 @@ public enum WeaponType {
             "/assets/WeaponImage/GunImage/Shotgun.png",
             "Shotgun_Fire",
             20, 0.6,
-            true, 520.0, 0.0
+            true, 520.0, 0.0,2000
     ),
 
     SNIPER(
@@ -41,15 +42,15 @@ public enum WeaponType {
             "/assets/WeaponImage/GunImage/Sniper.png",
             "Sniper_Fire",
             40, 1.1,
-            true, 900.0, 0.0
+            true, 900.0, 0.0,3000
     ),
 
     LASER_RIFLE(
             "Laser Rifle",
             "/assets/WeaponImage/GunImage/sunglaser.png",
-            "Blaster_Fire",
+            "laser_gun",
             28, 0.25,
-            true, 780.0, 0.0
+            true, 780.0, 0.0,9999
     ),
 
     OLD_SWORD(
@@ -57,7 +58,7 @@ public enum WeaponType {
             "/assets/WeaponImage/MeleeImage/Sprite_Old_Sword_of_Royal_Guard.png",
             "Sword_Swing",
             25, 0.35,
-            false, 0.0, 30.0
+            false, 0.0, 30.0,2500
     ),
 
     FISH(
@@ -65,7 +66,7 @@ public enum WeaponType {
             "/assets/WeaponImage/MeleeImage/Fish.png",
             "Fish_Slap",
             18, 0.3,
-            false, 0.0, 28.0
+            false, 0.0, 28.0,5000
     ),
 
     WAND(
@@ -73,7 +74,7 @@ public enum WeaponType {
             "/assets/WeaponImage/MeleeImage/Wand.png",
             "Magic_Cast",
             15, 0.25,
-            false, 0.0, 34.0
+            false, 0.0, 34.0,3600
     );
 
     private final String displayName;
@@ -84,6 +85,8 @@ public enum WeaponType {
     private final boolean ranged;
     private final double bulletSpeed;
     private final double meleeRange;
+    private final int price;
+
 
     WeaponType(
             String displayName,
@@ -93,7 +96,7 @@ public enum WeaponType {
             double cooldownSeconds,
             boolean ranged,
             double bulletSpeed,
-            double meleeRange
+            double meleeRange,int price
     ) {
         this.displayName = displayName;
         this.imagePath = imagePath;
@@ -103,6 +106,7 @@ public enum WeaponType {
         this.ranged = ranged;
         this.bulletSpeed = bulletSpeed;
         this.meleeRange = meleeRange;
+        this.price=price;
     }
 
     public String getDisplayName() { return displayName; }
@@ -113,6 +117,9 @@ public enum WeaponType {
     public boolean isRanged() { return ranged; }
     public double getBulletSpeed() { return bulletSpeed; }
     public double getMeleeRange() { return meleeRange; }
+    public int getPrice() {
+        return price;
+    }
 
 
     public Weapon createWeapon() {

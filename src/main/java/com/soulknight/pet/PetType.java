@@ -12,6 +12,7 @@ public enum PetType {
             0, 0,
             32, 32,
             0, 0.12
+            ,0
     ),
 
     SLIME(
@@ -24,6 +25,7 @@ public enum PetType {
             32, 32,
             185,
             0.15
+                    ,1000
     ),
 
     CAT(
@@ -36,6 +38,7 @@ public enum PetType {
             32, 32,
             195,
             0.15
+            ,0
     ),
 
     WOLF(
@@ -47,7 +50,7 @@ public enum PetType {
             22, 22,
             32, 32,
             210,
-            0.15
+            0.15,2000
     ),
 
     GHOST(
@@ -59,7 +62,7 @@ public enum PetType {
             22, 22,
             32, 32,
             175,
-            0.15
+            0.15,5000
     );
 
     private final String displayName;
@@ -74,6 +77,7 @@ public enum PetType {
     private final double frameHeight;
     private final double moveSpeed;
     private final double frameDuration;
+    private final int price;
 
     PetType(
             String displayName,
@@ -87,7 +91,8 @@ public enum PetType {
             double frameWidth,
             double frameHeight,
             double moveSpeed,
-            double frameDuration
+            double frameDuration,
+            int price
     ) {
         this.displayName = displayName;
         this.idleImagePath = idleImagePath;
@@ -101,6 +106,7 @@ public enum PetType {
         this.frameHeight = frameHeight;
         this.moveSpeed = moveSpeed;
         this.frameDuration = frameDuration;
+        this.price = price;
     }
 
     public String getDisplayName() { return displayName; }
@@ -118,5 +124,8 @@ public enum PetType {
 
     public boolean hasPet() {
         return this != NONE;
+    }
+    public int getPrice() {
+        return price;
     }
 }

@@ -124,6 +124,24 @@ public final class RegisterController {
             onLoginRequested.run();
         }
     }
+    @FXML
+    public void initialize() {
+
+        // Enter o username -> sang password
+        usernameField.setOnAction(e -> passwordField.requestFocus());
+
+        // Enter o password -> sang confirm password
+        passwordField.setOnAction(
+                e -> confirmPasswordField.requestFocus()
+        );
+
+        // Enter o confirm -> dang ky
+        confirmPasswordField.setOnAction(e -> {
+            if (!registerButton.isDisabled()) {
+                handleRegister();
+            }
+        });
+    }
 
     public String getEnteredUsername() {
         return usernameField.getText() == null

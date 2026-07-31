@@ -98,6 +98,20 @@ public final class LoginController {
             onRegisterRequested.run();
         }
     }
+    @FXML
+    public void initialize() {
+
+        // Enter o username -> focus password
+        usernameField.setOnAction(e -> passwordField.requestFocus());
+
+        // Enter o password -> login
+        passwordField.setOnAction(e -> {
+            if (!loginButton.isDisabled()) {
+                handleLogin();
+            }
+        });
+    }
+
 
     public void clearForm() {
         usernameField.clear();

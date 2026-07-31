@@ -37,7 +37,11 @@ public final class UserSession {
         return getCurrentUser().getUsername();
     }
     public static int getCurrentUserId() {
-        return getCurrentUser().getId();
+        if (currentUser == null) {
+            throw new IllegalStateException("Chưa có người dùng đăng nhập.");
+        }
+
+        return currentUser.getId();
     }
 
     public static boolean isFirstPlay() {
