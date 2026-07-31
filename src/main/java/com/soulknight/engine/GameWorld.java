@@ -258,6 +258,10 @@ public final class GameWorld {
                 continue;
             }
 
+            // Vị trí an toàn trước khi di chuyển (dùng để tính phản đạn khi chạm tường)
+            double prevX = bulletX;
+            double prevY = bulletY;
+
             bullet.update(deltaSeconds);
 
             bulletX = bullet.getPosition().getX();
@@ -265,6 +269,15 @@ public final class GameWorld {
 
             // Đạn va chạm tường sau khi di chuyển
             if (mapManager.isBulletCollidingWithWall(bulletX, bulletY)) {
+                // Đạn laser: lần đầu chạm tường thì phản lại 1 góc (1 lần duy nhất)
+                if (bullet.canReflect()) {
+                    // Xác định trục phản: thử di chuyển từng trục từ vị trí an toàn
+                    boolean flipX = mapManager.isBulletCollidingWithWall(bulletX, prevY);
+                    boolean flipY = mapManager.isBulletCollidingWithWall(prevX, bulletY);
+                    bullet.reflectOnce(new Vector2D(prevX, prevY), flipX, flipY);
+                    spawnBulletExplosion(new Vector2D(bulletX, bulletY));
+                    continue;
+                }
                 spawnBulletExplosion(bullet.getPosition());
                 bullet.deactivate();
                 continue;
