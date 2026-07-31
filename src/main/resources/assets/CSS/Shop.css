@@ -115,7 +115,9 @@
 }
 
 .item-card-equipped {
-    -fx-border-color: #38b764;
+    -fx-background-color: #30433b;
+    -fx-border-color: #ffd700 #8d6d00 #8d6d00 #ffd700;
+    -fx-border-width: 4px;
 }
 
 .item-card-title {
@@ -156,4 +158,32 @@
 }
 .pixel-btn-action:hover {
     -fx-background-color: #257179;
+}
+.item-card-locked {
+    -fx-background-color: #26212f;
+    -fx-opacity: 0.75;
+}
+.item-card-locked {
+    -fx-border-color: #6d2a2a #2a1111 #2a1111 #6d2a2a;
+    -fx-border-width: 3px;
+}
+.item-card-locked:hover {
+    -fx-background-color: #2f2938;
+    -fx-border-color: #d44d4d;
+}
+.item-card-locked Canvas {
+    -fx-opacity: 0.45;
+}
+.item-card-locked .item-card-title {
+    -fx-text-fill: #8f8f8f;
+}
+
+.item-card-equipped {
+    -fx-border-color: #ffd700;
+    -fx-border-width: 3px;
+}
+
+.item-card-selected {
+    -fx-border-color: white;
+    -fx-border-width: 2px;
 }

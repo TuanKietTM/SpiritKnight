@@ -95,6 +95,7 @@ public final class SoundManager {
         loadSFX("Sniper_Fire","/assets/Audio/sniper.mp3");
         loadSFX("Magic_Cast","/assets/Audio/magic.mp3");
         loadSFX("attack_box","/assets/Audio/attack_box.mp3");
+        loadSFX("laser_gun","/assets/Audio/laser_gun.mp3");
 
     }
 
