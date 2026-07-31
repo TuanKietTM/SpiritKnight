@@ -1,0 +1,5 @@
+db.host=mysql-soul-knight-vnu-66e5.b.aivencloud.com
+db.port=26736
+db.name=defaultdb
+db.user=avnadmin
+db.password=MK

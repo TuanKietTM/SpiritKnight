@@ -34,16 +34,24 @@ public final class Bullet {
     private final Color color;
     // Dan xuyen: bay qua muc tieu va gay sat thuong nhieu con (moi con mot lan)
     private final boolean piercing;
+    // Dan phan tuong: cham tuong lan dau se doi huong 1 lan duy nhat
+    private final boolean reflective;
+    private boolean hasReflected;
     private final Set<Object> hitTargets;
     private double age;
     private boolean active = true;
 
     public Bullet(Vector2D position, Vector2D velocity, int damage, double radius, Entity owner, Color color) {
-        this(position, velocity, damage, radius, owner, color, false);
+        this(position, velocity, damage, radius, owner, color, false, false);
     }
 
     public Bullet(Vector2D position, Vector2D velocity, int damage, double radius, Entity owner, Color color,
                   boolean piercing) {
+        this(position, velocity, damage, radius, owner, color, piercing, false);
+    }
+
+    public Bullet(Vector2D position, Vector2D velocity, int damage, double radius, Entity owner, Color color,
+                  boolean piercing, boolean reflective) {
         this.position = position;
         this.velocity = velocity;
         this.damage = damage;
@@ -51,6 +59,7 @@ public final class Bullet {
         this.owner = owner;
         this.color = color;
         this.piercing = piercing;
+        this.reflective = reflective;
         this.hitTargets = piercing ? new HashSet<>() : null;
     }
 
@@ -104,6 +113,33 @@ public final class Bullet {
 
     public boolean isPiercing() {
         return piercing;
+    }
+
+    // Con co the phan tuong khong (chi phan duoc dung 1 lan)
+    public boolean canReflect() {
+        return reflective && !hasReflected;
+    }
+
+    // Phan dan 1 lan khi cham tuong: dua dan ve vi tri an toan va lat van toc theo truc va cham.
+    // flipX: cham tuong doc (chan huong ngang); flipY: cham tuong ngang (chan huong doc).
+    public void reflectOnce(Vector2D safePosition, boolean flipX, boolean flipY) {
+        if (!flipX && !flipY) {
+            // Cham goc/khong xac dinh duoc truc -> lat ca hai de dan quay dau
+            flipX = true;
+            flipY = true;
+        }
+        if (flipX) {
+            velocity.setX(-velocity.getX());
+        }
+        if (flipY) {
+            velocity.setY(-velocity.getY());
+        }
+        position.set(safePosition.getX(), safePosition.getY());
+        hasReflected = true;
+        // Tia phan la mot luot moi: cho phep gay sat thuong lai len quai da trung
+        if (hitTargets != null) {
+            hitTargets.clear();
+        }
     }
 
     // Kiem tra muc tieu da trung tia laser nay chua (tranh cong sat thuong lien tuc)
