@@ -2,3 +2,4 @@ target/
 *.class
 .idea/
 .nbproject/
+database.properties
