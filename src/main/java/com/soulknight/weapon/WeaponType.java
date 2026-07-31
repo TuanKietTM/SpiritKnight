@@ -44,6 +44,14 @@ public enum WeaponType {
             true, 900.0, 0.0
     ),
 
+    LASER_RIFLE(
+            "Laser Rifle",
+            "/assets/WeaponImage/GunImage/sunglaser.png",
+            "Blaster_Fire",
+            28, 0.25,
+            true, 780.0, 0.0
+    ),
+
     OLD_SWORD(
             "Old Sword",
             "/assets/WeaponImage/MeleeImage/Sprite_Old_Sword_of_Royal_Guard.png",
@@ -109,7 +117,12 @@ public enum WeaponType {
 
     public Weapon createWeapon() {
         if (ranged) {
-            return new Gun(displayName, damage, cooldownSeconds, bulletSpeed, 0.0)
+            Gun gun = new Gun(displayName, damage, cooldownSeconds, bulletSpeed, 0.0);
+            // Sung laser ban dan laser xuyen quai (mot tia trung nhieu con)
+            if (this == LASER_RIFLE) {
+                gun.withPiercing();
+            }
+            return gun
                     .withSound(soundPath)
                     .withImage(imagePath);
         }

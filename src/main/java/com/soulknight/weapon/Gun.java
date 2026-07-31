@@ -13,11 +13,19 @@ public final class Gun extends Weapon {
 
     private final double bulletSpeed;
     private final double spreadRadians;
+    // Dan xuyen (laser): bay qua quai, gay sat thuong nhieu con
+    private boolean piercingBullets;
 
     public Gun(String name, int damage, double cooldownSeconds, double bulletSpeed, double spreadRadians) {
         super(name, damage, cooldownSeconds);
         this.bulletSpeed = bulletSpeed;
         this.spreadRadians = spreadRadians;
+    }
+
+    // Bat che do dan xuyen, tra ve chinh no de tien goi noi tiep
+    public Gun withPiercing() {
+        this.piercingBullets = true;
+        return this;
     }
 
     @Override
@@ -44,7 +52,8 @@ public final class Gun extends Weapon {
         Vector2D spawn = owner.getPosition().copy()
                 .add(Math.cos(angle) * MUZZLE_DISTANCE, Math.sin(angle) * MUZZLE_DISTANCE);
 
-        world.addBullet(new Bullet(spawn, velocity, getDamage(), 4.0, owner, Color.GOLD));
+        world.addBullet(new Bullet(spawn, velocity, getDamage(), 4.0, owner,
+                piercingBullets ? Color.DEEPSKYBLUE : Color.GOLD, piercingBullets));
         resetCooldown();
     }
 }

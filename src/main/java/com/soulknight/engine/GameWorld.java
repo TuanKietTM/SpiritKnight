@@ -280,6 +280,15 @@ public final class GameWorld {
                     continue;
                 }
 
+                // Đạn laser xuyên qua obstacle: gây sát thương 1 lần rồi bay tiếp
+                if (bullet.isPiercing()) {
+                    if (!bullet.hasAlreadyHit(obstacle)) {
+                        bullet.markHit(obstacle);
+                        damageObstacle(obstacle, bullet.getDamage(), bullet.getPosition());
+                    }
+                    continue;
+                }
+
                 damageObstacle(obstacle, bullet.getDamage(), bullet.getPosition());
                 bullet.deactivate();
                 break;
@@ -297,6 +306,15 @@ public final class GameWorld {
                     }
 
                     if (bullet.intersects(enemy)) {
+                        // Đạn laser xuyên quái: mỗi con chỉ trúng 1 lần, tia tiếp tục bay
+                        if (bullet.isPiercing()) {
+                            if (!bullet.hasAlreadyHit(enemy)) {
+                                bullet.markHit(enemy);
+                                enemy.takeDamage(bullet.getDamage());
+                            }
+                            continue;
+                        }
+
                         enemy.takeDamage(bullet.getDamage());
                         spawnBulletExplosion(
                                 bullet.getPosition()
