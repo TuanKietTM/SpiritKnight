@@ -122,20 +122,20 @@ public final class GameWorld {
     }
 
     public void changeState(GameState newState) {
-// thay doi trang thai
-        if ((this.state == GameState.MAIN_MENU || this.state == GameState.GAME_OVER || this.state == GameState.GAME_VICTORY)
-                && newState == GameState.PLAYING) {
-            startNewRun();
+        if (newState == null || this.state == newState) return;
+
+        /*
+         * Khong tu dong startNewRun khi tu Menu sang Playing.
+         * New Game va Continue se tu xu ly du lieu truoc.
+         */
+        this.state = newState;
+
+        if (inputHandler != null) {
+            inputHandler.clearState();
         }
-        if (this.state != newState) {
-            this.state = newState;
-            // xpa sach trang thai phim
-            if (inputHandler != null) {
-                inputHandler.clearState();
-            }
-            if (stateListener != null) {
-                stateListener.onStateChanged(newState);
-            }
+
+        if (stateListener != null) {
+            stateListener.onStateChanged(newState);
         }
     }
 
@@ -665,7 +665,7 @@ public final class GameWorld {
             currentRoomNumber = 1;
         }
         loadCurrentLevel(true);
-        SoundManager.getInstance().playBGM("/assets/Audio/StartGame.mp3");
+        playGameBGM();
     }
 
     //(vitdung) chỉnh lại hàm này để test loadMap từ txt
@@ -1338,39 +1338,57 @@ public final class GameWorld {
     }
 
     public void loadGameAsync(String playerName) {
+        loadGameAsync(playerName, null);
+    }
+    public void loadGameAsync(String playerName, java.util.function.Consumer<Boolean> callback) {
         if (playerName == null || playerName.isBlank()) {
-            System.err.println("Không thể load save vì username trống.");
+            System.err.println("Khong the load save vi username trong.");
+            runLoadCallback(callback, false);
             return;
         }
+
+        if (!saveLoadInProgress.compareAndSet(false, true)) {
+            System.err.println("Dang co mot tien trinh load save khac.");
+            runLoadCallback(callback, false);
+            return;
+        }
+
         String safePlayerName = playerName.trim();
         pendingPlayerSave = null;
-        saveLoadInProgress.set(true);
+
         databaseExecutor.submit(() -> {
+            boolean success = false;
+
             try {
                 PlayerSaveDAO dao = new PlayerSaveDAO();
+                java.util.Optional<PlayerSave> saveOptional = dao.findByName(safePlayerName);
 
-                dao.findByName(safePlayerName).ifPresentOrElse(save -> javafx.application.Platform
-                                        .runLater(() -> {pendingPlayerSave = save;
-                                            System.out.println("Đã tải save của " + safePlayerName + ": room=" + save.getCurrentRoom()
-                                            );
-                                            if (player != null && mapManager != null) {
-                                                applyPendingPlayerSave();
-                                                restorePlayerRoomPosition();
-                                            }
-                                            saveLoadInProgress.set(false);
-                                        }),
+                if (saveOptional.isPresent()) {
+                    pendingPlayerSave = saveOptional.get();
+                    success = true;
 
-                                () -> javafx.application.Platform.runLater(() -> {
-                                            System.out.println("Chưa có save của " + safePlayerName + ". Bắt đầu game mới.");
-                                            saveLoadInProgress.set(false);
-                                        })
-                        );
+                    System.out.println(
+                            "Da tai save cua " + safePlayerName
+                                    + ": room=" + pendingPlayerSave.getCurrentRoom()
+                    );
+                } else {
+                    System.out.println("Khong tim thay save cua " + safePlayerName + ".");
+                }
 
             } catch (RuntimeException exception) {
-                System.err.println("Cloud Load lỗi: " + exception.getMessage());
+                System.err.println("Cloud Load loi: " + exception.getMessage());
+                exception.printStackTrace();
+
+            } finally {
                 saveLoadInProgress.set(false);
+                runLoadCallback(callback, success);
             }
         });
+    }
+    private void runLoadCallback(java.util.function.Consumer<Boolean> callback, boolean success) {
+        if (callback == null) return;
+
+        javafx.application.Platform.runLater(() -> callback.accept(success));
     }
 
     public void shutdown() {
@@ -1647,7 +1665,43 @@ public final class GameWorld {
     public boolean isSaveLoadInProgress() {
         return saveLoadInProgress.get();
     }
+    public void startNewGameFromMenu() {
+        /*
+         * New Game xoa tien trinh cu va tao lai tu phong 1.
+         */
+        pendingPlayerSave = null;
+        currentRoomNumber = 1;
+        gold = 0;
+        gems = 0;
+        score = 0;
+        playerEnergy = 100.0;
+        autoSaveTimer = 0.0;
 
+        levelManager.startNewRun();
+        loadCurrentLevel(true);
+        playGameBGM();
+        changeState(GameState.PLAYING);
+        saveGameAsync();
+    }
+    public void continueGameFromMenu() {
+        /*
+         * Continue phai co save da load truoc.
+         * Khong goi startNewRun vi se reset ve room 1.
+         */
+        if (pendingPlayerSave == null) {
+            System.err.println("Khong co save de Continue.");
+            return;
+        }
+
+        loadCurrentLevel(true);
+        playGameBGM();
+        changeState(GameState.PLAYING);
+    }
+    private void playGameBGM() {
+        SoundManager sound = SoundManager.getInstance();
+        sound.stopBGM();
+        sound.playBGM("/assets/Audio/StartGame.mp3");
+    }
 }
 //NOTE : cac ham xu ly va cham
 // Player - titled (mapmanager): cua room

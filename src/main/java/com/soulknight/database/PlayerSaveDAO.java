@@ -4,6 +4,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 public final class PlayerSaveDAO {
@@ -118,5 +120,73 @@ public final class PlayerSaveDAO {
             );
             return Optional.empty();
         }
+    }
+    public boolean hasProgress(String playerName) {
+        String sql = """
+            SELECT 1
+            FROM player_saves
+            WHERE player_name = ?
+              AND (
+                    current_room > 1
+                    OR level > 1
+                    OR score > 0
+                    OR gold > 0
+              )
+            LIMIT 1
+            """;
+
+        try (Connection connection = DatabaseManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setString(1, playerName);
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                return resultSet.next();
+            }
+
+        } catch (SQLException exception) {
+            System.err.println(
+                    "Loi kiem tra tien trinh: "
+                            + exception.getMessage()
+            );
+            return false;
+        }
+    }
+    public List<LeaderboardEntry> getLeaderboard(int limit) {
+        String sql = """
+            SELECT player_name, score, gold
+            FROM player_saves
+            ORDER BY score DESC, gold DESC
+            LIMIT ?
+            """;
+
+        List<LeaderboardEntry> entries = new ArrayList<>();
+
+        try (Connection connection = DatabaseManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setInt(1, Math.max(1, limit));
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                int rank = 1;
+
+                while (resultSet.next()) {
+                    entries.add(new LeaderboardEntry(
+                            rank++,
+                            resultSet.getString("player_name"),
+                            resultSet.getInt("score"),
+                            resultSet.getInt("gold")
+                    ));
+                }
+            }
+
+        } catch (SQLException exception) {
+            throw new IllegalStateException(
+                    "Khong the tai leaderboard.",
+                    exception
+            );
+        }
+
+        return entries;
     }
 }
