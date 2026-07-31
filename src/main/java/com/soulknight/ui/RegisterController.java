@@ -56,7 +56,7 @@ public final class RegisterController {
         messageLabel.setText("Creating account...");
 
         if (onShowLoading != null) {
-            onShowLoading.accept("Creating account...");
+            onShowLoading.accept("");
         }
 
         Task<UserDAO.RegisterResult> task = new Task<>() {

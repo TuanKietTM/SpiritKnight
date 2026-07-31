@@ -37,14 +37,6 @@ public final class HUD {
     @FXML
     private Label manaLabel;
 
-    @FXML
-    private Label levelBannerLabel;
-
-    @FXML
-    private Label missionTitleLabel;
-
-    @FXML
-    private Label missionProgressLabel;
 
     @FXML
     private Label entitiesLabel;
@@ -139,20 +131,6 @@ public final class HUD {
 
             manaLabel.setText(currentMana + "/" + maxMana);
             manaBar.setProgress((double) currentMana / maxMana);
-        }
-
-        if (levelManager != null && levelBannerLabel != null) {
-            levelBannerLabel.setText(levelManager.getLevelBanner());
-        }
-
-        if (missionManager != null) {
-            if (missionTitleLabel != null) {
-                missionTitleLabel.setText("Mission: " + missionManager.getMissionTitle());
-            }
-
-            if (missionProgressLabel != null) {
-                missionProgressLabel.setText("Progress: " + missionManager.getMissionProgress());
-            }
         }
 
         if (entitiesLabel != null) {

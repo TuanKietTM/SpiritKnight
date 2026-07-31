@@ -125,3 +125,127 @@
     -fx-translate-y: 2px;
     -fx-effect: none;
 }
+/* ==========================================
+   SOUL KNIGHT STYLE - LEADERBOARD
+   ========================================== */
+
+/* Overlay làm mờ nền phía sau khi bật Leaderboard */
+.leaderboard-overlay {
+    -fx-background-color: rgba(8, 5, 17, 0.85);
+}
+
+/* Khung cửa sổ Bảng xếp hạng */
+.leaderboard-window {
+    -fx-background-color: #120a21;
+    -fx-border-color: #5a2e91 #2b1745 #2b1745 #5a2e91;
+    -fx-border-width: 4px;
+    -fx-border-radius: 0px;
+    -fx-background-radius: 0px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.95), 25, 0.6, 0, 8);
+}
+
+/* Tiêu đề Leaderboard */
+.leaderboard-title {
+    -fx-font-family: "Press Start 2P";
+    -fx-font-size: 18px;
+    -fx-text-fill: #ffd166; /* Màu vàng kim hoàng gia */
+    -fx-effect: dropshadow(three-pass-box, #b15b00, 10, 0.5, 0, 0);
+    -fx-padding: 0 0 5 0;
+}
+
+/* ------------------------------------------
+   CUSTOM TABLEVIEW (Pixel Style)
+   ------------------------------------------ */
+
+.table-view {
+    -fx-background-color: #090514;
+    -fx-border-color: #3b1d66;
+    -fx-border-width: 3px;
+    -fx-padding: 0px;
+}
+
+/* Background nền phía sau dòng trống */
+.table-view .column-header-background {
+    -fx-background-color: #1a0c33;
+    -fx-border-color: transparent transparent #3b1d66 transparent;
+    -fx-border-width: 0 0 3px 0;
+}
+
+/* Header tiêu đề các cột */
+.table-view .column-header {
+    -fx-background-color: #2b1745;
+    -fx-border-color: transparent #3b1d66 transparent transparent;
+    -fx-border-width: 0 2px 0 0;
+    -fx-padding: 10px 5px;
+}
+
+.table-view .column-header .label {
+    -fx-font-family: "Press Start 2P";
+    -fx-font-size: 10px;
+    -fx-text-fill: #00f0ff; /* Xanh Neon dạ quang */
+    -fx-alignment: CENTER;
+}
+
+/* Các hàng (Rows) dữ liệu */
+.table-row-cell {
+    -fx-background-color: #090514;
+    -fx-border-color: transparent transparent #1b0d33 transparent;
+    -fx-border-width: 0 0 1px 0;
+}
+
+/* Hàng chẵn / hàng lẻ xen kẽ màu cho dễ nhìn */
+.table-row-cell:odd {
+    -fx-background-color: #100724;
+}
+
+/* Hover hàng */
+.table-row-cell:hover {
+    -fx-background-color: #281148;
+}
+
+/* Hàng được chọn (Selected) */
+.table-row-cell:filled:selected {
+    -fx-background-color: #4a287a;
+    -fx-border-color: #00f0ff;
+    -fx-border-width: 1px;
+}
+
+/* Căn chỉnh chữ trong các ô (Cells) */
+.table-cell {
+    -fx-font-family: "Press Start 2P";
+    -fx-font-size: 10px;
+    -fx-text-fill: #e2d1f9;
+    -fx-alignment: CENTER;
+    -fx-padding: 8px 5px;
+}
+
+/* Highlight màu chữ cho hàng được chọn */
+.table-row-cell:filled:selected .table-cell {
+    -fx-text-fill: #ffffff;
+}
+
+/* ------------------------------------------
+   CUSTOM SCROLLBAR (Thanh cuộn Pixel)
+   ------------------------------------------ */
+
+.table-view .scroll-bar:vertical {
+    -fx-background-color: #090514;
+    -fx-pref-width: 14px;
+}
+
+.table-view .scroll-bar:vertical .thumb {
+    -fx-background-color: #5a2e91;
+    -fx-background-radius: 0px;
+    -fx-border-color: #8a2be2;
+    -fx-border-width: 1px;
+}
+
+.table-view .scroll-bar:vertical .thumb:hover {
+    -fx-background-color: #8a2be2;
+}
+
+.table-view .scroll-bar .increment-button,
+.table-view .scroll-bar .decrement-button {
+    -fx-background-color: #1a0c33;
+    -fx-padding: 0px;
+}

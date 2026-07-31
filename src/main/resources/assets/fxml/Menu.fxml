@@ -28,12 +28,44 @@
             <VBox styleClass="shadow-ellipse"/>
         </VBox>
     </StackPane>
-    <VBox alignment="CENTER" spacing="18" styleClass="button-container"
-          AnchorPane.bottomAnchor="70.0" AnchorPane.rightAnchor="120.0">
-        <Button fx:id="btnPlay" text="▶  START GAME" onAction="#onPlayClicked" styleClass="menu-button, menu-button-primary" focusTraversable="false"/>
-        <Button fx:id="btnShop" text="🛒  SHOP" onAction="#onShopClicked" styleClass="menu-button" focusTraversable="false"/>
-        <Button fx:id="btnSettings" text="⚙  SETTINGS" onAction="#onSettingsClicked" styleClass="menu-button" focusTraversable="false"/>
-        <Button fx:id="btnExit" text="✖  EXIT GAME" onAction="#onExitClicked" styleClass="menu-button-exit" focusTraversable="false"/>
+    <VBox alignment="CENTER" spacing="12" styleClass="button-container"
+          AnchorPane.bottomAnchor="40.0" AnchorPane.rightAnchor="120.0">
+
+        <Button fx:id="btnNewGame"
+                text="▶  NEW GAME"
+                onAction="#onNewGameClicked"
+                styleClass="menu-button, menu-button-primary"
+                focusTraversable="false"/>
+
+        <Button fx:id="btnContinue"
+                text="➤  CONTINUE"
+                onAction="#onContinueClicked"
+                styleClass="menu-button"
+                focusTraversable="false"/>
+
+        <Button fx:id="btnLeaderboard"
+                text="★  LEADERBOARD"
+                onAction="#onLeaderboardClicked"
+                styleClass="menu-button"
+                focusTraversable="false"/>
+
+        <Button fx:id="btnShop"
+                text="🛒  SHOP"
+                onAction="#onShopClicked"
+                styleClass="menu-button"
+                focusTraversable="false"/>
+
+        <Button fx:id="btnSettings"
+                text="⚙  SETTINGS"
+                onAction="#onSettingsClicked"
+                styleClass="menu-button"
+                focusTraversable="false"/>
+
+        <Button fx:id="btnExit"
+                text="✖  EXIT GAME"
+                onAction="#onExitClicked"
+                styleClass="menu-button-exit"
+                focusTraversable="false"/>
     </VBox>
 
 </AnchorPane>

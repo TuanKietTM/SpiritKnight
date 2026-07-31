@@ -64,27 +64,6 @@
             </StackPane>
         </HBox>
     </VBox>
-
-    <VBox AnchorPane.topAnchor="15.0"
-          AnchorPane.leftAnchor="350.0"
-          AnchorPane.rightAnchor="350.0"
-          alignment="CENTER"
-          spacing="2"
-          pickOnBounds="false">
-
-        <Label fx:id="levelBannerLabel"
-               text="LEVEL 1-1"
-               styleClass="level-banner-text"/>
-
-        <Label fx:id="missionTitleLabel"
-               text="Mission: Clear Room"
-               styleClass="mission-text"/>
-
-        <Label fx:id="missionProgressLabel"
-               text="Progress: 0%"
-               styleClass="mission-subtext"/>
-    </VBox>
-
     <HBox layoutY="20.0"
           AnchorPane.rightAnchor="20.0"
           spacing="12"
