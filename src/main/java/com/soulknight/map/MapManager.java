@@ -141,14 +141,7 @@ public final class MapManager {
                 double screenX = camera.worldToScreenX(x * tileSize);
                 double screenY = camera.worldToScreenY(y * tileSize);
 
-                if (!isInsideScreen(
-                        screenX,
-                        screenY,
-                        drawSize,
-                        drawSize,
-                        renderWidth,
-                        renderHeight
-                )) {
+                if (!isInsideScreen(screenX, screenY, drawSize, drawSize, renderWidth, renderHeight)) {
                     continue;
                 }
 
@@ -720,12 +713,7 @@ public final class MapManager {
         }
     }
 
-    private void renderFloorDecorations(
-            GraphicsContext gc,
-            Camera camera,
-            double renderWidth,
-            double renderHeight
-    ) {
+    private void renderFloorDecorations(GraphicsContext gc, Camera camera, double renderWidth, double renderHeight) {
         double zoom = camera.getZoom();
 
         for (FloorDecoration decoration : floorDecorations) {
@@ -740,24 +728,11 @@ public final class MapManager {
             double drawWidth = decoration.getWidth() * zoom;
             double drawHeight = decoration.getHeight() * zoom;
 
-            if (!isInsideScreen(
-                    screenX,
-                    screenY,
-                    drawWidth,
-                    drawHeight,
-                    renderWidth,
-                    renderHeight
-            )) {
+            if (!isInsideScreen(screenX, screenY, drawWidth, drawHeight, renderWidth, renderHeight)) {
                 continue;
             }
 
-            gc.drawImage(
-                    image,
-                    Math.floor(screenX),
-                    Math.floor(screenY),
-                    Math.ceil(drawWidth),
-                    Math.ceil(drawHeight)
-            );
+            gc.drawImage(image, Math.floor(screenX), Math.floor(screenY), Math.ceil(drawWidth), Math.ceil(drawHeight));
         }
     }
 

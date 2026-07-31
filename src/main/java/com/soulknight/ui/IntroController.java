@@ -334,17 +334,13 @@ public final class IntroController {
                 javafx.animation.ParallelTransition swordExit = new javafx.animation.ParallelTransition(swordOut, swordRotateOut);
 
                 swordExit.setOnFinished(e -> {
-                    javafx.animation.FadeTransition screenFadeOut = new javafx.animation.FadeTransition(Duration.seconds(0.8), rootStackPane);
-                    screenFadeOut.setToValue(0.0);
-                    screenFadeOut.setOnFinished(fadeOutEvent -> {
-                        SoundManager.getInstance().stopBGM();
-                        SoundManager.getInstance().stopSFX("Sword");
-                        SoundManager.getInstance().stopSFX("button");
-                        if (onIntroFinished != null) {
-                            onIntroFinished.run();
-                        }
-                    });
-                    screenFadeOut.play();
+                    SoundManager.getInstance().stopBGM();
+                    SoundManager.getInstance().stopSFX("Sword");
+                    SoundManager.getInstance().stopSFX("button");
+
+                    if (onIntroFinished != null) {
+                        onIntroFinished.run();
+                    }
                 });
                 SoundManager.getInstance().playSFX("Sword");
                 swordExit.play();

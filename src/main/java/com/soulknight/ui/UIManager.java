@@ -254,43 +254,57 @@ public final class UIManager {
         bindGameActions(world);
     }
     private void bindIntroActions(GameWorld world) {
-        if (introController == null) {
+        if (introController == null
+                || introRoot == null
+                || loginRoot == null) {
             return;
         }
 
-        introController.setOnIntroFinished(() -> {
-            Platform.runLater(() -> {
+        introController.setOnIntroFinished(() ->
+                Platform.runLater(this::transitionIntroToLogin)
+        );
+    }
+    private void transitionIntroToLogin() {
+        // Login phải được chuẩn bị trước khi animation bắt đầu.
+        loginRoot.setVisible(true);
+        loginRoot.setManaged(true);
+        loginRoot.setOpacity(1.0);
+        loginRoot.toBack();
 
-                // Chuẩn bị Login ở phía sau Intro
-                loginRoot.setOpacity(0.0);
-                loginRoot.setVisible(true);
-                loginRoot.toBack();
-                introRoot.toFront();
+        // Intro đang nằm phía trên Login.
+        introRoot.setVisible(true);
+        introRoot.setManaged(true);
+        introRoot.setOpacity(1.0);
+        introRoot.toFront();
 
-                FadeTransition fadeOut =
-                        new FadeTransition(Duration.seconds(0.6), introRoot);
+        FadeTransition fadeIntro =
+                new FadeTransition(
+                        Duration.millis(550),
+                        introRoot
+                );
 
-                fadeOut.setFromValue(1.0);
-                fadeOut.setToValue(0.0);
+        fadeIntro.setFromValue(1.0);
+        fadeIntro.setToValue(0.0);
 
-                FadeTransition fadeIn =
-                        new FadeTransition(Duration.seconds(0.6), loginRoot);
+        fadeIntro.setOnFinished(event -> {
+            introRoot.setVisible(false);
+            introRoot.setManaged(false);
+            introRoot.setOpacity(1.0);
 
-                fadeIn.setFromValue(0.0);
-                fadeIn.setToValue(1.0);
+            loginRoot.setOpacity(1.0);
+            loginRoot.setVisible(true);
+            loginRoot.setManaged(true);
+            loginRoot.toFront();
 
-                fadeOut.play();
-                fadeIn.play();
+            loginRoot.applyCss();
+            loginRoot.layout();
 
-                fadeOut.setOnFinished(event -> {
-                    introRoot.setVisible(false);
-                    introRoot.setOpacity(1.0);
-
-                    loginRoot.setOpacity(1.0);
-                    loginRoot.toFront();
-                });
-            });
+            if (loginController != null) {
+                loginController.clearForm();
+            }
         });
+
+        fadeIntro.play();
     }
 
     private void bindLoginActions(GameWorld world) {
@@ -515,12 +529,21 @@ public final class UIManager {
         return null;
     }
     private void showLoginScreen() {
+        if (introRoot != null) {
+            introRoot.setVisible(false);
+            introRoot.setManaged(false);
+            introRoot.setOpacity(1.0);
+        }
 
-        loginRoot.setOpacity(1);
-        loginRoot.setVisible(true);
-        loginRoot.toFront();
+        if (loginRoot != null) {
+            loginRoot.setOpacity(1.0);
+            loginRoot.setVisible(true);
+            loginRoot.setManaged(true);
+            loginRoot.toFront();
 
-        introRoot.setVisible(false);
+            loginRoot.applyCss();
+            loginRoot.layout();
+        }
     }
 
     private void showRegisterScreen() {
