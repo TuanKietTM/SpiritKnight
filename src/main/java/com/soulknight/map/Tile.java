@@ -18,7 +18,7 @@ public final class Tile {
     private static final Image BACK_IMAGE = new Image(Tile.class.getResourceAsStream("/assets/maps/back.png"));
 
     // Ảnh cho vật cản
-    private static final Image BOX_IMAGE = new Image(Tile.class.getResourceAsStream("/assets/maps/box.png"));
+    private static final Image BOX_IMAGE = new Image(Tile.class.getResourceAsStream("/assets/maps/wooden.png"));
     private static final Image TREE_IMAGE = new Image(Tile.class.getResourceAsStream("/assets/maps/tree.png"));
     private static final Image FIRE_IMAGE = new Image(Tile.class.getResourceAsStream("/assets/maps/fire.png"));
 
