@@ -48,6 +48,7 @@ public final class UIManager {
     private Parent registerRoot;
 
     private final UserDAO userDAO = new UserDAO();
+    private final CatLoadingOverlay loadingOverlay = new CatLoadingOverlay();
 
 
 
@@ -129,7 +130,7 @@ public final class UIManager {
             gameOverRoot.setPickOnBounds(false);
 
             rootNode.getChildren().addAll(introRoot, loginRoot, registerRoot, storyIntroRoot, menuRoot, hudRoot, levelClearRoot, victoryRoot,
-                    gameOverRoot, pauseRoot, settingRoot,shopRoot);
+                    gameOverRoot, pauseRoot, settingRoot,shopRoot,loadingOverlay);
 
             StackPane.setAlignment(introRoot, Pos.CENTER);
             StackPane.setAlignment(storyIntroRoot, Pos.CENTER);
@@ -142,6 +143,10 @@ public final class UIManager {
             StackPane.setAlignment(settingRoot, Pos.CENTER);
             StackPane.setAlignment(loginRoot, Pos.CENTER);
             StackPane.setAlignment(registerRoot, Pos.CENTER);
+            StackPane.setAlignment(loadingOverlay, Pos.CENTER);
+
+            loadingOverlay.setVisible(false);
+            loadingOverlay.setManaged(false);
 
             hideAllScreens();
             introRoot.setVisible(true);
@@ -311,6 +316,7 @@ public final class UIManager {
         if (loginController == null) {
             return;
         }
+        loginController.setLoadingCallbacks(this::showLoading, this::hideLoading);
 
         loginController.setOnRegisterRequested(
                 this::showRegisterScreen
@@ -341,6 +347,8 @@ public final class UIManager {
         if (registerController == null) {
             return;
         }
+        registerController.setLoadingCallbacks(this::showLoading, this::hideLoading);
+
 
         registerController.setOnLoginRequested(() -> {
             String username =
@@ -429,6 +437,8 @@ public final class UIManager {
                 shopRoot.toFront();
 
                 if (shopController != null) {
+                    shopController.setLoadingCallbacks(this::showLoading, this::hideLoading);
+
                     shopController.setup(world, () -> {
                         sound.playSFX("button");
                         shopRoot.setVisible(false);
@@ -562,6 +572,25 @@ public final class UIManager {
         menuRoot.setOpacity(1.0);
         menuRoot.setVisible(true);
         menuRoot.toFront();
+    }
+    public void showLoading(String message) {
+        if (Platform.isFxApplicationThread()) {
+            loadingOverlay.show(message);
+            loadingOverlay.toFront();
+        } else {
+            Platform.runLater(() -> {
+                loadingOverlay.show(message);
+                loadingOverlay.toFront();
+            });
+        }
+    }
+
+    public void hideLoading() {
+        if (Platform.isFxApplicationThread()) {
+            loadingOverlay.hide();
+        } else {
+            Platform.runLater(loadingOverlay::hide);
+        }
     }
 
     private void hideAllScreens() {

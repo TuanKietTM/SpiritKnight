@@ -187,3 +187,21 @@
     -fx-border-color: white;
     -fx-border-width: 2px;
 }
+/* ================= LOADING OVERLAY ================= */
+
+.cat-loading-overlay {
+    -fx-background-color: rgba(10, 8, 15, 0.82);
+}
+
+.cat-loading-box {
+    -fx-alignment: center;
+    -fx-spacing: 8px;
+}
+
+.cat-loading-text {
+    -fx-font-family: "Consolas";
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #ffcd75;
+    -fx-effect: dropshadow(three-pass-box, #000000, 0, 0, 2, 2);
+}

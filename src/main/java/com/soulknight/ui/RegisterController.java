@@ -32,9 +32,17 @@ public final class RegisterController {
             new PlayerSaveDAO();
 
     private Runnable onLoginRequested;
+    private java.util.function.Consumer<String> onShowLoading;
+    private Runnable onHideLoading;
+
 
     public void setOnLoginRequested(Runnable callback) {
         this.onLoginRequested = callback;
+    }
+
+    public void setLoadingCallbacks(java.util.function.Consumer<String> onShowLoading, Runnable onHideLoading) {
+        this.onShowLoading = onShowLoading;
+        this.onHideLoading = onHideLoading;
     }
 
     @FXML
@@ -46,6 +54,10 @@ public final class RegisterController {
 
         setLoading(true);
         messageLabel.setText("Creating account...");
+
+        if (onShowLoading != null) {
+            onShowLoading.accept("Creating account...");
+        }
 
         Task<UserDAO.RegisterResult> task = new Task<>() {
             @Override
@@ -95,6 +107,9 @@ public final class RegisterController {
             if (onLoginRequested != null) {
                 onLoginRequested.run();
             }
+            if (onHideLoading != null) {
+                onHideLoading.run();
+            }
         });
 
         task.setOnFailed(event -> {
@@ -105,6 +120,9 @@ public final class RegisterController {
 
             if (task.getException() != null) {
                 task.getException().printStackTrace();
+            }
+            if (onHideLoading != null) {
+                onHideLoading.run();
             }
         });
 

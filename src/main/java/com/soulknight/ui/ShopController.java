@@ -74,6 +74,25 @@ public class ShopController {
 
     private record PetCanvasRenderer(PetType pet, Canvas canvas, Image idleSheet) {}
 
+    private java.util.function.Consumer<String> onShowLoading;
+    private Runnable onHideLoading;
+
+    public void setLoadingCallbacks(java.util.function.Consumer<String> onShowLoading, Runnable onHideLoading) {
+        this.onShowLoading = onShowLoading;
+        this.onHideLoading = onHideLoading;
+    }
+    private void showLoadingOverlay(String message) {
+        if (onShowLoading != null) {
+            onShowLoading.accept(message);
+        }
+    }
+
+    private void hideLoadingOverlay() {
+        if (onHideLoading != null) {
+            onHideLoading.run();
+        }
+    }
+
     @FXML
     public void initialize() {
         tabPet.setOnAction(e -> switchTab(tabPet, this::loadPetShop));
@@ -116,6 +135,9 @@ public class ShopController {
         int userId = UserSession.getCurrentUserId();
         String username = UserSession.getCurrentUsername();
 
+        if (onShowLoading != null) {
+            onShowLoading.accept("Loading shop...");
+        }
         // Chi cap do khoi dau truoc, cac du lieu con lai tai song song de giam thoi gian cho
         CompletableFuture
                 .runAsync(() -> shopDAO.grantStarterItems(userId, STARTER_PET.name(), STARTER_WEAPON.name()))
@@ -135,10 +157,18 @@ public class ShopController {
                                     petsFuture.join(), weaponsFuture.join(), goldFuture.join()
                             ));
                 })
-                .thenAccept(data -> Platform.runLater(() -> applyShopData(userId, data)))
+                .thenAccept(data -> Platform.runLater(() -> {
+                    hideLoadingOverlay();
+                    applyShopData(userId, data);
+                }))
                 .exceptionally(exception -> {
                     exception.printStackTrace();
-                    Platform.runLater(() -> showDatabaseError());
+
+                    Platform.runLater(() -> {
+                        hideLoadingOverlay();
+                        showDatabaseError();
+                    });
+
                     return null;
                 });
     }
@@ -346,6 +376,7 @@ public class ShopController {
 
         int price = pet.getPrice();
         setShopLoading(true);
+        showLoadingOverlay("Buying pet...");
 
         CompletableFuture
                 .supplyAsync(() ->
@@ -358,6 +389,7 @@ public class ShopController {
                         )
                 )
                 .thenAccept(result -> Platform.runLater(() -> {
+                    hideLoadingOverlay();
                     setShopLoading(false);
 
                     switch (result) {
@@ -386,9 +418,7 @@ public class ShopController {
 
                         case SAVE_NOT_FOUND -> {
                             updateCoinLabel();
-                            selectedItemDesc.setText(
-                                    "Khong tim thay du lieu nguoi choi."
-                            );
+                            selectedItemDesc.setText("Khong tim thay du lieu nguoi choi.");
                         }
                     }
                 }))
@@ -396,6 +426,7 @@ public class ShopController {
                     exception.printStackTrace();
 
                     Platform.runLater(() -> {
+                        hideLoadingOverlay();
                         setShopLoading(false);
                         updateCoinLabel();
                         selectedItemDesc.setText("Khong the mua pet.");
@@ -411,6 +442,7 @@ public class ShopController {
         }
 
         setShopLoading(true);
+        showLoadingOverlay("Equipping pet...");
 
         CompletableFuture
                 .supplyAsync(() ->
@@ -421,13 +453,12 @@ public class ShopController {
                         )
                 )
                 .thenAccept(success -> Platform.runLater(() -> {
+                    hideLoadingOverlay();
                     setShopLoading(false);
                     updateCoinLabel();
 
                     if (!success) {
-                        selectedItemDesc.setText(
-                                "Ban chua so huu pet nay."
-                        );
+                        selectedItemDesc.setText("Ban chua so huu pet nay.");
                         return;
                     }
 
@@ -437,23 +468,18 @@ public class ShopController {
                         gameWorld.equipPet(pet);
                     }
 
-                    selectedItemDesc.setText(
-                            "Da trang bi " + pet.getDisplayName()
-                    );
-
+                    selectedItemDesc.setText("Da trang bi " + pet.getDisplayName());
                     loadPetShop();
                 }))
                 .exceptionally(exception -> {
                     exception.printStackTrace();
 
                     Platform.runLater(() -> {
+                        hideLoadingOverlay();
                         setShopLoading(false);
                         updateCoinLabel();
-                        selectedItemDesc.setText(
-                                "Khong the trang bi pet."
-                        );
+                        selectedItemDesc.setText("Khong the trang bi pet.");
                     });
-
                     return null;
                 });
     }
@@ -572,6 +598,7 @@ public class ShopController {
 
         int price = weapon.getPrice();
         setShopLoading(true);
+        showLoadingOverlay("Buying weapon...");
 
         CompletableFuture
                 .supplyAsync(() ->
@@ -584,6 +611,7 @@ public class ShopController {
                         )
                 )
                 .thenAccept(result -> Platform.runLater(() -> {
+                    hideLoadingOverlay();
                     setShopLoading(false);
 
                     switch (result) {
@@ -592,9 +620,7 @@ public class ShopController {
                             currentGold = Math.max(0, currentGold - price);
                             updateCoinLabel();
 
-                            selectedItemName.setText(
-                                    weapon.getDisplayName()
-                            );
+                            selectedItemName.setText(weapon.getDisplayName());
                             selectedItemDesc.setText("PURCHASE SUCCESS");
 
                             loadWeaponShop();
@@ -603,9 +629,7 @@ public class ShopController {
                         case ALREADY_OWNED -> {
                             ownedWeapons.add(weapon);
                             updateCoinLabel();
-                            selectedItemDesc.setText(
-                                    "Ban da so huu weapon nay."
-                            );
+                            selectedItemDesc.setText("Ban da so huu weapon nay.");
                             loadWeaponShop();
                         }
 
@@ -616,9 +640,7 @@ public class ShopController {
 
                         case SAVE_NOT_FOUND -> {
                             updateCoinLabel();
-                            selectedItemDesc.setText(
-                                    "Khong tim thay du lieu nguoi choi."
-                            );
+                            selectedItemDesc.setText("Khong tim thay du lieu nguoi choi.");
                         }
                     }
                 }))
@@ -626,11 +648,10 @@ public class ShopController {
                     exception.printStackTrace();
 
                     Platform.runLater(() -> {
+                        hideLoadingOverlay();
                         setShopLoading(false);
                         updateCoinLabel();
-                        selectedItemDesc.setText(
-                                "Khong the mua weapon."
-                        );
+                        selectedItemDesc.setText("Khong the mua weapon.");
                     });
 
                     return null;
@@ -643,6 +664,7 @@ public class ShopController {
         }
 
         setShopLoading(true);
+        showLoadingOverlay("Equipping weapon...");
 
         CompletableFuture
                 .supplyAsync(() ->
@@ -653,39 +675,32 @@ public class ShopController {
                         )
                 )
                 .thenAccept(success -> Platform.runLater(() -> {
+                    hideLoadingOverlay();
                     setShopLoading(false);
                     updateCoinLabel();
 
                     if (!success) {
-                        selectedItemDesc.setText(
-                                "Ban chua so huu weapon nay."
-                        );
+                        selectedItemDesc.setText("Ban chua so huu weapon nay.");
                         return;
                     }
 
-                    WeaponSelectionManager
-                            .getInstance()
-                            .selectWeapon(weapon);
+                    WeaponSelectionManager.getInstance().selectWeapon(weapon);
 
                     if (gameWorld != null) {
                         gameWorld.equipWeapon(weapon);
                     }
 
-                    selectedItemDesc.setText(
-                            "Da trang bi " + weapon.getDisplayName()
-                    );
-
+                    selectedItemDesc.setText("Da trang bi " + weapon.getDisplayName());
                     loadWeaponShop();
                 }))
                 .exceptionally(exception -> {
                     exception.printStackTrace();
 
                     Platform.runLater(() -> {
+                        hideLoadingOverlay();
                         setShopLoading(false);
                         updateCoinLabel();
-                        selectedItemDesc.setText(
-                                "Khong the trang bi weapon."
-                        );
+                        selectedItemDesc.setText("Khong the trang bi weapon.");
                     });
 
                     return null;
