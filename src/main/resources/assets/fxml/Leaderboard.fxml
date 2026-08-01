@@ -57,7 +57,7 @@
         <!-- CLOSE BUTTON -->
         <Button text="CLOSE"
                 onAction="#handleClose"
-                maxWidth="200"
+                maxWidth="220"
                 styleClass="button-secondary"/>
     </VBox>
 </StackPane>

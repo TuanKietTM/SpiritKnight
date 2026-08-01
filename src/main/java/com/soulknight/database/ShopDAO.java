@@ -343,4 +343,25 @@ public final class ShopDAO {
         NOT_ENOUGH_GOLD,
         SAVE_NOT_FOUND
     }
+    public void grantStarterHero(int userId, String starterHero) {
+        String sql = """
+            INSERT IGNORE INTO user_inventory
+                (user_id, item_type, item_code, equipped)
+            VALUES (?, 'HERO', ?, TRUE)
+            """;
+
+        try (Connection connection = DatabaseManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setInt(1, userId);
+            statement.setString(2, starterHero);
+            statement.executeUpdate();
+
+        } catch (SQLException exception) {
+            throw new IllegalStateException(
+                    "Khong the cap hero khoi dau.",
+                    exception
+            );
+        }
+    }
 }

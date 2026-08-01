@@ -6,6 +6,8 @@ import com.soulknight.pet.PetType;
 import com.soulknight.utils.SoundManager;
 import com.soulknight.weapon.WeaponSelectionManager;
 import com.soulknight.weapon.WeaponType;
+import com.soulknight.entity.HeroSelectionManager;
+import com.soulknight.entity.HeroType;
 import com.soulknight.database.ShopDAO;
 import com.soulknight.database.UserSession;
 import javafx.application.Platform;
@@ -54,14 +56,17 @@ public class ShopController {
     private static final double SHOP_PET_SIZE = 64.0;
     private static final String ITEM_TYPE_PET = "PET";
     private static final String ITEM_TYPE_WEAPON = "WEAPON";
+    private static final String ITEM_TYPE_HERO = "HERO";
 
     private static final PetType STARTER_PET = PetType.CAT;
     private static final WeaponType STARTER_WEAPON = WeaponType.BLASTER;
+    private static final HeroType STARTER_HERO = HeroType.KNIGHT;
 
     private final ShopDAO shopDAO = new ShopDAO();
 
     private final Set<PetType> ownedPets = new HashSet<>();
     private final Set<WeaponType> ownedWeapons = new HashSet<>();
+    private final Set<HeroType> ownedHeroes = new HashSet<>();
 
     private int currentGold;
     private boolean shopLoading;
@@ -71,8 +76,11 @@ public class ShopController {
     // Luu anh da tai de khong doc lai file moi lan mo shop
     private final Map<String, Image> imageCache = new HashMap<>();
     private final List<PetCanvasRenderer> activeRenderers = new ArrayList<>();
+    private final List<HeroCanvasRenderer> activeHeroRenderers = new ArrayList<>();
 
     private record PetCanvasRenderer(PetType pet, Canvas canvas, Image idleSheet) {}
+    private record HeroCanvasRenderer(HeroType hero, Canvas canvas, Image idleSheet) {
+    }
 
     private java.util.function.Consumer<String> onShowLoading;
     private Runnable onHideLoading;
@@ -97,7 +105,7 @@ public class ShopController {
     public void initialize() {
         tabPet.setOnAction(e -> switchTab(tabPet, this::loadPetShop));
         tabWeapon.setOnAction(e -> switchTab(tabWeapon, this::loadWeaponShop));
-        tabHero.setOnAction(e -> switchTab(tabHero, () -> loadPlaceholderCategory("CHARACTER", "Unlocked Knight, Paladin...")));
+        tabHero.setOnAction(e -> switchTab(tabHero, this::loadHeroShop));
         tabUpgrade.setOnAction(e -> switchTab(tabUpgrade, () -> loadPlaceholderCategory("UPGRADE", "UP")));
 
         closeButton.setOnAction(e -> {
@@ -151,10 +159,13 @@ public class ShopController {
                     CompletableFuture<Integer> goldFuture = CompletableFuture.supplyAsync(
                             () -> shopDAO.getGold(username)
                     );
+                    CompletableFuture<Set<String>> heroesFuture = CompletableFuture.supplyAsync(() ->
+                                    shopDAO.getOwnedItems(userId, ITEM_TYPE_HERO)
+                            );
 
-                    return CompletableFuture.allOf(petsFuture, weaponsFuture, goldFuture)
+                    return CompletableFuture.allOf(petsFuture, weaponsFuture,  heroesFuture, goldFuture)
                             .thenApply(value -> new ShopData(
-                                    petsFuture.join(), weaponsFuture.join(), goldFuture.join()
+                                    petsFuture.join(), weaponsFuture.join(),heroesFuture.join(), goldFuture.join()
                             ));
                 })
                 .thenAccept(data -> Platform.runLater(() -> {
@@ -179,6 +190,7 @@ public class ShopController {
 
         addOwnedPets(data.petCodes());
         addOwnedWeapons(data.weaponCodes());
+        addOwnedHeroes(data.heroCodes());
 
         currentGold = data.gold();
         loadedUserId = userId;
@@ -271,6 +283,7 @@ public class ShopController {
     }
 
     private void loadPetShop() {
+        activeHeroRenderers.clear();
         activeRenderers.clear();
         itemGrid.getChildren().clear();
 
@@ -407,18 +420,18 @@ public class ShopController {
                         case ALREADY_OWNED -> {
                             ownedPets.add(pet);
                             updateCoinLabel();
-                            selectedItemDesc.setText("Ban da so huu pet nay.");
+                            selectedItemDesc.setText("You already own this pet.");
                             loadPetShop();
                         }
 
                         case NOT_ENOUGH_GOLD -> {
                             updateCoinLabel();
-                            selectedItemDesc.setText("Khong du vang.");
+                            selectedItemDesc.setText("Not enough gold.");
                         }
 
                         case SAVE_NOT_FOUND -> {
                             updateCoinLabel();
-                            selectedItemDesc.setText("Khong tim thay du lieu nguoi choi.");
+                            selectedItemDesc.setText("No player data found.");
                         }
                     }
                 }))
@@ -429,7 +442,7 @@ public class ShopController {
                         hideLoadingOverlay();
                         setShopLoading(false);
                         updateCoinLabel();
-                        selectedItemDesc.setText("Khong the mua pet.");
+                        selectedItemDesc.setText("You cannot buy a pet.");
                     });
 
                     return null;
@@ -458,7 +471,7 @@ public class ShopController {
                     updateCoinLabel();
 
                     if (!success) {
-                        selectedItemDesc.setText("Ban chua so huu pet nay.");
+                        selectedItemDesc.setText("You don't own this pet yet.");
                         return;
                     }
 
@@ -468,7 +481,7 @@ public class ShopController {
                         gameWorld.equipPet(pet);
                     }
 
-                    selectedItemDesc.setText("Da trang bi " + pet.getDisplayName());
+                    selectedItemDesc.setText("Skin equipped" + pet.getDisplayName());
                     loadPetShop();
                 }))
                 .exceptionally(exception -> {
@@ -478,7 +491,7 @@ public class ShopController {
                         hideLoadingOverlay();
                         setShopLoading(false);
                         updateCoinLabel();
-                        selectedItemDesc.setText("Khong the trang bi pet.");
+                        selectedItemDesc.setText("Pets cannot be equipped.");
                     });
                     return null;
                 });
@@ -496,6 +509,7 @@ public class ShopController {
     }
 
     private void loadWeaponShop() {
+        activeHeroRenderers.clear();
         activeRenderers.clear();
         itemGrid.getChildren().clear();
 
@@ -629,13 +643,13 @@ public class ShopController {
                         case ALREADY_OWNED -> {
                             ownedWeapons.add(weapon);
                             updateCoinLabel();
-                            selectedItemDesc.setText("Ban da so huu weapon nay.");
+                            selectedItemDesc.setText("You already own this weapon.");
                             loadWeaponShop();
                         }
 
                         case NOT_ENOUGH_GOLD -> {
                             updateCoinLabel();
-                            selectedItemDesc.setText("Khong du vang.");
+                            selectedItemDesc.setText("Not enough gold.");
                         }
 
                         case SAVE_NOT_FOUND -> {
@@ -651,7 +665,7 @@ public class ShopController {
                         hideLoadingOverlay();
                         setShopLoading(false);
                         updateCoinLabel();
-                        selectedItemDesc.setText("Khong the mua weapon.");
+                        selectedItemDesc.setText("Weapons cannot be purchased.");
                     });
 
                     return null;
@@ -680,7 +694,7 @@ public class ShopController {
                     updateCoinLabel();
 
                     if (!success) {
-                        selectedItemDesc.setText("Ban chua so huu weapon nay.");
+                        selectedItemDesc.setText("You don't have any weapons yet.");
                         return;
                     }
 
@@ -690,7 +704,7 @@ public class ShopController {
                         gameWorld.equipWeapon(weapon);
                     }
 
-                    selectedItemDesc.setText("Da trang bi " + weapon.getDisplayName());
+                    selectedItemDesc.setText("Skin equipped " + weapon.getDisplayName());
                     loadWeaponShop();
                 }))
                 .exceptionally(exception -> {
@@ -700,7 +714,7 @@ public class ShopController {
                         hideLoadingOverlay();
                         setShopLoading(false);
                         updateCoinLabel();
-                        selectedItemDesc.setText("Khong the trang bi weapon.");
+                        selectedItemDesc.setText("Cannot be equipped with weapons.");
                     });
 
                     return null;
@@ -761,6 +775,7 @@ public class ShopController {
                 elapsedTime += deltaSeconds;
 
                 renderPetAnimations();
+                renderHeroAnimations();
             }
         };
     }
@@ -789,6 +804,36 @@ public class ShopController {
             gc.drawImage(sheet, sx, sy, sw, sh,
                     drawX, drawY, SHOP_PET_SIZE, SHOP_PET_SIZE
             );
+        }
+    }
+    private void renderHeroAnimations() {
+        for (HeroCanvasRenderer renderer : activeHeroRenderers) {
+            HeroType hero = renderer.hero();
+            Canvas canvas = renderer.canvas();
+            Image sheet = renderer.idleSheet();
+
+            GraphicsContext gc = canvas.getGraphicsContext2D();
+            gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
+            gc.setImageSmoothing(false);
+
+            int totalFrames = hero.getIdleFrameCount();
+            if (totalFrames <= 0) totalFrames = 1;
+
+            double frameDuration = hero.getFrameDuration();
+            if (frameDuration <= 0) frameDuration = 0.15;
+
+            int currentFrame =
+                    (int) (elapsedTime / frameDuration) % totalFrames;
+
+            double frameWidth = hero.getFrameWidth();
+            double frameHeight = hero.getFrameHeight();
+            double sourceX = currentFrame * frameWidth;
+
+            double drawSize = 70.0;
+            double drawX = (canvas.getWidth() - drawSize) / 2.0;
+            double drawY = (canvas.getHeight() - drawSize) / 2.0;
+
+            gc.drawImage(sheet, sourceX, 0, frameWidth, frameHeight, drawX, drawY, drawSize, drawSize);
         }
     }
 
@@ -828,5 +873,211 @@ public class ShopController {
         return image;
     }
 
-    private record ShopData(Set<String> petCodes, Set<String> weaponCodes, int gold) {}
+    private record ShopData(Set<String> petCodes, Set<String> weaponCodes,  Set<String> heroCodes,int gold) {}
+    private void addOwnedHeroes(Set<String> heroCodes) {
+        ownedHeroes.clear();
+
+        for (String code : heroCodes) {
+            try {
+                ownedHeroes.add(HeroType.valueOf(code));
+            } catch (IllegalArgumentException ignored) {
+                System.err.println("Hero trong DB khong ton tai: " + code);
+            }
+        }
+    }
+    private void loadHeroShop() {
+        activeRenderers.clear();
+        activeHeroRenderers.clear();
+        itemGrid.getChildren().clear();
+
+        HeroType equippedHero = HeroSelectionManager.getInstance().getSelectedHero();
+
+        for (HeroType hero : HeroType.values()) {
+            VBox card = createHeroCard(hero, equippedHero);
+            itemGrid.getChildren().add(card);
+        }
+    }
+    private VBox createHeroCard(HeroType hero, HeroType equippedHero) {
+        VBox card = new VBox(6);
+        card.setAlignment(Pos.CENTER);
+        card.getStyleClass().add("item-card");
+
+        boolean isOwned = ownedHeroes.contains(hero);
+        boolean isEquipped = hero == equippedHero;
+
+        if (isEquipped) {
+            card.getStyleClass().add("item-card-equipped");
+        }
+
+        if (!isOwned) {
+            card.getStyleClass().add("item-card-locked");
+        }
+
+        Canvas canvas = new Canvas(SHOP_CANVAS_SIZE, SHOP_CANVAS_SIZE);
+        Image idleSheet = loadImage(hero.getIdleSpritePath());
+
+        if (idleSheet != null) {
+            activeHeroRenderers.add(new HeroCanvasRenderer(hero, canvas, idleSheet));
+        }
+
+        Label nameLabel = new Label(hero.getDisplayName());
+
+        nameLabel.getStyleClass().add("item-card-title");
+        card.getChildren().addAll(canvas, nameLabel);
+
+        card.setOnMouseClicked(event -> {
+            if (shopLoading) return;
+
+            SoundManager.getInstance().playSFX("button");
+
+            itemGrid.getChildren().forEach(node -> node.getStyleClass().remove("item-card-selected"));
+
+            card.getStyleClass().add("item-card-selected");
+
+            selectedItemName.setText(hero.getDisplayName()
+            );
+            boolean currentlyOwned = ownedHeroes.contains(hero);
+
+            boolean currentlyEquipped = HeroSelectionManager.getInstance().isSelected(hero);
+
+            String description = "HP: " + hero.getMaxHealth() + " | ENERGY: " + hero.getMaxEnergy();
+
+            if (!currentlyOwned) {
+                description += " | PRICE: " + hero.getPrice() + " GOLD";
+            }
+
+            selectedItemDesc.setText(description);
+            actionButton.setVisible(true);
+
+            if (currentlyEquipped) {
+                actionButton.setText("EQUIPPED");
+                actionButton.setDisable(true);
+                actionButton.setOnAction(null);
+
+            } else if (currentlyOwned) {
+                actionButton.setText("EQUIP HERO");
+                actionButton.setDisable(false);
+                actionButton.setOnAction(e -> equipHero(hero));
+
+            } else {
+                actionButton.setText("BUY - " + hero.getPrice() + " GOLD");
+
+                actionButton.setDisable(false);
+                actionButton.setOnAction(e -> purchaseHero(hero)
+                );
+            }
+        });
+
+        return card;
+    }
+    private void drawHeroIcon(Canvas canvas, Image image) {
+        if (image == null || image.getWidth() <= 0) {
+            return;
+        }
+
+        GraphicsContext gc = canvas.getGraphicsContext2D();
+
+        gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
+
+        gc.setImageSmoothing(false);
+
+        double frameWidth = 64.0;
+        double frameHeight = 64.0;
+        double drawSize = 70.0;
+
+        double drawX = (canvas.getWidth() - drawSize) / 2.0;
+
+        double drawY = (canvas.getHeight() - drawSize) / 2.0;
+
+        gc.drawImage(image, 0, 0, frameWidth, frameHeight, drawX, drawY, drawSize, drawSize);
+    }
+    private void purchaseHero(HeroType hero) {
+        if (shopLoading || ownedHeroes.contains(hero)) {
+            return;
+        }
+
+        int price = hero.getPrice();
+        setShopLoading(true);
+        showLoadingOverlay("Buying hero...");
+
+        CompletableFuture.supplyAsync(() -> shopDAO.purchaseItem(UserSession.getCurrentUserId(), UserSession.getCurrentUsername(), ITEM_TYPE_HERO, hero.name(), price))
+                .thenAccept(result ->
+                        Platform.runLater(() -> {
+                            hideLoadingOverlay();
+                            setShopLoading(false);
+
+                            switch (result) {
+                                case SUCCESS -> {
+                                    ownedHeroes.add(hero);
+                                    currentGold = Math.max(0, currentGold - price);
+
+                                    updateCoinLabel();
+                                    selectedItemDesc.setText("PURCHASE SUCCESS");
+
+                                    loadHeroShop();
+                                }
+
+                                case ALREADY_OWNED -> {
+                                    ownedHeroes.add(hero);
+                                    selectedItemDesc.setText("You already own this hero.");
+                                    loadHeroShop();
+                                }
+                                case NOT_ENOUGH_GOLD -> selectedItemDesc.setText("Not enough gold.");
+                                case SAVE_NOT_FOUND -> selectedItemDesc.setText("No save file found.");
+                            }
+                        })
+                )
+                .exceptionally(exception -> {exception.printStackTrace();
+
+                    Platform.runLater(() -> {
+                        hideLoadingOverlay();
+                        setShopLoading(false);
+                        selectedItemDesc.setText("Cannot buy heroes.");
+                    });
+
+                    return null;
+                });
+    }
+    private void equipHero(HeroType hero) {
+        if (shopLoading || !ownedHeroes.contains(hero)) {
+            return;
+        }
+
+        setShopLoading(true);
+        showLoadingOverlay("Equipping hero...");
+
+        CompletableFuture
+                .supplyAsync(() ->
+                        shopDAO.equipItem(UserSession.getCurrentUserId(), ITEM_TYPE_HERO, hero.name()
+                        )
+                )
+                .thenAccept(success ->
+                        Platform.runLater(() -> {
+                            hideLoadingOverlay();
+                            setShopLoading(false);
+
+                            if (!success) {
+                                selectedItemDesc.setText("You don't own this hero yet.");
+                                return;
+                            }
+
+                            HeroSelectionManager.getInstance().selectHero(hero);
+                            selectedItemDesc.setText("Skin equipped" + hero.getDisplayName());
+
+                            loadHeroShop();
+                        })
+                )
+                .exceptionally(exception -> {
+                    exception.printStackTrace();
+
+                    Platform.runLater(() -> {
+                        hideLoadingOverlay();
+                        setShopLoading(false);
+                        selectedItemDesc.setText("Cannot equip heroes.");
+                    });
+
+                    return null;
+                });
+    }
+
 }

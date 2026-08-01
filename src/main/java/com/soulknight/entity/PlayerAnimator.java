@@ -4,6 +4,7 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
 import com.soulknight.engine.Camera;
 
+
 public class PlayerAnimator {
 
     public enum State {
@@ -20,18 +21,39 @@ public class PlayerAnimator {
 
     private static final double SPRITE_FRAME_WIDTH = 64;
     private static final double SPRITE_FRAME_HEIGHT = 64;
+    private final HeroType heroType;
 
-    public PlayerAnimator() {
+    public PlayerAnimator(HeroType heroType) {
+        this.heroType = heroType == null ? HeroType.KNIGHT : heroType;
         loadSpriteSheets();
     }
 
     private void loadSpriteSheets() {
         try {
-            idleSpriteSheet = new Image(getClass().getResourceAsStream("/assets/sprites/IDLE64.png"));
-            runSpriteSheet = new Image(getClass().getResourceAsStream("/assets/sprites/RUN64.png"));
-        } catch (Exception e) {
-            System.err.println("Loi tai ");
+            idleSpriteSheet = loadImage(heroType.getIdleSpritePath());
+            runSpriteSheet = loadImage(heroType.getRunSpritePath());
+
+        } catch (Exception exception) {
+            System.err.println(
+                    "Loi tai sprite hero: " + heroType.name()
+            );
+            exception.printStackTrace();
         }
+    }
+
+    private Image loadImage(String path) {
+        if (path == null || path.isBlank()) {
+            return null;
+        }
+
+        var stream = getClass().getResourceAsStream(path);
+
+        if (stream == null) {
+            System.err.println("Khong tim thay sprite: " + path);
+            return null;
+        }
+
+        return new Image(stream);
     }
 
     public void update(State newState, double deltaSeconds) {
