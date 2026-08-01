@@ -18,7 +18,8 @@ public final class Player extends Entity {
     private Weapon weapon = new Gun("Blaster", 12, 0.18, 580.0, 0.0)
             .withImage("/assets/WeaponImage/GunImage/OldPistol.png");
 
-    private final PlayerAnimator animator = new PlayerAnimator();
+    private final HeroType heroType;
+    private final PlayerAnimator animator;
     private boolean isFacingLeft = false;
     // Goc ngam ban hien tai (radian), 0 = huong sang phai
     private double aimAngle = 0.0;
@@ -35,7 +36,17 @@ public final class Player extends Entity {
     private double meleeSwingTimer = 0.0;
 
     public Player(Vector2D spawnPoint) {
-        super(spawnPoint, Constants.PLAYER_RADIUS, Constants.PLAYER_HEALTH, Color.DODGERBLUE);
+        this(spawnPoint, HeroSelectionManager.getInstance().getSelectedHero());
+    }
+
+    public Player(Vector2D spawnPoint, HeroType heroType) {
+        super(spawnPoint, Constants.PLAYER_RADIUS, heroType == null ? Constants.PLAYER_HEALTH : heroType.getMaxHealth(),
+                Color.DODGERBLUE
+        );
+
+        this.heroType = heroType == null ? HeroType.KNIGHT : heroType;
+
+        this.animator = new PlayerAnimator(this.heroType);
     }
 
     public String getWeaponName() {
@@ -49,6 +60,10 @@ public final class Player extends Entity {
     // Vu khi dang cam (dung de kiem tra loai vu khi khi doi qua lai)
     public Weapon getWeapon() {
         return weapon;
+    }
+
+    public HeroType getHeroType() {
+        return heroType;
     }
 
     // Tạo thời gian bất tử để giảm đòn đánh liên tục

@@ -249,3 +249,36 @@
     -fx-background-color: #1a0c33;
     -fx-padding: 0px;
 }
+.leaderboard-window .button,
+.leaderboard-window .button-secondary {
+    -fx-font-family: "Press Start 2P";
+    -fx-font-size: 11px;
+    -fx-cursor: hand;
+    -fx-padding: 12px 20px;
+    -fx-border-radius: 0px;
+    -fx-background-radius: 0px;
+
+    /* Nền màu Tím sẫm hầm ngục */
+    -fx-background-color: linear-gradient(to bottom, #3d2b3d, #221422);
+    -fx-text-fill: #e5989b;
+    -fx-border-color: #723d46 #180b18 #180b18 #723d46;
+    -fx-border-width: 3px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.8), 6, 0, 0, 2);
+}
+
+/* Hiệu ứng Hover - Đổi sang màu Đỏ neon cảnh báo */
+.leaderboard-window .button:hover,
+.leaderboard-window .button-secondary:hover {
+    -fx-background-color: linear-gradient(to bottom, #e63946, #9b2226);
+    -fx-text-fill: #ffffff;
+    -fx-border-color: #ff758f;
+    -fx-effect: dropshadow(three-pass-box, #e63946, 12, 0.4, 0, 0);
+    -fx-translate-y: -2px;
+}
+
+/* Hiệu ứng Pressed - Lún xuống khi bấm */
+.leaderboard-window .button:pressed,
+.leaderboard-window .button-secondary:pressed {
+    -fx-translate-y: 2px;
+    -fx-effect: none;
+}
