@@ -50,7 +50,7 @@ public enum WeaponType {
             "/assets/WeaponImage/GunImage/sunglaser.png",
             "laser_gun",
             28, 0.25,
-            true, 780.0, 0.0,9999
+            true, 780.0, 0.0,1
     ),
 
     OLD_SWORD(

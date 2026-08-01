@@ -34,6 +34,7 @@ import com.soulknight.pet.PetType;
 import com.soulknight.database.PlayerSave;
 import com.soulknight.database.PlayerSaveDAO;
 import com.soulknight.database.PlayerSaveMapper;
+import com.soulknight.animation.FloatingTextManager;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -55,6 +56,7 @@ public final class GameWorld {
     private final LevelManager levelManager = new LevelManager();
     private final MissionManager missionManager = new MissionManager();
     private final EnemyFactory enemyFactory = new EnemyFactory(levelManager, missionManager);
+    private final FloatingTextManager floatingTextManager = new FloatingTextManager();
 
     private GameStateListener stateListener;
 
@@ -223,6 +225,7 @@ public final class GameWorld {
         if (particleManager != null) {
             particleManager.update(deltaSeconds);
         }
+        floatingTextManager.update(deltaSeconds);
     }
 
     private void updateLevelClear(double deltaSeconds, double viewportWidth, double viewportHeight) {
@@ -283,7 +286,7 @@ public final class GameWorld {
                 continue;
             }
 
-            // Đạn va chạm obstacle
+            // Dan va cham obstacle
             for (Obstacle obstacle : obstacles) {
                 if (obstacle == null || obstacle.isDestroyed()) {
                     continue;
@@ -293,12 +296,13 @@ public final class GameWorld {
                     continue;
                 }
 
-                // Đạn laser xuyên qua obstacle: gây sát thương 1 lần rồi bay tiếp
+                // Dan laser xuyen obstacle: moi obstacle chi trung mot lan
                 if (bullet.isPiercing()) {
                     if (!bullet.hasAlreadyHit(obstacle)) {
                         bullet.markHit(obstacle);
                         damageObstacle(obstacle, bullet.getDamage(), bullet.getPosition());
                     }
+
                     continue;
                 }
 
@@ -306,12 +310,6 @@ public final class GameWorld {
                 bullet.deactivate();
                 break;
             }
-
-            // Đạn đã trúng obstacle thì không kiểm tra enemy nữa
-            if (!bullet.isActive()) {
-                continue;
-            }
-
             if (bullet.getOwner() instanceof Player) {
                 for (Enemy enemy : enemies) {
                     if (enemy == null || !enemy.isAlive()) {
@@ -324,21 +322,49 @@ public final class GameWorld {
                             if (!bullet.hasAlreadyHit(enemy)) {
                                 bullet.markHit(enemy);
                                 enemy.takeDamage(bullet.getDamage());
+                                floatingTextManager.spawnDamage(
+                                        enemy.getPosition(),
+                                        bullet.getDamage()
+                                );
+                                if (particleManager != null) {
+                                    particleManager.spawnHitImpact(enemy.getPosition());
+                                }
+
                             }
                             continue;
                         }
+//                        dan thuong
+
 
                         enemy.takeDamage(bullet.getDamage());
-                        spawnBulletExplosion(
-                                bullet.getPosition()
+                        floatingTextManager.spawnDamage(
+                                enemy.getPosition(),
+                                bullet.getDamage()
                         );
+
+                        if (particleManager != null) {
+                            particleManager.spawnHitImpact(enemy.getPosition());
+                        }
+                        spawnBulletExplosion(bullet.getPosition());
 
                         bullet.deactivate();
                         break;
                     }
                 }
             } else if (player != null && bullet.intersects(player)) {
+                int healthBefore = player.getHealth();
+
                 player.takeDamage(bullet.getDamage());
+
+                int realDamage = healthBefore - player.getHealth();
+
+                if (realDamage > 0) {
+                    floatingTextManager.spawnDamage(
+                            player.getPosition(),
+                            realDamage
+                    );
+                }
+
                 spawnBulletExplosion(bullet.getPosition());
                 bullet.deactivate();
             }
@@ -428,11 +454,21 @@ public final class GameWorld {
             }
 
             if (item instanceof GoldItem goldItem) {
-                addGold(goldItem.getAmount());
-                debug("Đã nhặt " + goldItem.getAmount() + " vàng.");
-            } else if (item instanceof GemItem gemItem) {
-                addGems(gemItem.getAmount());
-                debug("Đã nhặt " + gemItem.getAmount() + " kim cương.");
+                int amount = goldItem.getAmount();
+
+                addGold(amount);
+
+                floatingTextManager.spawnGold(
+                        player.getPosition(),
+                        amount
+                );
+
+                particleManager.spawnCoinBurst(
+                        player.getPosition(),
+                        amount
+                );
+
+                debug("Da nhat " + amount + " vang.");
             }
 
             item.collect();
@@ -656,6 +692,7 @@ public final class GameWorld {
         if (particleManager != null) {
             particleManager.render(graphicsContext, camera);
         }
+        floatingTextManager.render(graphicsContext, camera);
     }
 
 
@@ -718,6 +755,7 @@ public final class GameWorld {
         this.items.clear();
         this.destroyedObstacleQueue.clear();
         this.enemySpawnTimer = 0.0;
+        floatingTextManager.clear();
 
         // 7. Tạo nhiệm vụ cho Level hiện tại
         if (this.missionManager != null && this.levelManager != null) {
@@ -920,6 +958,9 @@ public final class GameWorld {
         return readOnlyObstacles;
     }
 
+    public FloatingTextManager getFloatingTextManager() {
+        return floatingTextManager;
+    }
     public int getScore() {
         return score;
     }
@@ -1150,6 +1191,7 @@ public final class GameWorld {
             if (particleManager != null) {
                 particleManager.spawnHitImpact(enemy.getPosition());
             }
+            floatingTextManager.spawnDamage(enemy.getPosition(), damage);
         }
 
         // Nhat chem cung pha duoc vat can (hom go) trong hinh quat
@@ -1448,6 +1490,7 @@ public final class GameWorld {
         double gemDropChance = 0.15;
 
         addScore(scoreReward);
+        floatingTextManager.spawnCustom("+" + scoreReward + " SCORE", enemy.getPosition(), Color.LIGHTYELLOW);
 
         Vector2D enemyPosition = enemy.getPosition().copy();
         Vector2D goldPosition = enemyPosition.copy().add(-8.0, 0.0);
