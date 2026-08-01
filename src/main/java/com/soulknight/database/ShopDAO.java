@@ -4,11 +4,14 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Types;
 import java.util.HashSet;
 import java.util.Set;
 
 public final class ShopDAO {
+
+    public static final String ITEM_TYPE_PET = "PET";
+    public static final String ITEM_TYPE_WEAPON = "WEAPON";
+    public static final String ITEM_TYPE_HERO = "HERO";
 
     public Set<String> getOwnedItems(int userId, String itemType) {
         String sql = """
@@ -24,7 +27,7 @@ public final class ShopDAO {
              PreparedStatement statement = connection.prepareStatement(sql)) {
 
             statement.setInt(1, userId);
-            statement.setString(2, itemType);
+            statement.setString(2, normalizeItemType(itemType));
 
             try (ResultSet resultSet = statement.executeQuery()) {
                 while (resultSet.next()) {
@@ -33,10 +36,7 @@ public final class ShopDAO {
             }
 
         } catch (SQLException exception) {
-            throw new IllegalStateException(
-                    "Không thể tải danh sách vật phẩm của người chơi.",
-                    exception
-            );
+            throw new IllegalStateException("Khong the tai danh sach vat pham cua nguoi choi.", exception);
         }
 
         return ownedItems;
@@ -56,63 +56,118 @@ public final class ShopDAO {
              PreparedStatement statement = connection.prepareStatement(sql)) {
 
             statement.setInt(1, userId);
-            statement.setString(2, itemType);
+            statement.setString(2, normalizeItemType(itemType));
 
             try (ResultSet resultSet = statement.executeQuery()) {
-                if (resultSet.next()) {
-                    return resultSet.getString("item_code");
-                }
+                if (resultSet.next()) return resultSet.getString("item_code");
             }
 
         } catch (SQLException exception) {
-            throw new IllegalStateException(
-                    "Không thể tải vật phẩm đang trang bị.",
-                    exception
-            );
+            throw new IllegalStateException("Khong the tai vat pham dang trang bi.", exception);
         }
 
         return null;
     }
 
-    public void grantStarterItems(
-            int userId,
-            String starterPet,
-            String starterWeapon
-    ) {
-        String insertSql = """
-                INSERT IGNORE INTO user_inventory
-                    (user_id, item_type, item_code, equipped)
-                VALUES
-                    (?, 'PET', ?, TRUE),
-                    (?, 'WEAPON', ?, TRUE)
-                """;
+    /*
+     * Cap pet, weapon va hero khoi dau trong cung mot transaction.
+     * Item khoi dau chi duoc equipped neu loai do chua co item nao dang equipped.
+     */
+    public void grantStarterEquipment(int userId, String starterPet, String starterWeapon, String starterHero) {
+        try (Connection connection = DatabaseManager.getConnection()) {
+            connection.setAutoCommit(false);
 
-        try (Connection connection = DatabaseManager.getConnection();
-             PreparedStatement statement =
-                     connection.prepareStatement(insertSql)) {
+            try {
+                grantStarterItem(connection, userId, ITEM_TYPE_PET, starterPet);
+                grantStarterItem(connection, userId, ITEM_TYPE_WEAPON, starterWeapon);
+                grantStarterItem(connection, userId, ITEM_TYPE_HERO, starterHero);
+                connection.commit();
 
-            statement.setInt(1, userId);
-            statement.setString(2, starterPet);
-            statement.setInt(3, userId);
-            statement.setString(4, starterWeapon);
+            } catch (SQLException exception) {
+                connection.rollback();
+                throw exception;
 
-            statement.executeUpdate();
+            } finally {
+                connection.setAutoCommit(true);
+            }
 
         } catch (SQLException exception) {
-            throw new IllegalStateException(
-                    "Không thể cấp vật phẩm khởi đầu.",
-                    exception
-            );
+            throw new IllegalStateException("Khong the cap trang bi khoi dau.", exception);
         }
     }
 
-    public PurchaseResult purchaseItem(
-            int userId,
-            String username,
-            String itemType,
-            String itemCode,
-            int price
-    ) {
+    /*
+     * Giu lai ham cu de cac cho dang goi khong bi loi.
+     * Hero co the duoc cap rieng bang grantStarterHero().
+     */
+    public void grantStarterItems(int userId, String starterPet, String starterWeapon) {
+        try (Connection connection = DatabaseManager.getConnection()) {
+            connection.setAutoCommit(false);
+
+            try {
+                grantStarterItem(connection, userId, ITEM_TYPE_PET, starterPet);
+                grantStarterItem(connection, userId, ITEM_TYPE_WEAPON, starterWeapon);
+                connection.commit();
+
+            } catch (SQLException exception) {
+                connection.rollback();
+                throw exception;
+
+            } finally {
+                connection.setAutoCommit(true);
+            }
+
+        } catch (SQLException exception) {
+            throw new IllegalStateException("Khong the cap vat pham khoi dau.", exception);
+        }
+    }
+
+    public void grantStarterHero(int userId, String starterHero) {
+        try (Connection connection = DatabaseManager.getConnection()) {
+            connection.setAutoCommit(false);
+
+            try {
+                grantStarterItem(connection, userId, ITEM_TYPE_HERO, starterHero);
+                connection.commit();
+
+            } catch (SQLException exception) {
+                connection.rollback();
+                throw exception;
+
+            } finally {
+                connection.setAutoCommit(true);
+            }
+
+        } catch (SQLException exception) {
+            throw new IllegalStateException("Khong the cap hero khoi dau.", exception);
+        }
+    }
+
+    private void grantStarterItem(Connection connection, int userId, String itemType, String itemCode) throws SQLException {
+        if (itemCode == null || itemCode.isBlank()) return;
+
+        String sql = """
+                INSERT IGNORE INTO user_inventory (user_id, item_type, item_code, equipped)
+                SELECT ?, ?, ?, NOT EXISTS (
+                    SELECT 1
+                    FROM user_inventory
+                    WHERE user_id = ?
+                      AND item_type = ?
+                      AND equipped = TRUE
+                )
+                """;
+
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setInt(1, userId);
+            statement.setString(2, itemType);
+            statement.setString(3, itemCode.trim());
+            statement.setInt(4, userId);
+            statement.setString(5, itemType);
+            statement.executeUpdate();
+        }
+    }
+
+    public PurchaseResult purchaseItem(int userId, String username, String itemType, String itemCode, int price) {
         String checkOwnedSql = """
                 SELECT 1
                 FROM user_inventory
@@ -122,37 +177,41 @@ public final class ShopDAO {
                 """;
 
         String getGoldSql = """
-        SELECT gold
-        FROM player_saves
-        WHERE player_name = ?
-        FOR UPDATE
-        """;
+                SELECT gold
+                FROM player_saves
+                WHERE player_name = ?
+                FOR UPDATE
+                """;
 
         String deductGoldSql = """
-        UPDATE player_saves
-        SET gold = gold - ?
-        WHERE player_name = ?
-          AND gold >= ?
-        """;
+                UPDATE player_saves
+                SET gold = gold - ?
+                WHERE player_name = ?
+                  AND gold >= ?
+                """;
 
         String insertInventorySql = """
-                INSERT INTO user_inventory
-                    (user_id, item_type, item_code, equipped)
+                INSERT INTO user_inventory (user_id, item_type, item_code, equipped)
                 VALUES (?, ?, ?, FALSE)
                 """;
+
+        String safeItemType = normalizeItemType(itemType);
+        String safeItemCode = itemCode == null ? "" : itemCode.trim();
+        String safeUsername = username == null ? "" : username.trim();
+        int safePrice = Math.max(0, price);
+
+        if (safeUsername.isBlank() || safeItemCode.isBlank()) return PurchaseResult.SAVE_NOT_FOUND;
 
         try (Connection connection = DatabaseManager.getConnection()) {
             connection.setAutoCommit(false);
 
             try {
-                try (PreparedStatement checkOwned =
-                             connection.prepareStatement(checkOwnedSql)) {
+                try (PreparedStatement statement = connection.prepareStatement(checkOwnedSql)) {
+                    statement.setInt(1, userId);
+                    statement.setString(2, safeItemType);
+                    statement.setString(3, safeItemCode);
 
-                    checkOwned.setInt(1, userId);
-                    checkOwned.setString(2, itemType);
-                    checkOwned.setString(3, itemCode);
-
-                    try (ResultSet resultSet = checkOwned.executeQuery()) {
+                    try (ResultSet resultSet = statement.executeQuery()) {
                         if (resultSet.next()) {
                             connection.rollback();
                             return PurchaseResult.ALREADY_OWNED;
@@ -162,12 +221,10 @@ public final class ShopDAO {
 
                 int currentGold;
 
-                try (PreparedStatement getGold =
-                             connection.prepareStatement(getGoldSql)) {
+                try (PreparedStatement statement = connection.prepareStatement(getGoldSql)) {
+                    statement.setString(1, safeUsername);
 
-                    getGold.setString(1, username);
-
-                    try (ResultSet resultSet = getGold.executeQuery()) {
+                    try (ResultSet resultSet = statement.executeQuery()) {
                         if (!resultSet.next()) {
                             connection.rollback();
                             return PurchaseResult.SAVE_NOT_FOUND;
@@ -177,34 +234,27 @@ public final class ShopDAO {
                     }
                 }
 
-                if (currentGold < price) {
+                if (currentGold < safePrice) {
                     connection.rollback();
                     return PurchaseResult.NOT_ENOUGH_GOLD;
                 }
 
-                try (PreparedStatement deductGold =
-                             connection.prepareStatement(deductGoldSql)) {
+                try (PreparedStatement statement = connection.prepareStatement(deductGoldSql)) {
+                    statement.setInt(1, safePrice);
+                    statement.setString(2, safeUsername);
+                    statement.setInt(3, safePrice);
 
-
-                    deductGold.setInt(1, price);
-                    deductGold.setString(2, username);
-                    deductGold.setInt(3, price);
-
-                    int updatedRows = deductGold.executeUpdate();
-
-                    if (updatedRows == 0) {
+                    if (statement.executeUpdate() == 0) {
                         connection.rollback();
                         return PurchaseResult.NOT_ENOUGH_GOLD;
                     }
                 }
 
-                try (PreparedStatement insertInventory =
-                             connection.prepareStatement(insertInventorySql)) {
-
-                    insertInventory.setInt(1, userId);
-                    insertInventory.setString(2, itemType);
-                    insertInventory.setString(3, itemCode);
-                    insertInventory.executeUpdate();
+                try (PreparedStatement statement = connection.prepareStatement(insertInventorySql)) {
+                    statement.setInt(1, userId);
+                    statement.setString(2, safeItemType);
+                    statement.setString(3, safeItemCode);
+                    statement.executeUpdate();
                 }
 
                 connection.commit();
@@ -213,23 +263,21 @@ public final class ShopDAO {
             } catch (SQLException exception) {
                 connection.rollback();
                 throw exception;
+
             } finally {
                 connection.setAutoCommit(true);
             }
 
         } catch (SQLException exception) {
-            throw new IllegalStateException(
-                    "Không thể mua vật phẩm.",
-                    exception
-            );
+            throw new IllegalStateException("Khong the mua vat pham.", exception);
         }
     }
 
-    public boolean equipItem(
-            int userId,
-            String itemType,
-            String itemCode
-    ) {
+    /*
+     * Moi loai PET, WEAPON hoac HERO chi duoc co mot item equipped.
+     * Chi thay doi RAM sau khi ham nay tra ve true.
+     */
+    public boolean equipItem(int userId, String itemType, String itemCode) {
         String checkOwnedSql = """
                 SELECT 1
                 FROM user_inventory
@@ -253,18 +301,21 @@ public final class ShopDAO {
                   AND item_code = ?
                 """;
 
+        String safeItemType = normalizeItemType(itemType);
+        String safeItemCode = itemCode == null ? "" : itemCode.trim();
+
+        if (safeItemCode.isBlank()) return false;
+
         try (Connection connection = DatabaseManager.getConnection()) {
             connection.setAutoCommit(false);
 
             try {
-                try (PreparedStatement checkOwned =
-                             connection.prepareStatement(checkOwnedSql)) {
+                try (PreparedStatement statement = connection.prepareStatement(checkOwnedSql)) {
+                    statement.setInt(1, userId);
+                    statement.setString(2, safeItemType);
+                    statement.setString(3, safeItemCode);
 
-                    checkOwned.setInt(1, userId);
-                    checkOwned.setString(2, itemType);
-                    checkOwned.setString(3, itemCode);
-
-                    try (ResultSet resultSet = checkOwned.executeQuery()) {
+                    try (ResultSet resultSet = statement.executeQuery()) {
                         if (!resultSet.next()) {
                             connection.rollback();
                             return false;
@@ -272,69 +323,71 @@ public final class ShopDAO {
                     }
                 }
 
-                try (PreparedStatement unequip =
-                             connection.prepareStatement(unequipSql)) {
-
-                    unequip.setInt(1, userId);
-                    unequip.setString(2, itemType);
-                    unequip.executeUpdate();
+                try (PreparedStatement statement = connection.prepareStatement(unequipSql)) {
+                    statement.setInt(1, userId);
+                    statement.setString(2, safeItemType);
+                    statement.executeUpdate();
                 }
 
-                int rows;
+                int updatedRows;
 
-                try (PreparedStatement equip =
-                             connection.prepareStatement(equipSql)) {
+                try (PreparedStatement statement = connection.prepareStatement(equipSql)) {
+                    statement.setInt(1, userId);
+                    statement.setString(2, safeItemType);
+                    statement.setString(3, safeItemCode);
+                    updatedRows = statement.executeUpdate();
+                }
 
-                    equip.setInt(1, userId);
-                    equip.setString(2, itemType);
-                    equip.setString(3, itemCode);
-                    rows = equip.executeUpdate();
+                if (updatedRows == 0) {
+                    connection.rollback();
+                    return false;
                 }
 
                 connection.commit();
-                return rows > 0;
+                return true;
 
             } catch (SQLException exception) {
                 connection.rollback();
                 throw exception;
+
             } finally {
                 connection.setAutoCommit(true);
             }
 
         } catch (SQLException exception) {
-            throw new IllegalStateException(
-                    "Không thể trang bị vật phẩm.",
-                    exception
-            );
+            throw new IllegalStateException("Khong the trang bi vat pham.", exception);
         }
     }
 
     public int getGold(String username) {
         String sql = """
-            SELECT gold
-            FROM player_saves
-            WHERE player_name = ?
-            """;
+                SELECT gold
+                FROM player_saves
+                WHERE player_name = ?
+                """;
+
+        String safeUsername = username == null ? "" : username.trim();
+        if (safeUsername.isBlank()) return 0;
 
         try (Connection connection = DatabaseManager.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
 
-            statement.setString(1, username);
+            statement.setString(1, safeUsername);
 
             try (ResultSet resultSet = statement.executeQuery()) {
-                if (resultSet.next()) {
-                    return resultSet.getInt("gold");
-                }
+                if (resultSet.next()) return resultSet.getInt("gold");
             }
 
         } catch (SQLException exception) {
-            throw new IllegalStateException(
-                    "Không thể tải số vàng.",
-                    exception
-            );
+            throw new IllegalStateException("Khong the tai so vang.", exception);
         }
 
         return 0;
+    }
+
+    private String normalizeItemType(String itemType) {
+        if (itemType == null) return "";
+        return itemType.trim().toUpperCase();
     }
 
     public enum PurchaseResult {
@@ -342,26 +395,5 @@ public final class ShopDAO {
         ALREADY_OWNED,
         NOT_ENOUGH_GOLD,
         SAVE_NOT_FOUND
-    }
-    public void grantStarterHero(int userId, String starterHero) {
-        String sql = """
-            INSERT IGNORE INTO user_inventory
-                (user_id, item_type, item_code, equipped)
-            VALUES (?, 'HERO', ?, TRUE)
-            """;
-
-        try (Connection connection = DatabaseManager.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
-
-            statement.setInt(1, userId);
-            statement.setString(2, starterHero);
-            statement.executeUpdate();
-
-        } catch (SQLException exception) {
-            throw new IllegalStateException(
-                    "Khong the cap hero khoi dau.",
-                    exception
-            );
-        }
     }
 }
