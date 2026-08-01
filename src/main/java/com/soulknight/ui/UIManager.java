@@ -10,6 +10,7 @@ import com.soulknight.weapon.Weapon;
 import com.soulknight.weapon.WeaponType;
 import com.soulknight.database.UserDAO;
 import com.soulknight.database.UserSession;
+import com.soulknight.database.EquipmentLoader;
 import javafx.animation.FadeTransition;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
@@ -54,6 +55,7 @@ public final class UIManager {
 
     private final UserDAO userDAO = new UserDAO();
     private final CatLoadingOverlay loadingOverlay = new CatLoadingOverlay();
+    private final EquipmentLoader equipmentLoader = new EquipmentLoader();
 
     private final PortalOverlay portalOverlay = new PortalOverlay();
     // Luu trang thai Continue cua tai khoan dang dang nhap
@@ -352,23 +354,15 @@ public final class UIManager {
 
             CompletableFuture
                     .supplyAsync(() -> {
+                        int userId = UserSession.getCurrentUserId();
+
+                        // Tai pet, weapon va hero dang trang bi cua tai khoan
+                        equipmentLoader.loadForUser(userId);
+
                         PlayerSaveDAO saveDAO = new PlayerSaveDAO();
                         boolean hasSave = saveDAO.findByName(username).isPresent();
 
-                        /*
-                         * Tai khoan moi co save mac dinh nhung firstPlay van la true.
-                         * Chi mo Continue khi da tung bat dau choi.
-                         */
-                        boolean canContinue = hasSave && !UserSession.isFirstPlay();
-
-                        System.out.println(
-                                "Kiem tra Continue | player=" + username
-                                        + " | hasSave=" + hasSave
-                                        + " | firstPlay=" + UserSession.isFirstPlay()
-                                        + " | result=" + canContinue
-                        );
-
-                        return canContinue;
+                        return hasSave && !UserSession.isFirstPlay();
                     })
                     .thenAccept(canContinue -> Platform.runLater(() -> {
                         continueAvailable = canContinue;
