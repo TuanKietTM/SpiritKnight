@@ -59,8 +59,8 @@ public final class MapManager {
     ) {
         gc.setImageSmoothing(false);
 
-        gc.setFill(Color.BLACK);
-        gc.fillRect(0.0, 0.0, renderWidth, renderHeight);
+//        gc.setFill(Color.BLACK);
+//        gc.fillRect(0.0, 0.0, renderWidth, renderHeight);
 
         double zoom = camera.getZoom();
         double drawSize = tileSize * zoom;
@@ -103,16 +103,16 @@ public final class MapManager {
                     }
 
                     case BACK -> {
-                        Image texture = tile.getTexture();
-                        if (texture != null) {
-                            gc.drawImage(
-                                    texture,
-                                    Math.floor(screenX),
-                                    Math.floor(screenY),
-                                    Math.ceil(drawSize) + 1.0,
-                                    Math.ceil(drawSize) + 1.0
-                            );
-                        }
+//                        Image texture = tile.getTexture();
+//                        if (texture != null) {
+//                            gc.drawImage(
+//                                    texture,
+//                                    Math.floor(screenX),
+//                                    Math.floor(screenY),
+//                                    Math.ceil(drawSize) + 1.0,
+//                                    Math.ceil(drawSize) + 1.0
+//                            );
+//                        }
                     }
 
                     default -> {

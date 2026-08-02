@@ -53,6 +53,8 @@ public final class GameWorld {
     private final Random random = new Random();
     private final InputHandler inputHandler;
     private final Camera camera = new Camera();
+    private final DynamicBackground dynamicBackground = new DynamicBackground();
+
     private final LevelManager levelManager = new LevelManager();
     private final MissionManager missionManager = new MissionManager();
     private final EnemyFactory enemyFactory = new EnemyFactory(levelManager, missionManager);
@@ -146,6 +148,7 @@ public final class GameWorld {
         if (state == GameState.PAUSED) {
             return;
         }
+        dynamicBackground.update(deltaSeconds);
 
         switch (state) {
             case INTRO -> {
@@ -511,6 +514,8 @@ public final class GameWorld {
     }
 
     private void renderWorld(GraphicsContext graphicsContext, double renderWidth, double renderHeight) {
+        // 0. Ve background neon trung co phia sau map
+        dynamicBackground.render(graphicsContext, camera, renderWidth, renderHeight);
         // 1. Vẽ sàn nhà bẹt dưới cùng trước
         mapManager.renderFloor(graphicsContext, camera, renderWidth, renderHeight);
         // Vẽ bóng của obstacle dưới các sprite. Obstacle đã được load một lần khi load map.
