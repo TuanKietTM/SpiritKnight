@@ -93,9 +93,8 @@ public class Enemy extends Entity {
 
 //        Chia tung loai quai
         switch (archetype) {
-            case SLIME -> meleeAI(world, playerPos, distanceToPlayer, deltaSeconds);
-            case SKELETON_ARCHER -> rangedAI(world, playerPos, deltaSeconds);
-            case ELITE_MINION -> meleeAI(world, playerPos, distanceToPlayer, deltaSeconds);
+            case MELEE_NORMAL -> meleeAI(world, playerPos, distanceToPlayer, deltaSeconds);
+            case RANGED_NORMAL -> rangedAI(world, playerPos, deltaSeconds);
         }
 
         // Cập nhật khung hình Animator
@@ -590,9 +589,8 @@ public class Enemy extends Entity {
 
     protected static Color colorFor(EnemyArchetype archetype) {
         return switch (archetype) {
-            case SLIME -> Color.BLUE;
-            case SKELETON_ARCHER -> Color.GRAY;
-            case ELITE_MINION -> Color.RED;
+            case MELEE_NORMAL -> Color.BLUE;
+            case RANGED_NORMAL -> Color.GRAY;
             default -> Color.RED;
         };
     }

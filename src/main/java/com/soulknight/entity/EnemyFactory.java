@@ -26,12 +26,11 @@ public final class EnemyFactory {
      */
     public Enemy createEnemy(EnemyArchetype archetype, Vector2D position) {
         return switch (archetype) {
-            case SLIME -> createSlime(position);
-            case SKELETON_ARCHER -> createSkeletonArcher(position);
-            case ELITE_MINION -> createEliteMinion(position);
-            case GRAND_KNIGHT -> createGrandKnight(position);
+            case MELEE_NORMAL -> createMeleeNormal(position);
+            case RANGED_NORMAL -> createRangedNormal(position);
         };
     }
+
 
     /**
      * Tỉ lệ ngẫu nhiên sinh loại quái dựa vào đợt (waveNumber)
@@ -44,29 +43,23 @@ public final class EnemyFactory {
         if (waveNumber == 1) {
             // Wave 1 (Dễ): 65% Slime, 25% Lợn rừng húc, 10% Cung thủ
             if (roll < 65) {
-                chosenArchetype = EnemyArchetype.SLIME;
-            } else if (roll < 90) {
-                chosenArchetype = EnemyArchetype.ELITE_MINION;
+                chosenArchetype = EnemyArchetype.MELEE_NORMAL;
             } else {
-                chosenArchetype = EnemyArchetype.SKELETON_ARCHER;
+                chosenArchetype = EnemyArchetype.RANGED_NORMAL;
             }
         } else if (waveNumber == 2) {
             // Wave 2 (Trung bình): 35% Slime, 35% Lợn rừng húc, 30% Cung thủ
             if (roll < 35) {
-                chosenArchetype = EnemyArchetype.SLIME;
-            } else if (roll < 70) {
-                chosenArchetype = EnemyArchetype.ELITE_MINION;
+                chosenArchetype = EnemyArchetype.MELEE_NORMAL;
             } else {
-                chosenArchetype = EnemyArchetype.SKELETON_ARCHER;
+                chosenArchetype = EnemyArchetype.RANGED_NORMAL;
             }
         } else {
             // Wave 3+ (Thử thách): 15% Slime, 45% Lợn rừng húc, 40% Cung thủ
             if (roll < 15) {
-                chosenArchetype = EnemyArchetype.SLIME;
-            } else if (roll < 60) {
-                chosenArchetype = EnemyArchetype.ELITE_MINION;
+                chosenArchetype = EnemyArchetype.MELEE_NORMAL;
             } else {
-                chosenArchetype = EnemyArchetype.SKELETON_ARCHER;
+                chosenArchetype = EnemyArchetype.RANGED_NORMAL;
             }
         }
 
@@ -74,23 +67,17 @@ public final class EnemyFactory {
     }
 
 
-    public Enemy createSlime(Vector2D position) {
+    public Enemy createMeleeNormal(Vector2D position) {
         int health = levelManager.scaleEnemyHealth(20);
         int damage = levelManager.scaleEnemyDamage(4);
-        return new Enemy(EnemyArchetype.SLIME, position, Constants.ENEMY_RADIUS, health, 70.0, damage, null, eventListener);
+        return new Enemy(EnemyArchetype.MELEE_NORMAL, position, Constants.ENEMY_RADIUS, health, 70.0, damage, null, eventListener);
     }
 
-    public Enemy createSkeletonArcher(Vector2D position) {
+    public Enemy createRangedNormal(Vector2D position) {
         int health = levelManager.scaleEnemyHealth(16);
         int damage = levelManager.scaleEnemyDamage(3);
         Weapon weapon = new Gun("Skeleton Bow", damage, 1.5, 350.0, 0.0);
-        return new Enemy(EnemyArchetype.SKELETON_ARCHER, position, Constants.ENEMY_RADIUS, health, 90.0, damage, weapon, eventListener);
-    }
-
-    public Enemy createEliteMinion(Vector2D position) {
-        int health = levelManager.scaleEnemyHealth(30);
-        int damage = levelManager.scaleEnemyDamage(5);
-        return new Enemy(EnemyArchetype.ELITE_MINION, position, Constants.ENEMY_RADIUS + 2, health, 60.0, damage, null, eventListener);
+        return new Enemy(EnemyArchetype.RANGED_NORMAL, position, Constants.ENEMY_RADIUS, health, 90.0, damage, weapon, eventListener);
     }
 
     public Boss createGrandKnight(Vector2D position) {
@@ -111,12 +98,11 @@ public final class EnemyFactory {
 
         for (int i = 0; i < count; i++) {
             Vector2D spawnPoint = spawnPoints.get(i % spawnPoints.size());
+            enemies.add(createEnemyByWave(random, spawnPoint, level.number()));
             if (level.number() == 1) {
-                enemies.add(createSlime(spawnPoint));
+                enemies.add(createMeleeNormal(spawnPoint));
             } else if (level.number() == 2) {
-                enemies.add(i % 3 == 0 ? createSkeletonArcher(spawnPoint) : createSlime(spawnPoint));
-            } else {
-                enemies.add(createEliteMinion(spawnPoint));
+                enemies.add(i % 3 == 0 ? createRangedNormal(spawnPoint) : createMeleeNormal(spawnPoint));
             }
         }
 
@@ -135,11 +121,9 @@ public final class EnemyFactory {
         for (int i = 0; i < count; i++) {
             Vector2D spawnPoint = spawnPoints.get(i);
             if (level.number() == 1) {
-                enemies.add(createSlime(spawnPoint));
+                enemies.add(createMeleeNormal(spawnPoint));
             } else if (level.number() == 2) {
-                enemies.add(i % 3 == 0 ? createSkeletonArcher(spawnPoint) : createSlime(spawnPoint));
-            } else {
-                enemies.add(createEliteMinion(spawnPoint));
+                enemies.add(i % 3 == 0 ? createRangedNormal(spawnPoint) : createMeleeNormal(spawnPoint));
             }
         }
 
