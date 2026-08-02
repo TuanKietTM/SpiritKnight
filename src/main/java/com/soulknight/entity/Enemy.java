@@ -35,6 +35,10 @@ public class Enemy extends Entity {
     private final double detectionRadius = 120.0; // Bán kính phát hiện Player (nếu vào tầm)
     private Vector2D lastKnownPlayerPos = null; // Vị trí cuối cùng nhìn thấy Player
 
+    // Các biến xử lí cho lỗi kẹt tường khi Chase
+    private Vector2D lastPosition = new Vector2D(0, 0); // Lưu vị trí ở frame trước để so sánh
+    private double stuckTimer = 0.0;                   // Thời gian đã bị kẹt tường
+
 
     public Enemy(EnemyArchetype archetype, Vector2D spawnPoint, double radius, int health, double moveSpeed,
                  int contactDamage, Weapon rangedWeapon, GameEventListener eventListener) {
@@ -232,30 +236,43 @@ public class Enemy extends Entity {
     private void meleeAI(GameWorld world, Vector2D playerPos, double distanceToPlayer, double deltaSeconds) {
         boolean canSeePlayer = world.hasClearLineOfSight(getPosition(), playerPos);
 
-        // ==========================================
-        // 1. CHUYỂN ĐỔI TRẠNG THÁI (STATE TRANSITION)
-
-        if (canSeePlayer && distanceToPlayer <= detectionRadius) { // 👈 Thêm điều kiện khoảng cách ở đây
-            // Chỉ khi nhìn thấy VÀ Player nằm trong bán kính detectionRadius thì mới đuổi
-            this.lastKnownPlayerPos = playerPos.copy();
+        // Chức năng quản lí trạng thái
+        if (canSeePlayer && distanceToPlayer <= detectionRadius) {
+            // Điều kiện xác định đuổi theo
+            this.lastKnownPlayerPos = playerPos.copy(); // Vị trí cuối cùng của player
             this.currentState = State.CHASE;
+            this.stuckTimer = 0.0;
         } else if (currentState == State.CHASE) {
-            // Nếu BỊ KHUẤT TẦM NHÌN hoặc Player CHẠY QUÁ XA (vượt quá detectionRadius * 1.5):
-            if (lastKnownPlayerPos != null) {
-                double distToLastPos = getPosition().distance(lastKnownPlayerPos);
 
-                // Nếu đã chạy tới điểm nhìn thấy cuối cùng HOẶC Player đã chạy quá xa tầm mắt
-                if (distToLastPos <= 20.0 || distanceToPlayer > detectionRadius * 1.5) {
+            if (lastKnownPlayerPos != null) {
+                // Khoảng cách hiện tại của enemy và lastKnownPlayerPos
+                double distToLastPos = getPosition().distance(lastKnownPlayerPos);
+                // Tính quãng đường enemy di chuyển giữa 2 frame liên tiếp
+                double movedDistance = getPosition().distance(lastPosition);
+
+                // Vòng điều kiện tính thời gian kẹt
+                if (movedDistance < 0.5 * deltaSeconds) {
+                    this.stuckTimer += deltaSeconds; // Tích lũy thời gian bị kẹt
+                } else {
+                    this.stuckTimer = Math.max(0.0, this.stuckTimer - deltaSeconds); // Di chuyển mượt thì giảm timer kẹt
+                }
+
+                // Điều kiện chuyển đổi từ Chase sang Patrol
+                if (distToLastPos <= 20.0 || distanceToPlayer > detectionRadius * 1.5 || this.stuckTimer >= 1.5) {
                     this.currentState = State.PATROL;
                     this.lastKnownPlayerPos = null;
                     this.patrolWaitTimer = 1.0;
                     this.patrolTarget = generateNewPatrolTarget(world, getPosition(), 120.0);
+                    this.stuckTimer = 0.0;
                 }
             } else {
                 this.currentState = State.PATROL;
                 this.patrolTarget = generateNewPatrolTarget(world, getPosition(), 120.0);
+                this.stuckTimer = 0.0;
             }
         }
+        // cập nhật lại vị trí enemy qua từng frame để tính thời gian kẹt
+        this.lastPosition = getPosition().copy();
 
         // ==========================================
         // 2. THỰC THI HÀNH VI (STATE EXECUTION)
