@@ -32,7 +32,7 @@ public final class LevelManager {
                             "The Training Dungeon",
                             "Defeat exactly 5 basic Slimes",
                             5,
-                            EnemyArchetype.SLIME)),
+                            EnemyArchetype.MELEE_NORMAL)),
             new LevelDefinition(
                     2,
                     "The Haunted Corridors",

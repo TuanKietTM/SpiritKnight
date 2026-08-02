@@ -22,9 +22,8 @@ public class EnemyAnimator {
     private void loadSpriteSheets(EnemyArchetype archetype) {
         try {
             String path = switch (archetype) {
-                case SLIME -> "/assets/Enemy/slime_sheet.png";
-                case SKELETON_ARCHER -> "/assets/Enemy/sleketon_sheet.png";
-                case ELITE_MINION -> "/assets/Enemy/pig_sheet.png";
+                case MELEE_NORMAL -> "/assets/Enemy/slime_sheet.png";
+                case RANGED_NORMAL -> "/assets/Enemy/sleketon_sheet.png";
                 default -> "/assets/Enemy/slime_sheet.png";
             };
 
