@@ -5,6 +5,7 @@ import com.soulknight.engine.GameWorld;
 import com.soulknight.event.GameEventListener;
 import com.soulknight.map.Obstacle;
 import com.soulknight.utils.Vector2D;
+import com.soulknight.weapon.Bullet;
 import com.soulknight.weapon.Weapon;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
@@ -24,8 +25,13 @@ public class Enemy extends Entity {
 
     private final EnemyAnimator animator;
     private boolean isFacingLeft = false;
-    // State Machine cho AI
+    // State cho meleeAI
     public enum State { PATROL, CHASE }
+    public enum RangedState {
+        PATROL,
+        AIMING,
+        REPOSITION
+    }
     private State currentState = State.PATROL;
 
     // Biến cho logic Patrol (Đi tuần)
@@ -38,6 +44,16 @@ public class Enemy extends Entity {
     // Các biến xử lí cho lỗi kẹt tường khi Chase
     private Vector2D lastPosition = new Vector2D(0, 0); // Lưu vị trí ở frame trước để so sánh
     private double stuckTimer = 0.0;                   // Thời gian đã bị kẹt tường
+
+    // Các biến cho quái bắn xa
+    private RangedState rangedState = RangedState.PATROL;
+    private double attackRange = 150.0;
+    private double bulletSpeed = 250.0;
+    private int bulletDamage = 10;
+    private double bulletRadius = 7.5;
+    private double rangedAttackCooldown = 1.5;
+    private double aimTimer = 0.0;
+    private Vector2D repositionTarget = null;
 
 
     public Enemy(EnemyArchetype archetype, Vector2D spawnPoint, double radius, int health, double moveSpeed,
@@ -78,7 +94,7 @@ public class Enemy extends Entity {
 //        Chia tung loai quai
         switch (archetype) {
             case SLIME -> meleeAI(world, playerPos, distanceToPlayer, deltaSeconds);
-            case SKELETON_ARCHER -> meleeAI(world, playerPos, distanceToPlayer, deltaSeconds);
+            case SKELETON_ARCHER -> rangedAI(world, playerPos, deltaSeconds);
             case ELITE_MINION -> meleeAI(world, playerPos, distanceToPlayer, deltaSeconds);
         }
 
@@ -274,45 +290,42 @@ public class Enemy extends Entity {
         // cập nhật lại vị trí enemy qua từng frame để tính thời gian kẹt
         this.lastPosition = getPosition().copy();
 
-        // ==========================================
-        // 2. THỰC THI HÀNH VI (STATE EXECUTION)
-        // ==========================================
+        // Logic cho 2 trạng thái Chase và Patrol
         if (currentState == State.PATROL) {
-            // 🚶 LOGIC ĐI TUẦN (PATROL)
+            // Nếu thảo mãn vòng if này quái đứng im
             if (patrolWaitTimer > 0) {
                 patrolWaitTimer -= deltaSeconds;
             } else {
-                // Nếu chưa có điểm tuần hoặc đã đi gần tới điểm tuần -> Tìm điểm mới
+                // Nếu chưa có điểm Patrol hoặc khoảng cachs đến < 15
                 if (patrolTarget == null || getPosition().distance(patrolTarget) < 15.0) {
-                    patrolWaitTimer = 1.0 + Math.random() * 1.5; // Đứng nghỉ 1~2.5s
+                    patrolWaitTimer = 1.0 + Math.random() * 1.5; // tính thời gian cho nghỉ
                     patrolTarget = generateNewPatrolTarget(world, getPosition(), 100.0);
                 } else {
-                    // Di chuyển tới điểm đi tuần
-                    Vector2D dir = patrolTarget.copy().subtract(getPosition());
+                    // Đi đến điểm Patrol
+                    Vector2D dir = patrolTarget.copy().subtract(getPosition()); // Biến dir tác dụng tính hướng và khảng cách đén target
                     if (dir.length() > 0) {
-                        dir.normalize().scale(moveSpeed * 0.4 * deltaSeconds); // Tốc độ đi tuần bằng 40% tốc độ chạy
-                        move(world, dir.getX(), dir.getY());
+                        dir.normalize().scale(moveSpeed * 0.4 * deltaSeconds); // tốc độ cho quái
+                        move(world, dir.getX(), dir.getY()); // cập nhật vị trí mới
                     }
                 }
             }
-        } // Trong ham meleeAI cua Enemy.java
+        }
         else {
-            // LOGIC DUOI BAT (CHASE)
-
-            // 1. Xac dinh muc tieu: Neu thay thi duoi Player, neu khuat thi chay den vi tri thay lan cuoi
+            // Logic cho trạng thái Chase
             Vector2D targetPos = canSeePlayer ? playerPos : lastKnownPlayerPos;
 
             if (targetPos != null) {
                 double distToTarget = getPosition().distance(targetPos);
 
-                // Khoang cach toi thieu de khong bi de len nguoi Player
+                // Khoảng cách hợp lí giữa player và enemy
                 double minAllowedDistance = world.getPlayer().getRadius() + getRadius() + 4.0;
 
+                // Đến khoảng cách an toàn thì cho chạy
                 if (distToTarget > minAllowedDistance) {
-                    // Su dung smartMoveTo thay vi move() de tu dong lach mép tuong doc
+                    // Hàm chạy
                     smartMoveTo(world, targetPos, deltaSeconds);
                 } else if (canSeePlayer) {
-                    // Day nhe ra neu quai va cham qua sat Player
+                    // đẩy ra khi va chạm
                     Vector2D pushOut = getPosition().copy().subtract(playerPos);
                     if (pushOut.length() > 0) {
                         pushOut.normalize().scale(30.0 * deltaSeconds);
@@ -320,14 +333,127 @@ public class Enemy extends Entity {
                     }
                 }
 
-                // Gay sat thuong khi ap sat va co tam nhin
+                // Logic cho đánh
                 if (canSeePlayer && distanceToPlayer <= minAllowedDistance + 3.0 && attackCooldown <= 0.0) {
                     world.getPlayer().takeDamage(contactDamage);
-                    attackCooldown = 0.8;
+                    attackCooldown = 1.0;
                 }
             }
         }
     }
+
+    public void rangedAI(GameWorld world, Vector2D playerPos, double deltaSeconds) {
+        double distanceToPlayer = getPosition().distance(playerPos);
+
+        // Trừ dần thời gian hồi chiêu BẮN ĐẠN
+        if (rangedAttackCooldown > 0) {
+            rangedAttackCooldown -= deltaSeconds;
+        }
+
+        // ==========================================
+        // 1. QUẢN LÝ TRẠNG THÁI (FSM)
+        // ==========================================
+        switch (rangedState) {
+            case PATROL:
+                // Phát hiện Player trong tầm bắn VÀ đã hồi chiêu bắn xong
+                if (distanceToPlayer <= attackRange && rangedAttackCooldown <= 0.0) {
+                    this.rangedState = RangedState.AIMING;
+                    this.aimTimer = 0.5; // Đứng khựng lại 0.25 giây để ngắm
+                }
+                break;
+
+            case AIMING:
+                // Trừ thời gian ngắm
+                this.aimTimer -= deltaSeconds;
+                if (this.aimTimer <= 0.0) {
+                    // Bắn đạn về phía Player
+                    shootBulletAt(world, playerPos);
+
+                    // Gán Cooldown riêng cho bắn đạn (1.5 giây)
+                    this.rangedAttackCooldown = 1.5;
+
+                    // Chuyển sang chạy đổi vị trí
+                    this.rangedState = RangedState.REPOSITION;
+                    this.repositionTarget = generateNewPatrolTarget(world, getPosition(), 100.0);
+                }
+                break;
+
+            case REPOSITION:
+                // Đã hồi chiêu bắn xong VÀ Player vẫn trong tầm bắn -> Ngắm tiếp
+                if (rangedAttackCooldown <= 0.0 && distanceToPlayer <= attackRange) {
+                    this.rangedState = RangedState.AIMING;
+                    this.aimTimer = 0.25;
+                    this.repositionTarget = null;
+                }
+                // Player chạy quá xa tầm bắn -> Quay về Đi tuần
+                else if (distanceToPlayer > attackRange * 1.3) {
+                    this.rangedState = RangedState.PATROL;
+                    this.repositionTarget = null;
+                }
+                break;
+        }
+
+        // ==========================================
+        // 2. THỰC THI DI CHUYỂN
+        // ==========================================
+        if (rangedState == RangedState.PATROL) {
+            if (patrolWaitTimer > 0) {
+                patrolWaitTimer -= deltaSeconds;
+            } else {
+                if (patrolTarget == null || getPosition().distance(patrolTarget) < 15.0) {
+                    patrolWaitTimer = 1.0 + Math.random() * 1.5;
+                    patrolTarget = generateNewPatrolTarget(world, getPosition(), 100.0);
+                } else {
+                    smartMoveTo(world, patrolTarget, deltaSeconds * 0.4); // Tốc độ 40%
+                }
+            }
+
+        } else if (rangedState == RangedState.AIMING) {
+            // Đứng yên giơ súng ngắm
+
+        } else if (rangedState == RangedState.REPOSITION) {
+            if (repositionTarget != null) {
+                if (getPosition().distance(repositionTarget) > 15.0) {
+                    smartMoveTo(world, repositionTarget, deltaSeconds * 0.4); // Giữ tốc độ 40%
+                } else {
+                    // Đã tới điểm tản ra, tạo điểm tiếp theo nếu vẫn đang hồi chiêu bắn
+                    this.repositionTarget = generateNewPatrolTarget(world, getPosition(), 80.0);
+                }
+            }
+        }
+    }
+
+    // ==========================================
+// HÀM PHỤ TRỢ: TÍNH HƯỚNG VÀ PHÓNG ĐẠN
+// ==========================================
+    private void shootBulletAt(GameWorld world, Vector2D targetPos) {
+        // 1. Tính Vector hướng từ Quái tới vị trí Player tại thời điểm bắn
+        Vector2D dir = targetPos.copy().subtract(getPosition());
+
+        if (dir.length() > 0) {
+            dir.normalize(); // Chuẩn hóa về Vector độ dài 1
+        } else {
+            dir = new Vector2D(1, 0); // Mặc định hướng sang phải nếu đứng trùng tọa độ
+        }
+
+        // 2. Tính Vector vận tốc đạn (Hướng * Tốc độ đạn)
+        Vector2D bulletVelocity = dir.scale(bulletSpeed);
+
+        // 3. Khởi tạo viên đạn mới theo đúng Constructor của class Bullet
+        Bullet bullet = new Bullet(
+                getPosition().copy(),   // Vị trí xuất phát (từ tâm Quái)
+                bulletVelocity,         // Vận tốc đạn
+                bulletDamage,           // Sát thương
+                bulletRadius,           // Bán kính va chạm của đạn
+                this,                   // Owner: Entity bắn ra đạn này (Enemy)
+                Color.RED               // Màu dự phòng (nếu chưa load được ảnh dan.png)
+        );
+
+        // 4. Thêm viên đạn vào GameWorld
+        // (Bạn lưu ý kiểm tra tên hàm thêm đạn trong GameWorld của bạn, ví dụ: addBullet hoặc spawnBullet)
+        world.addBullet(bullet);
+    }
+
     public void coverAI(GameWorld world, Vector2D playerPos, double deltaSeconds) {
         List<Obstacle> obstacles = world.getObstacles();
         double distanceToPlayer = getPosition().distance(playerPos);
