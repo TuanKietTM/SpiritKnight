@@ -28,6 +28,11 @@ public final class MapManager {
     private final List<Vector2D> enemySpawnPoints = new ArrayList<>();
     private int[][] tileMatrix;
     private final List<Room> rooms = new ArrayList<>();
+
+    // Quan ly rieng fog, particle, hologram va tru dien.
+    private final NeonEnvironmentManager neonEnvironmentManager =
+            new NeonEnvironmentManager();
+
     private double playerSpawnX, playerSpawnY;
 
     public MapManager(int width, int height, int tileSize, Random random) {
@@ -35,11 +40,24 @@ public final class MapManager {
         this.height = height;
         this.tileSize = tileSize;
         this.tiles = new DungeonGenerator().generate(width, height, random);
+        neonEnvironmentManager.initializeDynamicEnvironment(
+                tiles,
+                tileMatrix,
+                width,
+                height,
+                tileSize
+        );
     }
     public MapManager(String JsonPath) {
         loadMapFromJson(JsonPath);
         generateWorldTiles();
-        generateFloorDecorations();
+        neonEnvironmentManager.initializeDynamicEnvironment(
+                tiles,
+                tileMatrix,
+                width,
+                height,
+                tileSize
+        );
         linkDoorsToRooms();
     }
 
@@ -49,25 +67,17 @@ public final class MapManager {
      * BACK/FLOOR -> trang trí nền -> cửa -> bóng tường -> tường
      * -> vật cản -> portal.
      */
-    private static final Color FLOOR_COLOR = Color.rgb(47, 171, 105);
-
-    public void renderFloor(
-            GraphicsContext gc,
-            Camera camera,
-            double renderWidth,
-            double renderHeight
-    ) {
+    public void renderFloor(GraphicsContext gc, Camera camera, double renderWidth, double renderHeight) {
         gc.setImageSmoothing(false);
 
-//        gc.setFill(Color.BLACK);
-//        gc.fillRect(0.0, 0.0, renderWidth, renderHeight);
 
         double zoom = camera.getZoom();
         double drawSize = tileSize * zoom;
 
         /*
-         * Layer 1: nền BACK và nền FLOOR.
-         * FLOOR được tô màu phẳng để không lộ đường nối giữa các tile.
+         * Layer 1: moi FLOOR/SPAWN la mot vien tile rieng.
+         * Tat ca tile floor hien tai dung chung mot anh neon.
+         * BACK de trong suot de thay DynamicBackground.
          */
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
@@ -93,41 +103,55 @@ public final class MapManager {
 
                 switch (tile.getType()) {
                     case FLOOR, SPAWN -> {
-                        gc.setFill(FLOOR_COLOR);
-                        gc.fillRect(
-                                Math.floor(screenX),
-                                Math.floor(screenY),
-                                Math.ceil(drawSize) + 1.0,
-                                Math.ceil(drawSize) + 1.0
-                        );
+                        Image texture = tile.getTexture();
+
+                        if (texture != null && !texture.isError()) {
+                            gc.drawImage(
+                                    texture,
+                                    Math.floor(screenX),
+                                    Math.floor(screenY),
+                                    Math.ceil(drawSize) + 1.0,
+                                    Math.ceil(drawSize) + 1.0
+                            );
+                        } else {
+                            gc.setFill(Color.rgb(10, 16, 32));
+                            gc.fillRect(
+                                    Math.floor(screenX),
+                                    Math.floor(screenY),
+                                    Math.ceil(drawSize) + 1.0,
+                                    Math.ceil(drawSize) + 1.0
+                            );
+                        }
                     }
 
                     case BACK -> {
-//                        Image texture = tile.getTexture();
-//                        if (texture != null) {
-//                            gc.drawImage(
-//                                    texture,
-//                                    Math.floor(screenX),
-//                                    Math.floor(screenY),
-//                                    Math.ceil(drawSize) + 1.0,
-//                                    Math.ceil(drawSize) + 1.0
-//                            );
-//                        }
+                        // Khong ve gi de thay DynamicBackground.
                     }
 
                     default -> {
-                        // Các layer còn lại được vẽ ở phía dưới.
+                        // Cua, tuong va vat can duoc ve o cac layer sau.
                     }
                 }
             }
         }
 
         /*
-         * Layer 2: các ảnh cỏ, bụi, vết đất...
-         * Danh sách này chỉ được sinh một lần khi tải map,
-         * không sinh lại ở từng frame.
+         * Layer 2: moi truong neon dong.
+         * Fog, particle, hologram va tru dien chi duoc tao mot lan khi load map.
          */
-        renderFloorDecorations(gc, camera, renderWidth, renderHeight);
+        double environmentTime = System.nanoTime() / 1_000_000_000.0;
+        neonEnvironmentManager.renderFog(
+                gc, camera, renderWidth, renderHeight, environmentTime
+        );
+        neonEnvironmentManager.renderHolograms(
+                gc, camera, renderWidth, renderHeight, environmentTime
+        );
+        neonEnvironmentManager.renderNeonParticles(
+                gc, camera, renderWidth, renderHeight, environmentTime
+        );
+        neonEnvironmentManager.renderElectricPillars(
+                gc, camera, renderWidth, renderHeight, environmentTime
+        );
 
         // Layer 3: cửa mở.
         for (int y = 0; y < height; y++) {
@@ -179,24 +203,12 @@ public final class MapManager {
                 double screenX = camera.worldToScreenX(x * tileSize);
                 double screenY = camera.worldToScreenY((y + 1) * tileSize);
 
-                if (!isInsideScreen(
-                        screenX,
-                        screenY,
-                        drawSize,
-                        drawSize,
-                        renderWidth,
-                        renderHeight
-                )) {
+                if (!isInsideScreen(screenX, screenY, drawSize, drawSize, renderWidth, renderHeight)) {
                     continue;
                 }
 
-                gc.drawImage(
-                        Tile.getWallFrontShadowImage(),
-                        Math.floor(screenX),
-                        Math.floor(screenY),
-                        Math.ceil(drawSize),
-                        Math.ceil(drawSize)
-                );
+                gc.drawImage(Tile.getWallFrontShadowImage(), Math.floor(screenX), Math.floor(screenY),
+                        Math.ceil(drawSize), Math.ceil(drawSize));
             }
         }
 
@@ -212,24 +224,11 @@ public final class MapManager {
                 double screenX = camera.worldToScreenX(x * tileSize);
                 double screenY = camera.worldToScreenY(y * tileSize);
 
-                if (!isInsideScreen(
-                        screenX,
-                        screenY,
-                        drawSize,
-                        drawSize,
-                        renderWidth,
-                        renderHeight
-                )) {
+                if (!isInsideScreen(screenX, screenY, drawSize, drawSize, renderWidth, renderHeight)) {
                     continue;
                 }
 
-                gc.drawImage(
-                        Tile.getWallTopImage(),
-                        Math.floor(screenX),
-                        Math.floor(screenY),
-                        Math.ceil(drawSize),
-                        Math.ceil(drawSize)
-                );
+                gc.drawImage(Tile.getWallTopImage(), Math.floor(screenX), Math.floor(screenY), Math.ceil(drawSize), Math.ceil(drawSize));
             }
         }
 
@@ -248,26 +247,13 @@ public final class MapManager {
                 double screenX = camera.worldToScreenX(x * tileSize);
                 double screenY = camera.worldToScreenY(y * tileSize);
 
-                if (!isInsideScreen(
-                        screenX,
-                        screenY,
-                        drawSize,
-                        drawSize,
-                        renderWidth,
-                        renderHeight
-                )) {
+                if (!isInsideScreen(screenX, screenY, drawSize, drawSize, renderWidth, renderHeight)) {
                     continue;
                 }
 
                 Image texture = tile.getTexture();
                 if (texture != null) {
-                    gc.drawImage(
-                            texture,
-                            Math.floor(screenX),
-                            Math.floor(screenY),
-                            Math.ceil(drawSize),
-                            Math.ceil(drawSize)
-                    );
+                    gc.drawImage(texture, Math.floor(screenX), Math.floor(screenY), Math.ceil(drawSize), Math.ceil(drawSize));
                 }
             }
         }
@@ -279,12 +265,7 @@ public final class MapManager {
             double portalRadius = 18.0 * zoom;
 
             gc.setFill(Color.GOLD);
-            gc.fillOval(
-                    screenX - portalRadius,
-                    screenY - portalRadius,
-                    portalRadius * 2.0,
-                    portalRadius * 2.0
-            );
+            gc.fillOval(screenX - portalRadius, screenY - portalRadius, portalRadius * 2.0, portalRadius * 2.0);
         }
     }
 
@@ -453,7 +434,15 @@ public final class MapManager {
                     this.tiles[y][x] = new Tile(pixelX, pixelY, tileSize, Tile.TileType.DOOR_OPEN);
                 }
                 else if (tileId >= 11 && tileId <= 14) {
-                    this.tiles[y][x] = new Tile(pixelX, pixelY, tileSize, Tile.TileType.FLOOR);
+                    Image floorTexture = Tile.getFloorImageByCoordinate(x, y);
+
+                    this.tiles[y][x] = new Tile(
+                            pixelX,
+                            pixelY,
+                            tileSize,
+                            Tile.TileType.FLOOR,
+                            floorTexture
+                    );
                 }
                 else if (tileId >= 15 && tileId <= 29) {
                     this.tiles[y][x] = new Tile(pixelX, pixelY, tileSize, Tile.TileType.OBSTACLE, Tile.getBoxImage());
@@ -462,7 +451,17 @@ public final class MapManager {
                     this.tiles[y][x] = new Tile(pixelX, pixelY, tileSize, Tile.TileType.OBSTACLE, Tile.getTreeImage());
                 }
                 else if (tileId >= 45) {
-                    this.tiles[y][x] = new Tile(pixelX, pixelY, tileSize, Tile.TileType.FLOOR, Tile.getFireImage());
+                    /*
+                     * Cac ID tru cong cu van la FLOOR de co the di qua,
+                     * nhung duoc render thanh tru den dien o layer moi truong.
+                     */
+                    this.tiles[y][x] = new Tile(
+                            pixelX,
+                            pixelY,
+                            tileSize,
+                            Tile.TileType.FLOOR,
+                            Tile.getFloorImageByCoordinate(x, y)
+                    );
                 }
                 else {
                     this.tiles[y][x] = new Tile(pixelX, pixelY, tileSize, Tile.TileType.BACK);
@@ -629,110 +628,6 @@ public final class MapManager {
 //khoi tao thanh o moi
                 tiles[gridY][gridX] = new Tile(x, y, tileSize, newType);
             }
-        }
-    }
-    //test trang tri
-    private final List<FloorDecoration> floorDecorations = new ArrayList<>();
-
-    private static final Image GRASS_1 = new Image(
-            MapManager.class.getResourceAsStream(
-                    "/assets/maps/dust_particles_01.png"
-            )
-    );
-
-    private static final Image GRASS_2 = new Image(
-            MapManager.class.getResourceAsStream(
-                    "/assets/maps/fences.png"
-            )
-    );
-
-    private static final Image DIRT_1 = new Image(
-            MapManager.class.getResourceAsStream(
-                    "/assets/maps/grass.png"
-            )
-    );
-    private void generateFloorDecorations() {
-        floorDecorations.clear();
-
-        /*
-         * Seed cố định để mỗi lần chạy game,
-         * cách bố trí hoa văn không thay đổi.
-         */
-        Random random = new Random(20260730L);
-
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                Tile tile = tiles[y][x];
-
-                if (tile == null || tile.getType() != Tile.TileType.FLOOR) {
-                    continue;
-                }
-
-                /*
-                 * Chỉ khoảng 5% ô có trang trí.
-                 * Không nên đặt chi tiết lên mọi ô.
-                 */
-                if (random.nextDouble() > 0.10) {
-                    continue;
-                }
-
-                Image detailImage;
-
-                int detailType = random.nextInt(3);
-
-                if (detailType == 0) {
-                    detailImage = GRASS_1;
-                } else if (detailType == 1) {
-                    detailImage = GRASS_2;
-                } else {
-                    detailImage = DIRT_1;
-                }
-
-                double worldX = x * tileSize;
-                double worldY = y * tileSize;
-
-                /*
-                 * Cho chi tiết lệch khỏi tâm tile để giảm cảm giác dạng lưới.
-                 */
-                double offsetX = random.nextDouble() * tileSize - tileSize * 0.5;
-                double offsetY = random.nextDouble() * tileSize - tileSize * 0.5;
-
-                double decorationSize =
-                        tileSize * (0.8 + random.nextDouble() * 1.2);
-
-                floorDecorations.add(
-                        new FloorDecoration(
-                                worldX + offsetX,
-                                worldY + offsetY,
-                                decorationSize,
-                                decorationSize,
-                                detailImage
-                        )
-                );
-            }
-        }
-    }
-
-    private void renderFloorDecorations(GraphicsContext gc, Camera camera, double renderWidth, double renderHeight) {
-        double zoom = camera.getZoom();
-
-        for (FloorDecoration decoration : floorDecorations) {
-            Image image = decoration.getImage();
-
-            if (image == null || image.isError()) {
-                continue;
-            }
-
-            double screenX = camera.worldToScreenX(decoration.getWorldX());
-            double screenY = camera.worldToScreenY(decoration.getWorldY());
-            double drawWidth = decoration.getWidth() * zoom;
-            double drawHeight = decoration.getHeight() * zoom;
-
-            if (!isInsideScreen(screenX, screenY, drawWidth, drawHeight, renderWidth, renderHeight)) {
-                continue;
-            }
-
-            gc.drawImage(image, Math.floor(screenX), Math.floor(screenY), Math.ceil(drawWidth), Math.ceil(drawHeight));
         }
     }
 
