@@ -492,9 +492,7 @@ public final class GameWorld {
         }
 
         enemySpawnTimer = 0.0;
-        if (level.number() == 3) {
-            spawnEliteMinions(2);
-        } else if (level.number() == 2) {
+        if (level.number() == 2) {
             spawnMixedWave();
         }
     }
@@ -502,15 +500,6 @@ public final class GameWorld {
     private void spawnMixedWave() {
         List<Vector2D> spawnPoints = createSpawnPoints(4);
         enemies.addAll(enemyFactory.createInitialEnemies(random, player.getPosition(), spawnPoints));
-    }
-
-    private void spawnEliteMinions(int count) {
-        for (int i = 0; i < count; i++) {
-            Vector2D spawnPoint = mapManager.findRandomWalkablePosition(random, Constants.ENEMY_RADIUS);
-            if (spawnPoint != null) {
-                enemies.add(enemyFactory.createEliteMinion(spawnPoint));
-            }
-        }
     }
 
     private void renderWorld(GraphicsContext graphicsContext, double renderWidth, double renderHeight) {
