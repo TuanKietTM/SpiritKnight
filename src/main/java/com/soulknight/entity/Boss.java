@@ -17,7 +17,7 @@ public final class Boss extends Enemy {
     private double volleyTimer;
 
     public Boss(Vector2D spawnPoint, int health, int damage, GameEventListener eventListener) {
-        super(EnemyArchetype.GRAND_KNIGHT, spawnPoint, Constants.BOSS_RADIUS, health, 95.0, damage, null, eventListener);
+        super(EnemyArchetype.MELEE_NORMAL, spawnPoint, Constants.BOSS_RADIUS, health, 95.0, damage, null, eventListener);
     }
 
 
