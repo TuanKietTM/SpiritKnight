@@ -1,82 +1,89 @@
-
-@font-face {
-    font-family: "MedievalSharp";
-    src: url("../fonts/MedievalSharp-Regular.ttf");
-}
 @font-face {
     font-family: "Press Start 2P";
     src: url("../fonts/PressStart2P-Regular.ttf");
 }
 
 .pause-screen-overlay {
-    -fx-background-color: radial-gradient(
-        center 50% 50%, radius 70%,
-        rgba(30, 15, 55, 0.85) 0%,
-        rgba(8, 5, 17, 0.95) 100%
-    );
+    -fx-background-color: rgba(2, 6, 13, 0.86);
+    -fx-alignment: center;
+    -fx-padding: 24px;
 }
+
 .pause-dialog {
-    -fx-background-color: #1e2630;
-    -fx-background-radius: 8px;
-    -fx-border-radius: 8px;
-    -fx-border-width: 4px;
-    -fx-padding: 20px;
-    -fx-border-color: #3f4e61 #151a21 #151a21 #3f4e61;
-    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.75), 20, 0, 0, 15);
+    -fx-background-color: rgba(5, 10, 19, 0.98);
+    -fx-border-color: rgba(198, 181, 112, 0.62);
+    -fx-border-width: 2px;
+    -fx-padding: 24px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.86), 22, 0.25, 0, 8);
 }
 
 .header-container {
-    -fx-padding: 0 5px;
+    -fx-padding: 0 0 14px 0;
+    -fx-border-color: transparent transparent rgba(198, 181, 112, 0.24) transparent;
+    -fx-border-width: 0 0 1px 0;
 }
 
 .avatar-box {
-    -fx-background-color: #151a21;
-    -fx-min-width: 64px;
-    -fx-min-height: 64px;
-    -fx-max-width: 64px;
-    -fx-max-height: 64px;
-    -fx-border-width: 3px;
-    -fx-border-radius: 4px;
-    -fx-background-radius: 4px;
-    -fx-border-color: #0d1014 #2d3846 #2d3846 #0d1014;
-}
-
-.pause-banner {
-    -fx-background-color: #8c2520;
-    -fx-min-height: 50px;
-    -fx-max-height: 50px;
-    -fx-padding: 0 10px;
-    -fx-background-radius: 4px 0 0 4px;
-    -fx-border-width: 3px;
-    -fx-border-color: #b03530 #4a1210 #4a1210 #b03530;
-    -fx-effect: dropshadow(two-pass-box, rgba(0, 0, 0, 0.5), 5, 0, 0, 4);
+    -fx-background-color: #080d17;
+    -fx-min-width: 72px;
+    -fx-min-height: 72px;
+    -fx-max-width: 72px;
+    -fx-max-height: 72px;
+    -fx-border-color: #526775;
+    -fx-border-width: 2px;
 }
 
 .pause-title {
-    -fx-font-family: "Press Start 2P", "Arial Black", sans-serif;
-    -fx-font-size: 24px;
-    -fx-text-fill: #e6e6e6;
-    -fx-font-weight: bold;
-    -fx-effect: dropshadow(one-pass-box, #330000, 2, 2, 0, 0);
+    -fx-font-family: "Press Start 2P";
+    -fx-font-size: 22px;
+    -fx-text-fill: #fff0b8;
+}
+
+.pause-title-line {
+    -fx-background-color: #988a57;
+}
+
+.pause-subtitle {
+    -fx-font-family: "Press Start 2P";
+    -fx-font-size: 8px;
+    -fx-text-fill: #8fa6b4;
+}
+
+.buff-section {
+    -fx-background-color: rgba(7, 13, 23, 0.78);
+    -fx-border-color: rgba(143, 159, 169, 0.18);
+    -fx-border-width: 1px;
+    -fx-padding: 16px;
+}
+
+.section-label {
+    -fx-font-family: "Press Start 2P";
+    -fx-font-size: 9px;
+    -fx-text-fill: #91a7b7;
 }
 
 .buff-grid {
-    -fx-padding: 10px 0;
+    -fx-padding: 5px 0 0 0;
 }
 
-.buff-slot, .buff-slot-empty {
-    -fx-min-width: 42px;
-    -fx-min-height: 42px;
-    -fx-max-width: 42px;
-    -fx-max-height: 42px;
-    -fx-background-color: #11151b;
+.buff-slot,
+.buff-slot-empty {
+    -fx-min-width: 48px;
+    -fx-min-height: 48px;
+    -fx-max-width: 48px;
+    -fx-max-height: 48px;
+    -fx-background-color: #080d17;
+    -fx-border-color: #314453;
     -fx-border-width: 2px;
-    -fx-border-radius: 2px;
-    -fx-border-color: #0c0e12 #344152 #344152 #0c0e12;
 }
 
 .slot-filled {
-    -fx-border-color: #4f5f73;
+    -fx-background-color: #111d29;
+    -fx-border-color: #788c98;
+}
+
+.buff-slot-empty {
+    -fx-opacity: 0.50;
 }
 
 .buff-placeholder-icon {
@@ -84,175 +91,146 @@
 }
 
 .buff-plus {
-    -fx-font-family: "Press Start 2P", sans-serif;
-    -fx-font-size: 18px;
-    -fx-text-fill: #cccccc;
-    -fx-font-weight: bold;
+    -fx-font-family: "Press Start 2P";
+    -fx-font-size: 16px;
+    -fx-text-fill: #647987;
 }
 
+.settings-header {
+    -fx-padding: 0 0 14px 0;
+    -fx-border-color: transparent transparent rgba(198, 181, 112, 0.24) transparent;
+    -fx-border-width: 0 0 1px 0;
+}
 
 .settings-body {
-    -fx-padding: 5px 10px;
+    -fx-padding: 0;
 }
 
-.slider-row {
-    -fx-max-width: 340px;
+.setting-card {
+    -fx-background-color: rgba(7, 13, 23, 0.78);
+    -fx-border-color: rgba(143, 159, 169, 0.18);
+    -fx-border-width: 1px;
+    -fx-padding: 14px;
+    -fx-max-width: 500px;
 }
 
 .setting-label {
-    -fx-font-family: "Press Start 2P", sans-serif;
-    -fx-font-size: 12px;
-    -fx-text-fill: #ab8552;
-    -fx-font-weight: bold;
-    -fx-effect: dropshadow(one-pass-box, #11151b, 1, 1, 0, 0);
-}
-
-.setting-icon {
-    -fx-font-size: 18px;
+    -fx-font-family: "Press Start 2P";
+    -fx-font-size: 9px;
+    -fx-text-fill: #91a7b7;
 }
 
 .setting-value-label {
-    -fx-font-family: "Press Start 2P", sans-serif;
-    -fx-font-size: 12px;
-    -fx-text-fill: #ffffff;
-    -fx-min-width: 50px;
+    -fx-font-family: "Press Start 2P";
+    -fx-font-size: 9px;
+    -fx-text-fill: #f2d97f;
+    -fx-min-width: 58px;
     -fx-alignment: center-right;
 }
 
-/* ==========================================================================
-   PIXEL CHOICE BOX (CHỌN CONTROL MODE) - NEW!
-   ========================================================================== */
 .pixel-choice-box {
-    -fx-background-color: #11151b;
-    -fx-background-radius: 4px;
-    -fx-border-color: #ebd1aa #634b2d #634b2d #ebd1aa;
-    -fx-border-width: 3px;
-    -fx-border-radius: 4px;
-    -fx-padding: 2px 5px;
+    -fx-background-color: #080d17;
+    -fx-border-color: #526775;
+    -fx-border-width: 2px;
+    -fx-padding: 6px 8px;
     -fx-cursor: hand;
 }
 
 .pixel-choice-box:hover {
-    -fx-background-color: #181f28;
+    -fx-border-color: #d8c271;
 }
 
 .pixel-choice-box .label {
-    -fx-font-family: "Press Start 2P", sans-serif;
-    -fx-font-size: 10px;
-    -fx-text-fill: #e6e6e6;
+    -fx-font-family: "Press Start 2P";
+    -fx-font-size: 8px;
+    -fx-text-fill: #dce7eb;
 }
 
 .pixel-choice-box .open-button {
     -fx-background-color: transparent;
 }
 
-/* Mũi tên xổ xuống kiểu Pixel */
 .pixel-choice-box .arrow {
-    -fx-background-color: #ab8552;
-    -fx-shape: "M 0 0 L 4 4 L 8 0 Z";
+    -fx-background-color: #d8c271;
 }
 
-/* Menu popup khi bấm mở ChoiceBox */
 .pixel-choice-box .context-menu {
-    -fx-background-color: #11151b;
-    -fx-border-color: #ab8552;
+    -fx-background-color: #080d17;
+    -fx-border-color: #526775;
     -fx-border-width: 2px;
-    -fx-padding: 2px;
 }
 
 .pixel-choice-box .menu-item {
-    -fx-padding: 8px 12px;
+    -fx-padding: 9px 12px;
 }
 
 .pixel-choice-box .menu-item .label {
-    -fx-font-family: "Press Start 2P", sans-serif;
-    -fx-font-size: 10px;
-    -fx-text-fill: #cccccc;
+    -fx-font-family: "Press Start 2P";
+    -fx-font-size: 8px;
+    -fx-text-fill: #cbd7dc;
 }
 
 .pixel-choice-box .menu-item:focused,
 .pixel-choice-box .menu-item:hover {
-    -fx-background-color: #ab8552;
+    -fx-background-color: #3a3420;
 }
 
 .pixel-choice-box .menu-item:focused .label,
 .pixel-choice-box .menu-item:hover .label {
-    -fx-text-fill: #11151b;
+    -fx-text-fill: #fff4cb;
 }
 
-/* ==========================================================================
-   PIXEL SLIDER
-   ========================================================================== */
 .pixel-slider .track {
-    -fx-background-color: #11151b;
-    -fx-background-radius: 0px;
-    -fx-border-color: #344152;
+    -fx-background-color: #080d17;
+    -fx-border-color: #314453;
     -fx-border-width: 2px;
-    -fx-pref-height: 12px;
+    -fx-pref-height: 10px;
 }
 
 .pixel-slider .thumb {
-    -fx-background-color: #ab8552;
-    -fx-background-radius: 0px;
-    -fx-border-color: #ebd1aa #634b2d #634b2d #ebd1aa;
-    -fx-border-width: 3px;
-    -fx-pref-width: 20px;
-    -fx-pref-height: 20px;
+    -fx-background-color: #d8c271;
+    -fx-background-radius: 0;
+    -fx-border-color: #fff0a8 #786c38 #786c38 #fff0a8;
+    -fx-border-width: 2px;
+    -fx-pref-width: 18px;
+    -fx-pref-height: 18px;
     -fx-cursor: hand;
-}
-
-.pixel-slider .thumb:hover {
-    -fx-background-color: #bc9865;
-}
-
-.pixel-slider .thumb:pressed {
-    -fx-background-color: #8c6a3f;
-    -fx-border-color: #634b2d #ebd1aa #ebd1aa #634b2d;
 }
 
 .action-button {
-    -fx-font-family: "Press Start 2P", sans-serif;
-    -fx-background-color: #ab8552;
-    -fx-border-color: #d9b684 #634b2d #634b2d #d9b684;
-    -fx-border-width: 3px;
-    -fx-border-radius: 6px;
-    -fx-background-radius: 6px;
-    -fx-text-fill: #2b1f10;
-    -fx-font-size: 16px;
-    -fx-font-weight: bold;
+    -fx-font-family: "Press Start 2P";
+    -fx-font-size: 9px;
+    -fx-background-color: rgba(15, 24, 36, 0.96);
+    -fx-border-color: #526775;
+    -fx-border-width: 2px;
+    -fx-text-fill: #bac8cf;
+    -fx-padding: 13px 16px;
     -fx-cursor: hand;
-    -fx-effect: dropshadow(one-pass-box, rgba(0, 0, 0, 0.4), 4, 0, 0, 4);
-}
-
-.btn-home, .btn-setting {
-    -fx-min-width: 100px;
-    -fx-pref-width: 100px;
-    -fx-min-height: 55px;
-}
-
-.btn-resume {
-    -fx-min-width: 150px;
-    -fx-pref-width: 150px;
-    -fx-min-height: 55px;
-    -fx-font-size: 18px;
-}
-
-.btn-close {
-    -fx-min-width: 140px;
-    -fx-pref-width: 140px;
-    -fx-min-height: 48px;
-    -fx-font-size: 14px;
 }
 
 .action-button:hover {
-    -fx-background-color: #c9a372;
-    -fx-translate-y: -2px;
-    -fx-effect: dropshadow(one-pass-box, rgba(0, 0, 0, 0.5), 8, 0, 0, 6);
+    -fx-background-color: #223342;
+    -fx-border-color: #9fb7c2;
+    -fx-text-fill: #ffffff;
 }
 
-.action-button:pressed {
-    -fx-background-color: #8c6a3f;
-    -fx-border-color: #4d3a23 #ebd1aa #ebd1aa #4d3a23;
-    -fx-translate-y: 2px;
-    -fx-effect: dropshadow(one-pass-box, rgba(0, 0, 0, 0.2), 1, 0, 0, 1);
+.btn-resume {
+    -fx-background-color: rgba(89, 76, 34, 0.96);
+    -fx-border-color: #d8c271;
+    -fx-text-fill: #fff4cb;
+    -fx-min-width: 180px;
+}
+
+.btn-resume:hover {
+    -fx-background-color: #827037;
+    -fx-border-color: #fff0a8;
+}
+
+.btn-home,
+.btn-setting {
+    -fx-min-width: 150px;
+}
+
+.btn-close {
+    -fx-min-width: 180px;
 }

@@ -1,0 +1,126 @@
+@font-face {
+    font-family: "Press Start 2P";
+    src: url("../fonts/PressStart2P-Regular.ttf");
+}
+
+.leaderboard-overlay {
+    -fx-background-color: rgba(2, 6, 13, 0.90);
+    -fx-alignment: center;
+    -fx-padding: 24px;
+}
+
+.leaderboard-window {
+    -fx-background-color: rgba(5, 10, 19, 0.98);
+    -fx-border-color: rgba(198, 181, 112, 0.62);
+    -fx-border-width: 2px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.86), 22, 0.25, 0, 8);
+}
+
+.leaderboard-title {
+    -fx-font-family: "Press Start 2P";
+    -fx-font-size: 22px;
+    -fx-text-fill: #fff0b8;
+}
+
+.leaderboard-title-line {
+    -fx-background-color: #988a57;
+}
+
+.leaderboard-subtitle {
+    -fx-font-family: "Press Start 2P";
+    -fx-font-size: 8px;
+    -fx-text-fill: #8fa6b4;
+}
+
+.table-view {
+    -fx-background-color: #080d17;
+    -fx-border-color: rgba(143, 159, 169, 0.26);
+    -fx-border-width: 1px;
+    -fx-padding: 0;
+}
+
+.table-view .column-header-background {
+    -fx-background-color: #0d1622;
+    -fx-border-color: transparent transparent rgba(198, 181, 112, 0.30) transparent;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.table-view .column-header {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent rgba(143, 159, 169, 0.14) transparent transparent;
+    -fx-border-width: 0 1px 0 0;
+    -fx-padding: 13px 6px;
+}
+
+.table-view .column-header .label {
+    -fx-font-family: "Press Start 2P";
+    -fx-font-size: 8px;
+    -fx-text-fill: #d9c879;
+    -fx-alignment: CENTER;
+}
+
+.table-row-cell {
+    -fx-background-color: #080d17;
+    -fx-border-color: transparent transparent rgba(143, 159, 169, 0.10) transparent;
+    -fx-border-width: 0 0 1px 0;
+    -fx-cell-size: 46px;
+}
+
+.table-row-cell:odd {
+    -fx-background-color: #0b121d;
+}
+
+.table-row-cell:hover {
+    -fx-background-color: #172431;
+}
+
+.table-row-cell:filled:selected {
+    -fx-background-color: #3a3420;
+    -fx-border-color: #d8c271;
+    -fx-border-width: 1px;
+}
+
+.table-cell {
+    -fx-font-family: "Press Start 2P";
+    -fx-font-size: 8px;
+    -fx-text-fill: #cbd7dc;
+    -fx-alignment: CENTER;
+    -fx-padding: 8px 5px;
+}
+
+.table-row-cell:filled:selected .table-cell {
+    -fx-text-fill: #fff4cb;
+}
+
+.table-view .scroll-bar:vertical {
+    -fx-background-color: #080d17;
+    -fx-pref-width: 11px;
+}
+
+.table-view .scroll-bar:vertical .thumb {
+    -fx-background-color: #5d6f79;
+    -fx-background-radius: 0;
+}
+
+.table-view .increment-button,
+.table-view .decrement-button {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.leaderboard-close-button {
+    -fx-font-family: "Press Start 2P";
+    -fx-font-size: 9px;
+    -fx-background-color: rgba(15, 24, 36, 0.96);
+    -fx-border-color: #526775;
+    -fx-border-width: 2px;
+    -fx-text-fill: #bac8cf;
+    -fx-padding: 12px 18px;
+    -fx-cursor: hand;
+}
+
+.leaderboard-close-button:hover {
+    -fx-background-color: #223342;
+    -fx-border-color: #9fb7c2;
+    -fx-text-fill: #ffffff;
+}

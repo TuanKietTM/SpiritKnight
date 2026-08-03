@@ -1,196 +1,307 @@
+@font-face {
+    font-family: "Press Start 2P";
+    src: url("../fonts/PressStart2P-Regular.ttf");
+}
 
+/* Nen overlay dong bo voi Main Menu */
 .shop-overlay {
-    -fx-background-color: rgba(0, 0, 0, 0.7);
+    -fx-background-color: rgba(2, 6, 13, 0.88);
+    -fx-alignment: center;
+    -fx-padding: 24px;
 }
 
+/* Khung chinh */
 .shop-window {
-    -fx-background-color: #2a2334;
-    -fx-border-color: #5a4e69 #181425 #181425 #5a4e69;
-    -fx-border-width: 6px;
-    -fx-padding: 12px;
+    -fx-background-color: rgba(5, 10, 19, 0.98);
+    -fx-border-color: rgba(198, 181, 112, 0.62);
+    -fx-border-width: 2px;
+    -fx-padding: 20px;
+    -fx-spacing: 16px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.86), 22, 0.25, 0, 8);
 }
 
+/* Header */
 .shop-header {
-    -fx-padding: 0 0 10 0;
-    -fx-border-color: transparent transparent #181425 transparent;
-    -fx-border-width: 3px;
+    -fx-padding: 0 0 15px 0;
+    -fx-border-color: transparent transparent rgba(198, 181, 112, 0.26) transparent;
+    -fx-border-width: 0 0 1px 0;
 }
 
 .shop-title {
-    -fx-font-family: "Impact", "Arial Black", sans-serif;
-    -fx-font-size: 26px;
-    -fx-text-fill: #ffcd75;
-    -fx-effect: dropshadow(three-pass-box, #000000, 0, 0, 3, 3);
+    -fx-font-family: "Press Start 2P";
+    -fx-font-size: 28px;
+    -fx-text-fill: #fff0b8;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.95), 0, 0, 3, 3);
 }
+
+.shop-title-line {
+    -fx-background-color: #988a57;
+}
+
+.shop-subtitle {
+    -fx-font-family: "Press Start 2P";
+    -fx-font-size: 9px;
+    -fx-text-fill: #91a7b7;
+}
+
 .coin-badge {
-    -fx-background-color: #181425;
-    -fx-border-color: #ffcd75;
-    -fx-border-width: 2px;
-    -fx-padding: 4 12 4 8;
-    -fx-spacing: 6px;
+    -fx-background-color: rgba(12, 18, 29, 0.96);
+    -fx-border-color: rgba(198, 181, 112, 0.55);
+    -fx-border-width: 1px;
+    -fx-padding: 8px 13px;
 }
 
 .coin-text {
-    -fx-font-family: "Consolas", monospace;
-    -fx-font-size: 16px;
-    -fx-font-weight: bold;
-    -fx-text-fill: #ffcd75;
+    -fx-font-family: "Press Start 2P";
+    -fx-font-size: 12px;
+    -fx-text-fill: #f6d875;
 }
 
 .pixel-btn-close {
-    -fx-background-color: #a22633;
-    -fx-text-fill: #ffffff;
-    -fx-font-weight: bold;
-    -fx-font-size: 16px;
-    -fx-border-color: #e43b44 #4e1820 #4e1820 #e43b44;
-    -fx-border-width: 3px;
+    -fx-font-family: "Press Start 2P";
+    -fx-font-size: 11px;
+    -fx-text-fill: #c4a3a5;
+    -fx-background-color: rgba(37, 20, 26, 0.90);
+    -fx-border-color: rgba(147, 75, 83, 0.78);
+    -fx-border-width: 2px;
+    -fx-padding: 10px 13px;
     -fx-cursor: hand;
-    -fx-margin-left: 10px;
 }
+
 .pixel-btn-close:hover {
-    -fx-background-color: #e43b44;
+    -fx-background-color: #8f3440;
+    -fx-text-fill: #ffffff;
+    -fx-border-color: #e27b83;
+}
+
+/* Body */
+.shop-body {
+    -fx-background-color: transparent;
 }
 
 .shop-sidebar {
-    -fx-pref-width: 170px;
-    -fx-spacing: 8px;
-    -fx-padding: 10 10 0 0;
+    -fx-background-color: rgba(7, 13, 23, 0.96);
+    -fx-border-color: rgba(143, 159, 169, 0.20);
+    -fx-border-width: 1px;
+    -fx-padding: 18px 14px;
+}
+
+.sidebar-title {
+    -fx-font-family: "Press Start 2P";
+    -fx-font-size: 10px;
+    -fx-text-fill: #9eb6c5;
+}
+
+.sidebar-divider {
+    -fx-background-color: rgba(155, 172, 179, 0.24);
 }
 
 .tab-button {
-    -fx-background-color: #3f384c;
-    -fx-text-fill: #a297b8;
-    -fx-font-weight: bold;
-    -fx-font-size: 13px;
-    -fx-border-color: #5a4e69 #181425 #181425 #5a4e69;
-    -fx-border-width: 3px;
+    -fx-font-family: "Press Start 2P";
+    -fx-font-size: 10px;
+    -fx-text-fill: #b8c4cd;
+    -fx-background-color: transparent;
+    -fx-border-color: transparent transparent transparent #344454;
+    -fx-border-width: 0 0 0 2px;
     -fx-alignment: CENTER-LEFT;
-    -fx-padding: 10px;
+    -fx-padding: 13px 12px;
     -fx-cursor: hand;
 }
 
 .tab-button:hover {
-    -fx-background-color: #5a4e69;
-    -fx-text-fill: #ffffff;
+    -fx-background-color: linear-gradient(
+        to right,
+        rgba(148, 177, 188, 0.16),
+        rgba(148, 177, 188, 0.02)
+    );
+    -fx-text-fill: #eef7f8;
+    -fx-border-color: transparent transparent transparent #a9c7d1;
 }
 
 .tab-active {
-    -fx-background-color: #639bff;
-    -fx-text-fill: #ffffff;
-    -fx-border-color: #87b6ff #1f4287 #1f4287 #87b6ff;
+    -fx-background-color: linear-gradient(
+        to right,
+        rgba(197, 181, 112, 0.20),
+        rgba(197, 181, 112, 0.03)
+    );
+    -fx-text-fill: #fff0b8;
+    -fx-border-color: transparent transparent transparent #e6cf79;
 }
 
-.pixel-scroll {
-    -fx-background-color: transparent;
-    -fx-background: transparent;
+.sidebar-note {
+    -fx-padding: 13px 4px 0 4px;
+    -fx-border-color: rgba(155, 172, 179, 0.16) transparent transparent transparent;
+    -fx-border-width: 1px 0 0 0;
 }
+
+.sidebar-location {
+    -fx-font-family: "Press Start 2P";
+    -fx-font-size: 8px;
+    -fx-text-fill: #d8c782;
+}
+
+.sidebar-caption {
+    -fx-font-family: "Press Start 2P";
+    -fx-font-size: 7px;
+    -fx-text-fill: #647987;
+}
+
+/* Noi dung ben phai */
+.shop-content {
+    -fx-background-color: rgba(8, 14, 24, 0.74);
+    -fx-border-color: rgba(143, 159, 169, 0.17);
+    -fx-border-width: 1px;
+    -fx-padding: 15px;
+}
+
+.content-heading {
+    -fx-padding: 0 2px 10px 2px;
+    -fx-border-color: transparent transparent rgba(143, 159, 169, 0.18) transparent;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.content-title {
+    -fx-font-family: "Press Start 2P";
+    -fx-font-size: 11px;
+    -fx-text-fill: #d9e5ea;
+}
+
+.content-caption {
+    -fx-font-family: "Press Start 2P";
+    -fx-font-size: 7px;
+    -fx-text-fill: #687c89;
+}
+
+/* ScrollPane */
+.pixel-scroll,
 .pixel-scroll .viewport {
     -fx-background-color: transparent;
 }
 
-.item-grid {
-    -fx-padding: 10px;
+.pixel-scroll {
+    -fx-border-color: transparent;
+    -fx-padding: 0;
 }
 
+.pixel-scroll .scroll-bar:vertical {
+    -fx-background-color: #080d17;
+    -fx-pref-width: 11px;
+}
+
+.pixel-scroll .scroll-bar:vertical .thumb {
+    -fx-background-color: #5d6f79;
+    -fx-background-radius: 0;
+}
+
+.pixel-scroll .scroll-bar:vertical .thumb:hover {
+    -fx-background-color: #9a8f60;
+}
+
+.pixel-scroll .increment-button,
+.pixel-scroll .decrement-button {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.item-grid {
+    -fx-padding: 8px 8px 12px 4px;
+}
+
+/* Card item do controller tao dong */
 .item-card {
-    -fx-background-color: #3f384c;
-    -fx-border-color: #5a4e69 #181425 #181425 #5a4e69;
-    -fx-border-width: 3px;
+    -fx-background-color: rgba(13, 21, 33, 0.96);
+    -fx-border-color: #334552;
+    -fx-border-width: 2px;
     -fx-padding: 10px;
     -fx-alignment: CENTER;
-    -fx-pref-width: 120px;
-    -fx-pref-height: 130px;
+    -fx-pref-width: 132px;
+    -fx-pref-height: 146px;
     -fx-cursor: hand;
 }
 
 .item-card:hover {
-    -fx-background-color: #5a4e69;
-    -fx-border-color: #ffcd75;
+    -fx-background-color: rgba(26, 38, 52, 0.98);
+    -fx-border-color: #a7c0ca;
 }
 
 .item-card-selected {
-    -fx-background-color: #2c354d;
-    -fx-border-color: #ffcd75 #a06500 #a06500 #ffcd75;
-    -fx-border-width: 4px;
+    -fx-background-color: rgba(34, 40, 44, 0.98);
+    -fx-border-color: #f1db84;
+    -fx-border-width: 3px;
 }
 
 .item-card-equipped {
-    -fx-background-color: #30433b;
-    -fx-border-color: #ffd700 #8d6d00 #8d6d00 #ffd700;
-    -fx-border-width: 4px;
+    -fx-background-color: rgba(28, 46, 40, 0.98);
+    -fx-border-color: #dbbf68;
+    -fx-border-width: 3px;
+}
+
+.item-card-locked {
+    -fx-background-color: rgba(18, 18, 25, 0.92);
+    -fx-border-color: #55343b;
+    -fx-border-width: 2px;
+    -fx-opacity: 0.70;
+}
+
+.item-card-locked:hover {
+    -fx-background-color: rgba(35, 25, 31, 0.95);
+    -fx-border-color: #9c5660;
+}
+
+.item-card-locked Canvas {
+    -fx-opacity: 0.42;
 }
 
 .item-card-title {
-    -fx-font-size: 12px;
-    -fx-font-weight: bold;
-    -fx-text-fill: #ffffff;
+    -fx-font-family: "Press Start 2P";
+    -fx-font-size: 8px;
+    -fx-text-fill: #dce7eb;
 }
 
-/* Preview Bar ở dưới cùng */
+/* Preview */
 .item-preview-bar {
-    -fx-background-color: #181425;
-    -fx-border-color: #3f384c;
-    -fx-border-width: 2px;
-    -fx-padding: 8 12;
-    -fx-margin-top: 10px;
+    -fx-background-color: rgba(5, 10, 18, 0.96);
+    -fx-border-color: rgba(198, 181, 112, 0.34);
+    -fx-border-width: 1px;
+    -fx-padding: 13px 15px;
+    -fx-min-height: 82px;
 }
 
 .preview-title {
-    -fx-font-size: 15px;
-    -fx-font-weight: bold;
-    -fx-text-fill: #ffcd75;
+    -fx-font-family: "Press Start 2P";
+    -fx-font-size: 11px;
+    -fx-text-fill: #f3dc8b;
 }
 
 .preview-desc {
-    -fx-font-size: 12px;
-    -fx-text-fill: #a297b8;
+    -fx-font-family: "Press Start 2P";
+    -fx-font-size: 8px;
+    -fx-text-fill: #8fa2ae;
 }
 
 .pixel-btn-action {
-    -fx-background-color: #38b764;
-    -fx-text-fill: #ffffff;
-    -fx-font-weight: bold;
-    -fx-font-size: 14px;
-    -fx-border-color: #257179 #183e30 #183e30 #257179;
-    -fx-border-width: 3px;
-    -fx-padding: 8 16;
+    -fx-font-family: "Press Start 2P";
+    -fx-font-size: 9px;
+    -fx-text-fill: #fff4cb;
+    -fx-background-color: rgba(89, 76, 34, 0.96);
+    -fx-border-color: #d8c271;
+    -fx-border-width: 2px;
+    -fx-padding: 12px 16px;
     -fx-cursor: hand;
 }
+
 .pixel-btn-action:hover {
-    -fx-background-color: #257179;
-}
-.item-card-locked {
-    -fx-background-color: #26212f;
-    -fx-opacity: 0.75;
-}
-.item-card-locked {
-    -fx-border-color: #6d2a2a #2a1111 #2a1111 #6d2a2a;
-    -fx-border-width: 3px;
-}
-.item-card-locked:hover {
-    -fx-background-color: #2f2938;
-    -fx-border-color: #d44d4d;
-}
-.item-card-locked Canvas {
-    -fx-opacity: 0.45;
-}
-.item-card-locked .item-card-title {
-    -fx-text-fill: #8f8f8f;
+    -fx-background-color: #827037;
+    -fx-border-color: #fff0a8;
 }
 
-.item-card-equipped {
-    -fx-border-color: #ffd700;
-    -fx-border-width: 3px;
+.pixel-btn-action:disabled {
+    -fx-opacity: 0.42;
 }
 
-.item-card-selected {
-    -fx-border-color: white;
-    -fx-border-width: 2px;
-}
-/* ================= LOADING OVERLAY ================= */
-
+/* Loading overlay dung chung */
 .cat-loading-overlay {
-    -fx-background-color: rgba(10, 8, 15, 0.82);
+    -fx-background-color: rgba(3, 7, 14, 0.88);
 }
 
 .cat-loading-box {
@@ -199,9 +310,68 @@
 }
 
 .cat-loading-text {
-    -fx-font-family: "Consolas";
-    -fx-font-size: 15px;
-    -fx-font-weight: bold;
-    -fx-text-fill: #ffcd75;
-    -fx-effect: dropshadow(three-pass-box, #000000, 0, 0, 2, 2);
+    -fx-font-family: "Press Start 2P";
+    -fx-font-size: 9px;
+    -fx-text-fill: #f1d982;
+}
+.shop-title-line {
+    -fx-background-color: #988a57;
+}
+
+.shop-subtitle {
+    -fx-font-family: "Press Start 2P";
+    -fx-font-size: 8px;
+    -fx-text-fill: #8fa6b4;
+}
+
+.sidebar-title {
+    -fx-font-family: "Press Start 2P";
+    -fx-font-size: 9px;
+    -fx-text-fill: #91a7b7;
+}
+
+.sidebar-divider {
+    -fx-background-color: rgba(143, 159, 169, 0.22);
+}
+
+.sidebar-note {
+    -fx-padding: 14px 4px 0 4px;
+    -fx-border-color: rgba(143, 159, 169, 0.17)
+                      transparent
+                      transparent
+                      transparent;
+    -fx-border-width: 1px 0 0 0;
+}
+
+.sidebar-location {
+    -fx-font-family: "Press Start 2P";
+    -fx-font-size: 8px;
+    -fx-text-fill: #d8c271;
+}
+
+.sidebar-caption {
+    -fx-font-family: "Press Start 2P";
+    -fx-font-size: 7px;
+    -fx-text-fill: #607684;
+}
+
+.content-heading {
+    -fx-padding: 0 2px 10px 2px;
+    -fx-border-color: transparent
+                      transparent
+                      rgba(143, 159, 169, 0.18)
+                      transparent;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.content-title {
+    -fx-font-family: "Press Start 2P";
+    -fx-font-size: 10px;
+    -fx-text-fill: #dbe6ea;
+}
+
+.content-caption {
+    -fx-font-family: "Press Start 2P";
+    -fx-font-size: 7px;
+    -fx-text-fill: #687d89;
 }
