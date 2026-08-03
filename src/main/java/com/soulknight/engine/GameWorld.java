@@ -95,6 +95,12 @@ public final class GameWorld {
     private GameState state = GameState.INTRO;
     private double enemySpawnTimer;
     private Vector2D pendingPortalPosition;
+    // Cờ đánh dấu bảng chọn phần thưởng đã được mở trong màn hiện tại
+    private boolean rewardPickerShown;
+    // Bảng chọn phần thưởng hiện tại (null khi không ở trạng thái REWARD_PICK)
+    private RewardPicker rewardPicker;
+    // Phòng cuối cùng đã mở hộp phần thưởng (tránh mở trùng)
+    private Room lastRewardRoom;
     //    Bien cho hieu ung dau tien cua start room
     private SpawnEffect playerSpawnEffect;
     private SpawnEffect petSpawnEffect;
@@ -163,6 +169,7 @@ public final class GameWorld {
             }
             case PLAYING -> updatePlaying(deltaSeconds, viewportWidth, viewportHeight, false);
             case LEVEL_CLEAR -> updateLevelClear(deltaSeconds, viewportWidth, viewportHeight);
+            case REWARD_PICK -> updateRewardPick();
             case GAME_OVER, GAME_VICTORY -> {
                 // Nhấp chuột hoặc bấm nút Confirm để quay lại chơi mới
                 if (inputHandler.consumeConfirmRequest()) {
@@ -177,6 +184,11 @@ public final class GameWorld {
         graphicsContext.clearRect(0.0, 0.0, renderWidth, renderHeight);
         if (state != GameState.INTRO && state != GameState.MAIN_MENU && mapManager != null && player != null) {
             renderWorld(graphicsContext, renderWidth, renderHeight);
+        }
+        // Vẽ overlay chọn phần thưởng lên trên cùng khi đang ở trạng thái REWARD_PICK
+        if (state == GameState.REWARD_PICK && rewardPicker != null) {
+            Vector2D mousePos = inputHandler != null ? inputHandler.getMousePosition() : null;
+            rewardPicker.render(graphicsContext, mousePos);
         }
     }
 
@@ -218,6 +230,7 @@ public final class GameWorld {
         updateExplosions(deltaSeconds);
         updateSlashEffects(deltaSeconds);
         updateItemCollection();
+        openRewardPickerOnMissionComplete();
         updateAutoSave(deltaSeconds);
 
         if (allowSpawns) {
@@ -792,6 +805,10 @@ public final class GameWorld {
         if (this.missionManager != null && this.levelManager != null) {
             this.missionManager.setMission(this.levelManager.createMissionForCurrentLevel());
         }
+        // Cho phép mở bảng chọn phần thưởng mới khi nhiệm vụ mới hoàn thành
+        this.rewardPickerShown = false;
+        this.rewardPicker = null;
+        this.lastRewardRoom = null;
 
         // 8. Sinh các vật phẩm đặc thù theo Level
         if (this.levelManager != null && this.levelManager.getCurrentLevel().number() == 2) {
@@ -874,6 +891,117 @@ public final class GameWorld {
             if (position != null) {
                 items.add(new EnergyCrystal(position, missionManager));
             }
+        }
+    }
+
+    /**
+     * Mở bảng chọn phần thưởng (vàng / vũ khí) khi hoàn thành một phòng chiến đấu.
+     * Mỗi phòng (trừ START room) khi dọn sạch sẽ mở hộp 1 lần.
+     */
+    private void openRewardPickerOnMissionComplete() {
+        if (rewardPickerShown) {
+            return;
+        }
+        if (player == null || player.getPosition() == null || currentRoom == null) {
+            return;
+        }
+        
+        // Chỉ mở hộp khi phòng vừa được dọn sạch (không phải START room)
+        if (currentRoom.getState() != Room.RoomState.CLEARED) {
+            return;
+        }
+        if (currentRoom.getType() == Room.RoomType.START || currentRoom.getType() == Room.RoomType.REST) {
+            return;
+        }
+        // Tránh mở hộp trùng cho cùng một phòng
+        if (currentRoom == lastRewardRoom) {
+            return;
+        }
+
+        Weapon rewardWeapon = levelManager.getRewardWeaponForCurrentLevel();
+        if (rewardWeapon == null) {
+            rewardPickerShown = true;
+            lastRewardRoom = currentRoom;
+            return;
+        }
+
+        int goldReward = 30 + random.nextInt(51);
+
+        rewardPicker = new RewardPicker(rewardWeapon, goldReward);
+        rewardPickerShown = true;
+        lastRewardRoom = currentRoom;
+
+        changeState(GameState.REWARD_PICK);
+
+        // Phát âm thanh "portal" ngắn (0.5 giây) thay vì toàn bộ file
+        SoundManager.getInstance().playSFXShort("Portal", 0.5);
+
+        debug("Mo bang chon phan thuong: vang x" + goldReward + " hoac " + rewardWeapon.getName());
+    }
+
+    /**
+     * Cập nhật logic khi đang ở màn hình chọn phần thưởng.
+     * Lắng nghe click chuột để áp dụng phần thưởng người chơi chọn.
+     */
+    private void updateRewardPick() {
+        if (rewardPicker == null) {
+            changeState(GameState.PLAYING);
+            return;
+        }
+
+        if (!inputHandler.consumeConfirmRequest()) {
+            return;
+        }
+
+        Vector2D clickPos = inputHandler.getMousePosition();
+        String choice = rewardPicker.handleClick(clickPos);
+        if (choice == null) {
+            return;
+        }
+
+        applyReward(choice);
+        rewardPicker = null;
+        // Reset cờ để cho phép mở hộp ở các phòng tiếp theo trong cùng màn
+        rewardPickerShown = false;
+        changeState(GameState.PLAYING);
+    }
+
+    /**
+     * Áp dụng phần thưởng người chơi đã chọn: nhận vàng hoặc nhận vũ khí.
+     */
+    private void applyReward(String choice) {
+        if (rewardPicker == null) {
+            return;
+        }
+
+        if ("gold".equals(choice)) {
+            int amount = rewardPicker.getGoldAmount();
+            addGold(amount);
+            addScore(amount * 2);
+
+            if (player != null && player.getPosition() != null) {
+                floatingTextManager.spawnGold(player.getPosition(), amount);
+                particleManager.spawnCoinBurst(player.getPosition(), amount);
+            }
+
+            SoundManager.getInstance().playSFX("button");
+            debug("Nguoi choi chon vang: +" + amount);
+        } else if ("weapon".equals(choice)) {
+            Weapon weapon = rewardPicker.getWeapon();
+            if (weapon != null && player != null) {
+                player.equipWeapon(weapon);
+
+                floatingTextManager.spawnCustom(
+                        "NEW WEAPON: " + weapon.getName(),
+                        player.getPosition(),
+                        Color.GOLD
+                );
+
+                particleManager.spawnCoinBurst(player.getPosition(), 25);
+            }
+
+            SoundManager.getInstance().playSFX("switch");
+            debug("Nguoi choi chon vu khi: " + (weapon != null ? weapon.getName() : "?"));
         }
     }
 
