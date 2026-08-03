@@ -3,6 +3,7 @@ package com.soulknight.engine;
 import com.soulknight.animation.ParticleManager;
 import com.soulknight.animation.ShadowRenderer;
 import com.soulknight.animation.SpawnEffect;
+import com.soulknight.animation.EnemySpawnEffect;
 import com.soulknight.entity.Enemy;
 import com.soulknight.entity.EnemyFactory;
 import com.soulknight.entity.Entity;
@@ -37,6 +38,8 @@ import com.soulknight.database.PlayerSaveMapper;
 import com.soulknight.animation.FloatingTextManager;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.IdentityHashMap;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -80,6 +83,7 @@ public final class GameWorld {
     private PlayerSave pendingPlayerSave;
 
     private final List<Enemy> enemies = new ArrayList<>();
+    private final Map<Enemy, EnemySpawnEffect> enemySpawnEffects = new IdentityHashMap<>();
     private final List<Bullet> bullets = new ArrayList<>();
     // Danh sach hieu ung no khi dan va cham (tuong hoac muc tieu)
     private final List<ExplosionEffect> explosions = new ArrayList<>();
@@ -188,6 +192,7 @@ public final class GameWorld {
         if (petSpawnEffect != null) {
             petSpawnEffect.update(deltaSeconds);
         }
+        updateEnemySpawnEffects(deltaSeconds);
 
         player.update(this, deltaSeconds);
         updatePet(deltaSeconds);
@@ -199,6 +204,9 @@ public final class GameWorld {
 
 
         for (Enemy enemy : enemies) {
+            if (isEnemySpawning(enemy)) {
+                continue;
+            }
             enemy.update(this, deltaSeconds);
             // xử lý va chạm quái vs quái
             enemy.separateFromOtherEnemies(this,enemies, deltaSeconds);
@@ -316,7 +324,7 @@ public final class GameWorld {
             }
             if (bullet.getOwner() instanceof Player) {
                 for (Enemy enemy : enemies) {
-                    if (enemy == null || !enemy.isAlive()) {
+                    if (enemy == null || !enemy.isAlive()||  isEnemySpawning(enemy)) {
                         continue;
                     }
 
@@ -502,7 +510,14 @@ public final class GameWorld {
 
     private void spawnMixedWave() {
         List<Vector2D> spawnPoints = createSpawnPoints(4);
-        enemies.addAll(enemyFactory.createInitialEnemies(random, player.getPosition(), spawnPoints));
+
+        for (Enemy enemy : enemyFactory.createInitialEnemies(
+                random,
+                player.getPosition(),
+                spawnPoints
+        )) {
+            addEnemyWithSpawnEffect(enemy, 0.0);
+        }
     }
 
     private void renderWorld(GraphicsContext graphicsContext, double renderWidth, double renderHeight) {
@@ -622,7 +637,25 @@ public final class GameWorld {
 
             double enemyFootY = enemy.getPosition().getY() + 12.0;
             renderList.add(new SortableObject(enemyFootY, () -> {
-                // Vẽ bóng Enemy (Width: 22, Height: 6, OffsetY: 10)
+                EnemySpawnEffect spawnEffect = enemySpawnEffects.get(enemy);
+
+                if (spawnEffect != null && spawnEffect.isSpawning()) {
+                    double alpha = spawnEffect.getEntityAlpha();
+
+                    if (alpha > 0.0) {
+                        graphicsContext.save();
+                        graphicsContext.setGlobalAlpha(alpha);
+
+                        ShadowRenderer.render(graphicsContext, camera, enemy.getPosition(), 22.0, 6.0, 10.0, false);
+
+                        enemy.render(graphicsContext, camera);
+                        graphicsContext.restore();
+                    }
+
+                    spawnEffect.render(graphicsContext, camera);
+                    return;
+                }
+
                 ShadowRenderer.render(graphicsContext, camera, enemy.getPosition(), 22.0, 6.0, 10.0, false);
 
                 enemy.render(graphicsContext, camera);
@@ -746,6 +779,7 @@ public final class GameWorld {
 
         // 6. Reset toàn bộ danh sách Thực thể & Hiệu ứng của màn cũ
         this.enemies.clear();
+        this.enemySpawnEffects.clear();
         this.bullets.clear();
         this.explosions.clear();
         this.slashEffects.clear();
@@ -1080,11 +1114,38 @@ public final class GameWorld {
 
         // sinh quái tùy theo wave
         // 3. KHỞI TẠO ĐA DẠNG LOẠI QUÁI DỰA TRÊN WAVE
-        for (Vector2D spawnPt : roomSpawnPoints) {
-            // Tự động sinh ngẫu nhiên Slime / Cung thủ / Lợn rừng dựa theo wave
+        for (int i = 0; i < roomSpawnPoints.size(); i++) {
+            Vector2D spawnPt = roomSpawnPoints.get(i);
             Enemy enemy = enemyFactory.createEnemyByWave(random, spawnPt, waveNumber);
-            enemies.add(enemy);
+            addEnemyWithSpawnEffect(enemy, i * 0.08);
         }
+    }
+    private void addEnemyWithSpawnEffect(Enemy enemy, double delay) {
+        if (enemy == null || enemy.getPosition() == null) {
+            return;
+        }
+
+        enemies.add(enemy);
+
+        enemySpawnEffects.put(enemy, new EnemySpawnEffect(enemy.getPosition(), delay, 0.9));
+    }
+
+    private void updateEnemySpawnEffects(double deltaSeconds) {
+        if (enemySpawnEffects.isEmpty()) {
+            return;
+        }
+
+        for (EnemySpawnEffect effect : enemySpawnEffects.values()) {
+            effect.update(deltaSeconds);
+        }
+
+        enemySpawnEffects.entrySet().removeIf(entry -> entry.getValue().isFinished());
+    }
+
+    private boolean isEnemySpawning(Enemy enemy) {
+        EnemySpawnEffect effect = enemySpawnEffects.get(enemy);
+
+        return effect != null && effect.blocksEnemyLogic();
     }
     private boolean intersectsRoomObstacle(Room room, Vector2D position, double radius) {
         if (room == null || position == null || room.getObstacles() == null) {
@@ -1111,7 +1172,7 @@ public final class GameWorld {
         double pRadius = player.getRadius();
 
         for (Enemy enemy : enemies) {
-            if (!enemy.isAlive()) continue;
+            if (!enemy.isAlive() || isEnemySpawning(enemy) ) continue;
 
             Vector2D ePos = enemy.getPosition();
             double eRadius = enemy.getRadius();
@@ -1165,7 +1226,7 @@ public final class GameWorld {
     // va lech khong qua halfArcRadians so voi huong ngam (dung cho vu khi can chien)
     public void damageEnemiesInArc(Vector2D origin, double aimAngle, double range, double halfArcRadians, int damage) {
         for (Enemy enemy : enemies) {
-            if (!enemy.isAlive()) {
+            if (!enemy.isAlive() || isEnemySpawning(enemy)) {
                 continue;
             }
             double dx = enemy.getPosition().getX() - origin.getX();
@@ -1473,6 +1534,7 @@ public final class GameWorld {
 
             if (!enemy.isAlive()) {
                 giveEnemyReward(enemy);
+                enemySpawnEffects.remove(enemy);
                 enemies.remove(i);
             }
         }
