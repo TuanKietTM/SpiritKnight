@@ -2,6 +2,7 @@ package com.soulknight.ui;
 
 import com.soulknight.database.UserDAO;
 import com.soulknight.database.UserSession;
+import com.soulknight.utils.DatabaseExecutor;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
@@ -108,9 +109,7 @@ public final class LoginController {
             }
         });
 
-        Thread thread = new Thread(task, "login-database-thread");
-        thread.setDaemon(true);
-        thread.start();
+        DatabaseExecutor.getExecutor().execute(task);
     }
 
     @FXML

@@ -26,7 +26,7 @@ public final class UIManager {
 
     private final StackPane rootNode;
     private IntroController introController;
-    private StoryIntroController storyIntroController; // <-- Thêm Controller Story
+    private StoryIntroController storyIntroController;
     private HUD hudController;
     private Menu menuController;
     private LevelClearScreen levelClearController;
@@ -38,6 +38,7 @@ public final class UIManager {
     private LoginController loginController;
     private RegisterController registerController;
     private LeaderboardController leaderboardController;
+    private AccountController accountController;
 
     private Parent introRoot;
     private Parent storyIntroRoot;
@@ -52,6 +53,7 @@ public final class UIManager {
     private Parent loginRoot;
     private Parent registerRoot;
     private Parent leaderboardRoot;
+    private Parent accountRoot;
 
     private final UserDAO userDAO = new UserDAO();
     private final CatLoadingOverlay loadingOverlay = new CatLoadingOverlay();
@@ -136,6 +138,11 @@ public final class UIManager {
             leaderboardRoot = leaderboardLoader.load();
             leaderboardController = leaderboardLoader.getController();
             configFullRegion(leaderboardRoot);
+
+            FXMLLoader accountLoader = new FXMLLoader(com.soulknight.Main.class.getResource("/assets/fxml/Account.fxml"));
+            accountRoot = accountLoader.load();
+            accountController = accountLoader.getController();
+            configFullRegion(accountRoot);
             portalOverlay.setMinSize(0, 0);
             portalOverlay.setPrefSize(Region.USE_COMPUTED_SIZE, Region.USE_COMPUTED_SIZE);
             portalOverlay.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
@@ -153,7 +160,7 @@ public final class UIManager {
             gameOverRoot.setPickOnBounds(false);
 
             rootNode.getChildren().addAll(introRoot, loginRoot, registerRoot, storyIntroRoot, menuRoot, hudRoot, levelClearRoot, victoryRoot,
-                    gameOverRoot, pauseRoot, settingRoot,shopRoot,leaderboardRoot,portalOverlay,loadingOverlay);
+                    gameOverRoot, pauseRoot, settingRoot, shopRoot, leaderboardRoot, accountRoot, portalOverlay, loadingOverlay);
 
             StackPane.setAlignment(introRoot, Pos.CENTER);
             StackPane.setAlignment(storyIntroRoot, Pos.CENTER);
@@ -166,6 +173,7 @@ public final class UIManager {
             StackPane.setAlignment(settingRoot, Pos.CENTER);
             StackPane.setAlignment(loginRoot, Pos.CENTER);
             StackPane.setAlignment(registerRoot, Pos.CENTER);
+            StackPane.setAlignment(accountRoot, Pos.CENTER);
             StackPane.setAlignment(portalOverlay, Pos.CENTER);
             StackPane.setAlignment(loadingOverlay, Pos.CENTER);
 
@@ -435,6 +443,38 @@ public final class UIManager {
                 sound.playSFX("button");
                 loadSaveAndContinue(world);
             });
+            menuController.setOnAccountRequested(() -> {
+                sound.playSFX("button");
+
+                menuRoot.setVisible(false);
+                menuRoot.setManaged(false);
+
+                accountRoot.setVisible(true);
+                accountRoot.setManaged(true);
+                accountRoot.toFront();
+
+                if (accountController != null) {
+                    accountController.setup(
+                            () -> {
+                                sound.playSFX("button");
+
+                                accountRoot.setVisible(false);
+                                accountRoot.setManaged(false);
+
+                                menuRoot.setVisible(true);
+                                menuRoot.setManaged(true);
+                                menuRoot.toFront();
+
+                                menuController.setContinueAvailable(continueAvailable);
+                                menuController.startAnimation();
+                            },
+                            () -> handleLogout(world),
+                            this::showLoading,
+                            this::hideLoading
+                    );
+                }
+            });
+
             menuController.setOnSettingsRequested(() -> {
                 sound.playSFX("button");
                 menuRoot.setVisible(false);
@@ -577,6 +617,26 @@ public final class UIManager {
             );
         }
     }
+    private void handleLogout(GameWorld world) {
+        UserSession.logout();
+        continueAvailable = false;
+
+        if (world != null) {
+            world.setCurrentPlayerName("");
+        }
+
+        if (menuController != null) {
+            menuController.setContinueAvailable(false);
+        }
+
+        if (loginController != null) {
+            loginController.clearForm();
+        }
+
+        hideAllScreens();
+        showLoginScreen();
+    }
+
     private WeaponType findWeaponTypeByName(String rawName) {
         if (rawName == null) return null;
 
@@ -756,5 +816,7 @@ public final class UIManager {
         if (settingRoot != null) settingRoot.setVisible(false);
         if (shopRoot != null) shopRoot.setVisible(false);
         if (leaderboardRoot != null) leaderboardRoot.setVisible(false);
+        if (accountRoot != null) {accountRoot.setVisible(false);accountRoot.setManaged(false);
+        }
     }
 }
