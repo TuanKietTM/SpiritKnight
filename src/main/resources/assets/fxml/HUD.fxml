@@ -23,7 +23,11 @@
           spacing="2">
 
         <HBox spacing="4" alignment="CENTER_LEFT">
-            <Label text="❤" styleClass="status-icon-hp"/>
+            <ImageView fx:id="hpIcon"
+                       fitWidth="20"
+                       fitHeight="20"
+                       preserveRatio="true"
+                       smooth="false"/>
 
             <StackPane alignment="CENTER_LEFT">
                 <ProgressBar fx:id="hpBar"
@@ -37,7 +41,11 @@
         </HBox>
 
         <HBox spacing="4" alignment="CENTER_LEFT">
-            <Label text="🛡" styleClass="status-icon-shield"/>
+            <ImageView fx:id="shieldIcon"
+                       fitWidth="20"
+                       fitHeight="20"
+                       preserveRatio="true"
+                       smooth="false"/>
 
             <StackPane alignment="CENTER_LEFT">
                 <ProgressBar fx:id="shieldBar"
@@ -51,7 +59,11 @@
         </HBox>
 
         <HBox spacing="4" alignment="CENTER_LEFT">
-            <Label text="✦" styleClass="status-icon-mana"/>
+            <ImageView fx:id="manaIcon"
+                       fitWidth="20"
+                       fitHeight="20"
+                       preserveRatio="true"
+                       smooth="false"/>
 
             <StackPane alignment="CENTER_LEFT">
                 <ProgressBar fx:id="manaBar"
@@ -73,8 +85,11 @@
               alignment="CENTER"
               styleClass="coin-container">
 
-            <Label text="🪙"
-                   styleClass="coin-icon"/>
+            <ImageView fx:id="goldIcon"
+                       fitWidth="40"
+                       fitHeight="40"
+                       preserveRatio="true"
+                       smooth="false"/>
 
             <Label fx:id="goldLabel"
                    text="0"
@@ -85,9 +100,11 @@
               alignment="CENTER"
               styleClass="coin-container">
 
-            <Label text="◆"
-                   styleClass="gem-icon"/>
-
+            <ImageView fx:id="gemIcon"
+                       fitWidth="40"
+                       fitHeight="40"
+                       preserveRatio="true"
+                       smooth="false"/>
             <Label fx:id="gemsLabel"
                    text="0"
                    styleClass="coin-text"/>
@@ -97,9 +114,11 @@
               alignment="CENTER"
               styleClass="score-container">
 
-            <Label text="★"
-                   styleClass="score-icon"/>
-
+            <ImageView fx:id="scoreIcon"
+                       fitWidth="40"
+                       fitHeight="240"
+                       preserveRatio="true"
+                       smooth="false"/>
             <Label fx:id="scoreLabel"
                    text="0"
                    styleClass="score-text"/>

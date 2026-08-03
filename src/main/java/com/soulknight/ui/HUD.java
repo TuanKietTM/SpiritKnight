@@ -65,6 +65,24 @@ public final class HUD {
     @FXML
     private Canvas minimapCanvas;
 
+    @FXML
+    private ImageView hpIcon;
+
+    @FXML
+    private ImageView shieldIcon;
+
+    @FXML
+    private ImageView manaIcon;
+
+    @FXML
+    private ImageView goldIcon;
+
+    @FXML
+    private ImageView gemIcon;
+
+    @FXML
+    private ImageView scoreIcon;
+
     private MinimapRenderer minimapRenderer;
     private Runnable onPauseRequested;
     private Runnable onWeaponSwitchRequested;
@@ -75,6 +93,16 @@ public final class HUD {
         if (minimapCanvas != null) {
             minimapRenderer = new MinimapRenderer(minimapCanvas);
         }
+        hpIcon.setImage(loadHUDIcon("/assets/icon/hp.png"));
+        shieldIcon.setImage(loadHUDIcon("/assets/icon/shield.png"));
+        manaIcon.setImage(loadHUDIcon("/assets/icon/mana.png"));
+
+        goldIcon.setImage(loadHUDIcon("/assets/icon/gold.png"));
+        gemIcon.setImage(loadHUDIcon("/assets/icon/gem.png"));
+        scoreIcon.setImage(loadHUDIcon("/assets/icon/score.png"));
+    }
+    private Image loadHUDIcon(String path) {
+        return new Image(getClass().getResourceAsStream(path));
     }
 
     public void setOnPauseRequested(Runnable callback) {
