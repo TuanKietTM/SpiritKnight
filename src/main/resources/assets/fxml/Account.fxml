@@ -4,44 +4,55 @@
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
-<StackPane xmlns:fx="http://javafx.com/fxml"
+<StackPane xmlns="http://javafx.com/javafx/21"
+           xmlns:fx="http://javafx.com/fxml/1"
            fx:controller="com.soulknight.ui.AccountController"
            stylesheets="@../CSS/Account.css"
            styleClass="account-root">
 
-    <VBox maxWidth="460"
-          spacing="14"
-          alignment="CENTER"
+    <VBox maxWidth="560.0"
+          prefWidth="560.0"
+          spacing="18.0"
           styleClass="account-window">
 
         <padding>
-            <Insets top="24" right="30" bottom="24" left="30"/>
+            <Insets top="26.0" right="30.0" bottom="26.0" left="30.0"/>
         </padding>
 
-        <Label text="PLAYER ACCOUNT" styleClass="account-title"/>
+        <VBox spacing="6.0">
+            <Label text="PLAYER ACCOUNT" styleClass="account-title"/>
+            <HBox alignment="CENTER_LEFT" spacing="10.0">
+                <Region prefWidth="38.0" prefHeight="2.0" styleClass="account-title-line"/>
+                <Label text="SOUL NEXUS IDENTITY ARCHIVE" styleClass="account-subtitle"/>
+            </HBox>
+        </VBox>
 
-        <VBox spacing="4" styleClass="account-info-box">
-            <Label text="PLAYER NAME" styleClass="field-caption"/>
+        <VBox spacing="5.0" styleClass="account-info-box">
+            <Label text="ACTIVE PROFILE" styleClass="field-caption"/>
             <Label fx:id="usernameLabel" text="PLAYER" styleClass="username-label"/>
         </VBox>
 
-        <Label text="CURRENT PASSWORD" styleClass="field-caption"/>
-        <PasswordField fx:id="currentPasswordField"
-                       promptText="Current password"
-                       styleClass="account-field"/>
+        <VBox spacing="8.0" styleClass="account-form">
+            <Label text="CURRENT PASSWORD" styleClass="field-caption"/>
+            <PasswordField fx:id="currentPasswordField"
+                           promptText="Enter current password"
+                           styleClass="account-field"/>
 
-        <Label text="NEW PASSWORD" styleClass="field-caption"/>
-        <PasswordField fx:id="newPasswordField"
-                       promptText="At least 8 characters"
-                       styleClass="account-field"/>
+            <Label text="NEW PASSWORD" styleClass="field-caption"/>
+            <PasswordField fx:id="newPasswordField"
+                           promptText="At least 8 characters"
+                           styleClass="account-field"/>
 
-        <Label text="CONFIRM NEW PASSWORD" styleClass="field-caption"/>
-        <PasswordField fx:id="confirmPasswordField"
-                       promptText="Confirm new password"
-                       styleClass="account-field"/>
+            <Label text="CONFIRM NEW PASSWORD" styleClass="field-caption"/>
+            <PasswordField fx:id="confirmPasswordField"
+                           promptText="Confirm new password"
+                           styleClass="account-field"/>
+        </VBox>
 
         <Label fx:id="messageLabel"
                wrapText="true"
@@ -51,16 +62,23 @@
                 text="CHANGE PASSWORD"
                 onAction="#handleChangePassword"
                 maxWidth="Infinity"
+                focusTraversable="false"
                 styleClass="account-action-button"/>
 
-        <Button text="LOG OUT"
-                onAction="#handleLogout"
-                maxWidth="Infinity"
-                styleClass="account-logout-button"/>
+        <HBox spacing="12.0">
+            <Button text="LOG OUT"
+                    onAction="#handleLogout"
+                    maxWidth="Infinity"
+                    HBox.hgrow="ALWAYS"
+                    focusTraversable="false"
+                    styleClass="account-logout-button"/>
 
-        <Button text="BACK"
-                onAction="#handleBack"
-                maxWidth="Infinity"
-                styleClass="account-back-button"/>
+            <Button text="BACK"
+                    onAction="#handleBack"
+                    maxWidth="Infinity"
+                    HBox.hgrow="ALWAYS"
+                    focusTraversable="false"
+                    styleClass="account-back-button"/>
+        </HBox>
     </VBox>
 </StackPane>
