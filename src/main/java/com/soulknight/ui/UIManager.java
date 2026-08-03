@@ -60,6 +60,7 @@ public final class UIManager {
     private final EquipmentLoader equipmentLoader = new EquipmentLoader();
 
     private final PortalOverlay portalOverlay = new PortalOverlay();
+    private IntroToLoginTransition introToLoginTransition;
     // Luu trang thai Continue cua tai khoan dang dang nhap
     private boolean continueAvailable;
 
@@ -90,6 +91,10 @@ public final class UIManager {
             registerRoot = registerLoader.load();
             registerController = registerLoader.getController();
             configFullRegion(registerRoot);
+
+            introToLoginTransition = new IntroToLoginTransition(
+                    rootNode, introRoot, loginRoot, loginController
+            );
 
             FXMLLoader menuLoader = new FXMLLoader(com.soulknight.Main.class.getResource("/assets/fxml/Menu.fxml"));
             menuRoot = menuLoader.load();
@@ -303,46 +308,19 @@ public final class UIManager {
         );
     }
     private void transitionIntroToLogin() {
-        // Login phải được chuẩn bị trước khi animation bắt đầu.
-        loginRoot.setVisible(true);
-        loginRoot.setManaged(true);
-        loginRoot.setOpacity(1.0);
-        loginRoot.toBack();
+        if (registerController != null) {
+            registerController.stopBackground();
+        }
 
-        // Intro đang nằm phía trên Login.
-        introRoot.setVisible(true);
-        introRoot.setManaged(true);
-        introRoot.setOpacity(1.0);
-        introRoot.toFront();
+        if (introToLoginTransition == null) {
+            showLoginScreen();
+            return;
+        }
 
-        FadeTransition fadeIntro =
-                new FadeTransition(
-                        Duration.millis(550),
-                        introRoot
-                );
-
-        fadeIntro.setFromValue(1.0);
-        fadeIntro.setToValue(0.0);
-
-        fadeIntro.setOnFinished(event -> {
-            introRoot.setVisible(false);
-            introRoot.setManaged(false);
-            introRoot.setOpacity(1.0);
-
-            loginRoot.setOpacity(1.0);
-            loginRoot.setVisible(true);
-            loginRoot.setManaged(true);
-            loginRoot.toFront();
-
+        introToLoginTransition.play(() -> {
             loginRoot.applyCss();
             loginRoot.layout();
-
-            if (loginController != null) {
-                loginController.clearForm();
-            }
         });
-
-        fadeIntro.play();
     }
 
     private void bindLoginActions(GameWorld world) {
@@ -657,6 +635,10 @@ public final class UIManager {
         return null;
     }
     private void showLoginScreen() {
+        if (registerController != null) registerController.stopBackground();
+        if (introToLoginTransition != null) introToLoginTransition.stop();
+        if (loginController != null) loginController.showBackgroundImmediately();
+
         if (introRoot != null) {
             introRoot.setVisible(false);
             introRoot.setManaged(false);
@@ -676,6 +658,8 @@ public final class UIManager {
 
     private void showRegisterScreen() {
         hideAllScreens();
+        if (loginController != null) loginController.stopBackground();
+        if (registerController != null) registerController.startBackground();
 
         registerRoot.setOpacity(1.0);
         registerRoot.setVisible(true);
@@ -684,6 +668,8 @@ public final class UIManager {
 
     private void showMainMenu(GameWorld world) {
         hideAllScreens();
+        if (loginController != null) loginController.stopBackground();
+        if (registerController != null) registerController.stopBackground();
         world.changeState(GameState.MAIN_MENU);
 
         menuRoot.setOpacity(1.0);
@@ -803,6 +789,8 @@ public final class UIManager {
     }
 
     private void hideAllScreens() {
+        if (loginController != null) loginController.stopBackground();
+        if (registerController != null) registerController.stopBackground();
         if (introRoot != null) introRoot.setVisible(false);
         if (loginRoot != null) loginRoot.setVisible(false);
         if (registerRoot != null) registerRoot.setVisible(false);

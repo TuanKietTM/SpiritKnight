@@ -6,6 +6,8 @@ import com.soulknight.database.UserDAO;
 import com.soulknight.utils.DatabaseExecutor;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
+import javafx.scene.canvas.Canvas;
+import javafx.scene.layout.StackPane;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
@@ -27,6 +29,14 @@ public final class RegisterController {
 
     @FXML
     private Button registerButton;
+
+    @FXML
+    private StackPane registerRoot;
+
+    @FXML
+    private Canvas backgroundCanvas;
+
+    private DeveloperRoomBackground roomBackground;
 
     private final UserDAO userDAO = new UserDAO();
     private final PlayerSaveDAO playerSaveDAO =
@@ -140,6 +150,9 @@ public final class RegisterController {
     }
     @FXML
     public void initialize() {
+        roomBackground = new DeveloperRoomBackground(backgroundCanvas);
+        backgroundCanvas.widthProperty().bind(registerRoot.widthProperty());
+        backgroundCanvas.heightProperty().bind(registerRoot.heightProperty());
 
         // Enter o username -> sang password
         usernameField.setOnAction(e -> passwordField.requestFocus());
@@ -169,6 +182,18 @@ public final class RegisterController {
         confirmPasswordField.clear();
         messageLabel.setText("");
         setLoading(false);
+    }
+
+    public void startBackground() {
+        if (roomBackground != null) {
+            roomBackground.start();
+        }
+    }
+
+    public void stopBackground() {
+        if (roomBackground != null) {
+            roomBackground.stop();
+        }
     }
 
     private void setLoading(boolean loading) {

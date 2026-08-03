@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.geometry.Insets?>
+<?import javafx.scene.canvas.Canvas?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.PasswordField?>
@@ -8,14 +9,21 @@
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
-<StackPane xmlns:fx="http://javafx.com/fxml"
+<StackPane fx:id="loginRoot"
+           xmlns:fx="http://javafx.com/fxml"
            fx:controller="com.soulknight.ui.LoginController"
            stylesheets="@../CSS/login.css"
            prefWidth="1000"
            prefHeight="600"
            styleClass="login-root">
 
-    <VBox alignment="CENTER"
+    <Canvas fx:id="backgroundCanvas"
+            width="1000"
+            height="600"
+            mouseTransparent="true"/>
+
+    <VBox fx:id="loginBox"
+          alignment="CENTER"
           spacing="16"
           maxWidth="400"
           styleClass="login-box">
@@ -26,6 +34,9 @@
 
         <Label text="LOGIN"
                styleClass="login-title"/>
+
+        <Label text="LOCAL DEV SESSION"
+               styleClass="session-label"/>
 
         <TextField fx:id="usernameField"
                    promptText="USERNAME"/>
