@@ -4,12 +4,24 @@ public enum HeroType {
 
     KNIGHT(
             "Knight",
-            "/assets/sprites/IDLE64.png",
-            "/assets/sprites/RUN64.png",
+            "/assets/sprites/Knight_IDLE.png",
+            "/assets/sprites/K_RUN.png",
             0,
             100,
             100,
-            3,
+            6,
+            64,
+            64,
+            0.15
+    ),
+    RED_NIGHT(
+            "UETot",
+            "/assets/sprites/UET_IDLE.png",
+            "/assets/sprites/UET_RUN.png",
+            0,
+            100,
+            100,
+            6,
             64,
             64,
             0.15

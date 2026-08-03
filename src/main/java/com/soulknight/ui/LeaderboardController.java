@@ -2,9 +2,10 @@ package com.soulknight.ui;
 
 import com.soulknight.database.LeaderboardEntry;
 import com.soulknight.database.PlayerSaveDAO;
-import javafx.application.Platform;
+import com.soulknight.utils.DatabaseExecutor;
 import javafx.beans.property.ReadOnlyIntegerWrapper;
 import javafx.beans.property.ReadOnlyStringWrapper;
+import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
@@ -33,28 +34,19 @@ public final class LeaderboardController {
         );
 
         nameColumn.setCellValueFactory(data ->
-                new ReadOnlyStringWrapper(
-                        data.getValue().playerName()
-                )
+                new ReadOnlyStringWrapper(data.getValue().playerName())
         );
 
         scoreColumn.setCellValueFactory(data ->
-                new ReadOnlyIntegerWrapper(
-                        data.getValue().score()
-                )
+                new ReadOnlyIntegerWrapper(data.getValue().score())
         );
 
         goldColumn.setCellValueFactory(data ->
-                new ReadOnlyIntegerWrapper(
-                        data.getValue().gold()
-                )
+                new ReadOnlyIntegerWrapper(data.getValue().gold())
         );
     }
 
-    public void setup(Runnable onClose,
-                      Consumer<String> onShowLoading,
-                      Runnable onHideLoading) {
-
+    public void setup(Runnable onClose, Consumer<String> onShowLoading, Runnable onHideLoading) {
         this.onClose = onClose;
         this.onShowLoading = onShowLoading;
         this.onHideLoading = onHideLoading;
@@ -67,32 +59,42 @@ public final class LeaderboardController {
             onShowLoading.accept("Loading leaderboard...");
         }
 
-        Thread thread = new Thread(() -> {
-            try {
-                List<LeaderboardEntry> entries =
-                        playerSaveDAO.getLeaderboard(20);
-
-                Platform.runLater(() -> {
-                    if (onHideLoading != null) {
-                        onHideLoading.run();
-                    }
-
-                    leaderboardTable.getItems().setAll(entries);
-                });
-
-            } catch (RuntimeException exception) {
-                exception.printStackTrace();
-
-                Platform.runLater(() -> {
-                    if (onHideLoading != null) {
-                        onHideLoading.run();
-                    }
-                });
+        Task<List<LeaderboardEntry>> task = new Task<>() {
+            @Override
+            protected List<LeaderboardEntry> call() {
+                return playerSaveDAO.getLeaderboard(20);
             }
-        }, "leaderboard-load-thread");
+        };
 
-        thread.setDaemon(true);
-        thread.start();
+        task.setOnSucceeded(event -> {
+            hideLoading();
+
+            List<LeaderboardEntry> entries = task.getValue();
+
+            if (entries == null) {
+                leaderboardTable.getItems().clear();
+                return;
+            }
+
+            leaderboardTable.getItems().setAll(entries);
+        });
+
+        task.setOnFailed(event -> {
+            hideLoading();
+            leaderboardTable.getItems().clear();
+
+            if (task.getException() != null) {
+                task.getException().printStackTrace();
+            }
+        });
+
+        DatabaseExecutor.getExecutor().execute(task);
+    }
+
+    private void hideLoading() {
+        if (onHideLoading != null) {
+            onHideLoading.run();
+        }
     }
 
     @FXML

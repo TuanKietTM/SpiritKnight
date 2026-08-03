@@ -1,0 +1,94 @@
+.account-root {
+    -fx-background-color: rgba(5, 2, 18, 0.96);
+}
+
+.account-window {
+    -fx-background-color: #181026;
+    -fx-border-color: #8a3ffc #35165f #35165f #8a3ffc;
+    -fx-border-width: 4px;
+}
+
+.account-title {
+    -fx-font-family: "Consolas";
+    -fx-font-size: 27px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #60e9ff;
+    -fx-effect: dropshadow(three-pass-box, #9b33ff, 10, 0.5, 0, 0);
+}
+
+.account-info-box {
+    -fx-background-color: #0d0919;
+    -fx-border-color: #40305f;
+    -fx-border-width: 2px;
+    -fx-padding: 10px 14px;
+    -fx-pref-width: 400px;
+}
+
+.field-caption {
+    -fx-font-family: "Consolas";
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #a89bbb;
+}
+
+.username-label {
+    -fx-font-family: "Consolas";
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #ffcf4a;
+}
+
+.account-field {
+    -fx-background-color: #0d0919;
+    -fx-text-fill: #ffffff;
+    -fx-prompt-text-fill: #6f6381;
+    -fx-border-color: #49336e;
+    -fx-border-width: 2px;
+    -fx-padding: 9px;
+    -fx-font-family: "Consolas";
+}
+
+.account-field:focused {
+    -fx-border-color: #52dbff;
+}
+
+.message-label {
+    -fx-font-family: "Consolas";
+    -fx-font-size: 12px;
+    -fx-text-fill: #ffcf4a;
+    -fx-alignment: center;
+    -fx-min-height: 28px;
+}
+
+.account-action-button,
+.account-logout-button,
+.account-back-button {
+    -fx-font-family: "Consolas";
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+    -fx-padding: 10px;
+    -fx-cursor: hand;
+}
+
+.account-action-button {
+    -fx-background-color: #167a91;
+    -fx-border-color: #60e9ff #063b4b #063b4b #60e9ff;
+    -fx-border-width: 3px;
+}
+
+.account-action-button:hover {
+    -fx-background-color: #20a4bd;
+}
+
+.account-logout-button {
+    -fx-background-color: #932c43;
+    -fx-border-color: #ff7285 #4d1421 #4d1421 #ff7285;
+    -fx-border-width: 3px;
+}
+
+.account-back-button {
+    -fx-background-color: #392556;
+    -fx-border-color: #7951aa #1d102c #1d102c #7951aa;
+    -fx-border-width: 3px;
+}

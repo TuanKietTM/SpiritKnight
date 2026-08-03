@@ -181,6 +181,73 @@ public final class UserDAO {
         }
     }
 
+
+
+    public ChangePasswordResult changePassword(int userId, String currentPassword, String newPassword, String confirmPassword) {
+        if (userId <= 0) return ChangePasswordResult.failure("Tai khoan khong hop le.");
+        if (currentPassword == null || currentPassword.isBlank()) {
+            return ChangePasswordResult.failure("Vui long nhap mat khau hien tai.");
+        }
+        if (newPassword == null || newPassword.length() < 8) {
+            return ChangePasswordResult.failure("Mat khau moi phai co it nhat 8 ky tu.");
+        }
+        if (!newPassword.equals(confirmPassword)) {
+            return ChangePasswordResult.failure("Mat khau xac nhan khong khop.");
+        }
+        if (currentPassword.equals(newPassword)) {
+            return ChangePasswordResult.failure("Mat khau moi phai khac mat khau hien tai.");
+        }
+
+        String findSql = """
+                SELECT password_hash
+                FROM users
+                WHERE id = ?
+                """;
+
+        String updateSql = """
+                UPDATE users
+                SET password_hash = ?
+                WHERE id = ?
+                """;
+
+        try (Connection connection = DatabaseManager.getConnection()) {
+            String currentPasswordHash;
+
+            try (PreparedStatement statement = connection.prepareStatement(findSql)) {
+                statement.setInt(1, userId);
+
+                try (ResultSet resultSet = statement.executeQuery()) {
+                    if (!resultSet.next()) {
+                        return ChangePasswordResult.failure("Khong tim thay tai khoan.");
+                    }
+
+                    currentPasswordHash = resultSet.getString("password_hash");
+                }
+            }
+
+            if (!PasswordHasher.verify(currentPassword, currentPasswordHash)) {
+                return ChangePasswordResult.failure("Mat khau hien tai khong dung.");
+            }
+
+            String newPasswordHash = PasswordHasher.hash(newPassword);
+
+            try (PreparedStatement statement = connection.prepareStatement(updateSql)) {
+                statement.setString(1, newPasswordHash);
+                statement.setInt(2, userId);
+
+                if (statement.executeUpdate() == 0) {
+                    return ChangePasswordResult.failure("Khong the cap nhat mat khau.");
+                }
+            }
+
+            return ChangePasswordResult.ok();
+
+        } catch (SQLException exception) {
+            System.err.println("Loi doi mat khau: " + exception.getMessage());
+            return ChangePasswordResult.failure("Khong the ket noi den database.");
+        }
+    }
+
     private String normalizeUsername(String username) {
         return username == null ? "" : username.trim();
     }
@@ -206,4 +273,16 @@ public final class UserDAO {
             return new RegisterResult(false, message, null);
         }
     }
+
+    public record ChangePasswordResult(boolean success, String message) {
+
+        public static ChangePasswordResult ok() {
+            return new ChangePasswordResult(true, "Doi mat khau thanh cong.");
+        }
+
+        public static ChangePasswordResult failure(String message) {
+            return new ChangePasswordResult(false, message);
+        }
+    }
+
 }

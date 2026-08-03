@@ -10,6 +10,7 @@ import com.soulknight.entity.HeroSelectionManager;
 import com.soulknight.entity.HeroType;
 import com.soulknight.database.ShopDAO;
 import com.soulknight.database.UserSession;
+import com.soulknight.utils.DatabaseExecutor;
 import javafx.application.Platform;
 import javafx.animation.AnimationTimer;
 import javafx.fxml.FXML;
@@ -148,24 +149,25 @@ public class ShopController {
         }
         // Chi cap do khoi dau truoc, cac du lieu con lai tai song song de giam thoi gian cho
         CompletableFuture
-                .runAsync(() -> shopDAO.grantStarterItems(userId, STARTER_PET.name(), STARTER_WEAPON.name()))
+                .runAsync(() -> shopDAO.grantStarterItems(userId, STARTER_PET.name(), STARTER_WEAPON.name()),
+                        DatabaseExecutor.getExecutor())
                 .thenCompose(ignored -> {
                     CompletableFuture<Set<String>> petsFuture = CompletableFuture.supplyAsync(
-                            () -> shopDAO.getOwnedItems(userId, ITEM_TYPE_PET)
+                            () -> shopDAO.getOwnedItems(userId, ITEM_TYPE_PET),DatabaseExecutor.getExecutor()
                     );
                     CompletableFuture<Set<String>> weaponsFuture = CompletableFuture.supplyAsync(
-                            () -> shopDAO.getOwnedItems(userId, ITEM_TYPE_WEAPON)
+                            () -> shopDAO.getOwnedItems(userId, ITEM_TYPE_WEAPON),DatabaseExecutor.getExecutor()
                     );
                     CompletableFuture<Integer> goldFuture = CompletableFuture.supplyAsync(
-                            () -> shopDAO.getGold(username)
+                            () -> shopDAO.getGold(username),DatabaseExecutor.getExecutor()
                     );
                     CompletableFuture<Set<String>> heroesFuture = CompletableFuture.supplyAsync(() ->
-                                    shopDAO.getOwnedItems(userId, ITEM_TYPE_HERO)
+                                    shopDAO.getOwnedItems(userId, ITEM_TYPE_HERO),DatabaseExecutor.getExecutor()
                             );
 
                     return CompletableFuture.allOf(petsFuture, weaponsFuture,  heroesFuture, goldFuture)
-                            .thenApply(value -> new ShopData(
-                                    petsFuture.join(), weaponsFuture.join(),heroesFuture.join(), goldFuture.join()
+                            .thenApply(value -> new ShopData(petsFuture.join(), weaponsFuture.join(),
+                                    heroesFuture.join(), goldFuture.join()
                             ));
                 })
                 .thenAccept(data -> Platform.runLater(() -> {
@@ -226,7 +228,7 @@ public class ShopController {
         String username = UserSession.getCurrentUsername();
 
         CompletableFuture
-                .supplyAsync(() -> shopDAO.getGold(username))
+                .supplyAsync(() -> shopDAO.getGold(username), DatabaseExecutor.getExecutor())
                 .thenAccept(gold -> Platform.runLater(() -> {
                     currentGold = gold;
                     updateCoinLabel();
@@ -393,13 +395,8 @@ public class ShopController {
 
         CompletableFuture
                 .supplyAsync(() ->
-                        shopDAO.purchaseItem(
-                                UserSession.getCurrentUserId(),
-                                UserSession.getCurrentUser().getUsername(),
-                                ITEM_TYPE_PET,
-                                pet.name(),
-                                price
-                        )
+                        shopDAO.purchaseItem(UserSession.getCurrentUserId(), UserSession.getCurrentUser().getUsername(),
+                                ITEM_TYPE_PET, pet.name(), price),DatabaseExecutor.getExecutor()
                 )
                 .thenAccept(result -> Platform.runLater(() -> {
                     hideLoadingOverlay();
@@ -459,11 +456,8 @@ public class ShopController {
 
         CompletableFuture
                 .supplyAsync(() ->
-                        shopDAO.equipItem(
-                                UserSession.getCurrentUserId(),
-                                ITEM_TYPE_PET,
-                                pet.name()
-                        )
+                        shopDAO.equipItem(UserSession.getCurrentUserId(),
+                                ITEM_TYPE_PET, pet.name()), DatabaseExecutor.getExecutor()
                 )
                 .thenAccept(success -> Platform.runLater(() -> {
                     hideLoadingOverlay();
@@ -614,15 +608,9 @@ public class ShopController {
         setShopLoading(true);
         showLoadingOverlay("Buying weapon...");
 
-        CompletableFuture
-                .supplyAsync(() ->
-                        shopDAO.purchaseItem(
-                                UserSession.getCurrentUserId(),
-                                UserSession.getCurrentUser().getUsername(),
-                                ITEM_TYPE_WEAPON,
-                                weapon.name(),
-                                price
-                        )
+        CompletableFuture.supplyAsync(() -> shopDAO.purchaseItem(UserSession.getCurrentUserId(),
+                                UserSession.getCurrentUsername(), ITEM_TYPE_WEAPON, weapon.name(),
+                                price), DatabaseExecutor.getExecutor()
                 )
                 .thenAccept(result -> Platform.runLater(() -> {
                     hideLoadingOverlay();
@@ -681,12 +669,9 @@ public class ShopController {
         showLoadingOverlay("Equipping weapon...");
 
         CompletableFuture
-                .supplyAsync(() ->
-                        shopDAO.equipItem(
-                                UserSession.getCurrentUserId(),
-                                ITEM_TYPE_WEAPON,
-                                weapon.name()
-                        )
+                .supplyAsync(() -> shopDAO.equipItem(UserSession.getCurrentUserId(),
+                                ITEM_TYPE_WEAPON, weapon.name()
+                        ), DatabaseExecutor.getExecutor()
                 )
                 .thenAccept(success -> Platform.runLater(() -> {
                     hideLoadingOverlay();
@@ -1000,7 +985,9 @@ public class ShopController {
         setShopLoading(true);
         showLoadingOverlay("Buying hero...");
 
-        CompletableFuture.supplyAsync(() -> shopDAO.purchaseItem(UserSession.getCurrentUserId(), UserSession.getCurrentUsername(), ITEM_TYPE_HERO, hero.name(), price))
+        CompletableFuture.supplyAsync(() -> shopDAO.purchaseItem(UserSession.getCurrentUserId(),
+                        UserSession.getCurrentUsername(), ITEM_TYPE_HERO,
+                        hero.name(), price), DatabaseExecutor.getExecutor())
                 .thenAccept(result ->
                         Platform.runLater(() -> {
                             hideLoadingOverlay();
@@ -1048,9 +1035,8 @@ public class ShopController {
 
         CompletableFuture
                 .supplyAsync(() ->
-                        shopDAO.equipItem(UserSession.getCurrentUserId(), ITEM_TYPE_HERO, hero.name()
-                        )
-                )
+                        shopDAO.equipItem(UserSession.getCurrentUserId(),
+                                ITEM_TYPE_HERO, hero.name()), DatabaseExecutor.getExecutor())
                 .thenAccept(success ->
                         Platform.runLater(() -> {
                             hideLoadingOverlay();

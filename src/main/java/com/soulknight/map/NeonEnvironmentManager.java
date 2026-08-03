@@ -19,6 +19,7 @@ public final class NeonEnvironmentManager {
     private final List<NeonParticle> neonParticles = new ArrayList<>();
     private final List<Hologram> holograms = new ArrayList<>();
     private final List<ElectricPillar> electricPillars = new ArrayList<>();
+    private final List<GroundGlow> groundGlows = new ArrayList<>();
 
     public void initializeDynamicEnvironment(
             Tile[][] tiles,
@@ -31,6 +32,7 @@ public final class NeonEnvironmentManager {
         neonParticles.clear();
         holograms.clear();
         electricPillars.clear();
+        groundGlows.clear();
 
         Random random = new Random(20260802L);
         double worldWidth = width * (double) tileSize;
@@ -89,6 +91,25 @@ public final class NeonEnvironmentManager {
                     ));
                 }
 
+                /*
+                 * Khoang 5% tile floor co ground glow.
+                 * Vi tri duoc tao theo toa do nen luon co dinh, khong nhap nhay.
+                 */
+                int glowValue = (int) Math.floorMod(
+                        x * 83492791L ^ y * 2971215073L,
+                        1000
+                );
+
+                if (glowValue < 50) {
+                    groundGlows.add(new GroundGlow(
+                            x * tileSize,
+                            y * tileSize,
+                            tileSize,
+                            glowValue % 2 == 0,
+                            (x * 0.83 + y * 1.17)
+                    ));
+                }
+
                 if (tileMatrix != null && tileMatrix[y][x] >= 45) {
                     electricPillars.add(new ElectricPillar(
                             (x + 0.5) * tileSize,
@@ -99,6 +120,67 @@ public final class NeonEnvironmentManager {
                 }
             }
         }
+    }
+
+    public void renderGroundGlows(GraphicsContext gc, Camera camera, double renderWidth, double renderHeight, double time) {
+        double zoom = camera.getZoom();
+
+        gc.save();
+
+        for (GroundGlow glow : groundGlows) {
+            double screenX = camera.worldToScreenX(glow.worldX);
+            double screenY = camera.worldToScreenY(glow.worldY);
+            double drawSize = glow.size * zoom;
+
+            if (!isInsideScreen(screenX, screenY, drawSize, drawSize, renderWidth, renderHeight)) {
+                continue;
+            }
+
+            /*
+             * Moi tile co phase rieng de khong phat sang cung luc.
+             * Alpha duoc giu nhe de khong lam roi gameplay.
+             */
+            double pulse = 0.5 + Math.sin(time * 1.35 + glow.phase) * 0.5;
+
+            double coreAlpha = 0.035 + pulse * 0.055;
+            double borderAlpha = 0.08 + pulse * 0.12;
+
+            Color color = glow.cyan ? Color.rgb(0, 238, 255) : Color.rgb(205, 62, 255);
+
+            // Vung sang mem o giua tile.
+            gc.setGlobalAlpha(coreAlpha);
+            gc.setFill(color);
+            gc.fillOval(
+                    screenX + drawSize * 0.16,
+                    screenY + drawSize * 0.16,
+                    drawSize * 0.68,
+                    drawSize * 0.68
+            );
+
+            // Vien pixel neon nhe, bam theo kich thuoc tile.
+            gc.setGlobalAlpha(borderAlpha);
+            gc.setStroke(color);
+            gc.setLineWidth(Math.max(1.0, zoom));
+            gc.strokeRect(
+                    Math.floor(screenX + drawSize * 0.08),
+                    Math.floor(screenY + drawSize * 0.08),
+                    Math.ceil(drawSize * 0.84),
+                    Math.ceil(drawSize * 0.84)
+            );
+
+            // Loi sang nho de tao cam giac nang luong dang chay.
+            gc.setGlobalAlpha(0.10 + pulse * 0.16);
+            gc.setFill(color);
+            double coreSize = Math.max(1.0, 2.0 * zoom);
+            gc.fillRect(
+                    Math.floor(screenX + drawSize * 0.5 - coreSize * 0.5),
+                    Math.floor(screenY + drawSize * 0.5 - coreSize * 0.5),
+                    coreSize,
+                    coreSize
+            );
+        }
+
+        gc.restore();
     }
 
     public void renderFog(GraphicsContext gc, Camera camera, double renderWidth, double renderHeight, double time) {
@@ -251,6 +333,29 @@ public final class NeonEnvironmentManager {
             gc.strokeLine(previousX, previousY, nextX, nextY);
             previousX = nextX;
             previousY = nextY;
+        }
+    }
+//    mot so vien sang nho o giua tile, khong nhap nhay, de tao cam giac nang luong chay quanh tile.
+
+    private static final class GroundGlow {
+        private final double worldX;
+        private final double worldY;
+        private final double size;
+        private final boolean cyan;
+        private final double phase;
+
+        private GroundGlow(
+                double worldX,
+                double worldY,
+                double size,
+                boolean cyan,
+                double phase
+        ) {
+            this.worldX = worldX;
+            this.worldY = worldY;
+            this.size = size;
+            this.cyan = cyan;
+            this.phase = phase;
         }
     }
 

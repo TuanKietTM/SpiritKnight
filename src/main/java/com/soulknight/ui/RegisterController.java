@@ -3,6 +3,7 @@ package com.soulknight.ui;
 import com.soulknight.database.PlayerSave;
 import com.soulknight.database.PlayerSaveDAO;
 import com.soulknight.database.UserDAO;
+import com.soulknight.utils.DatabaseExecutor;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
@@ -126,12 +127,7 @@ public final class RegisterController {
             }
         });
 
-        Thread thread = new Thread(
-                task,
-                "register-database-thread"
-        );
-        thread.setDaemon(true);
-        thread.start();
+        DatabaseExecutor.getExecutor().execute(task);
     }
 
     @FXML

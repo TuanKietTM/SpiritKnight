@@ -1,5 +1,6 @@
 package com.soulknight.ui;
 
+import com.soulknight.utils.SoundManager;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Platform;
@@ -26,6 +27,7 @@ public final class Menu {
     private Runnable onLeaderboardCallback;
     private Runnable onSettingsCallback;
     private Runnable onShopCallback;
+    private Runnable onAccountRequested;
 
     private Timeline spriteAnimation;
 
@@ -88,6 +90,20 @@ public final class Menu {
         btnContinue.setDisable(!available);
         btnContinue.setOpacity(available ? 1.0 : 0.5);
     }
+
+    public void setOnAccountRequested(Runnable callback) {
+        this.onAccountRequested = callback;
+    }
+
+    @FXML
+    private void openAccount() {
+        SoundManager.getInstance().playSFX("button");
+
+        if (onAccountRequested != null) {
+            onAccountRequested.run();
+        }
+    }
+
 
     public void startAnimation() {
         if (spriteAnimation != null) {

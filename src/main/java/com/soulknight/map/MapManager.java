@@ -139,7 +139,9 @@ public final class MapManager {
          * Layer 2: moi truong neon dong.
          * Fog, particle, hologram va tru dien chi duoc tao mot lan khi load map.
          */
+
         double environmentTime = System.nanoTime() / 1_000_000_000.0;
+        neonEnvironmentManager.renderGroundGlows(gc, camera, renderWidth, renderHeight, environmentTime);
         neonEnvironmentManager.renderFog(
                 gc, camera, renderWidth, renderHeight, environmentTime
         );

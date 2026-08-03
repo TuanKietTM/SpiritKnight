@@ -54,6 +54,11 @@
                 onAction="#onShopClicked"
                 styleClass="menu-button"
                 focusTraversable="false"/>
+        <Button fx:id="accountButton"
+                text="PLAYER ACCOUNT"
+                onAction="#openAccount"
+                maxWidth="Infinity"
+                styleClass="menu-button"/>
 
         <Button fx:id="btnSettings"
                 text="⚙  SETTINGS"
