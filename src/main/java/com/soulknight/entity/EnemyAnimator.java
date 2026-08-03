@@ -23,7 +23,7 @@ public class EnemyAnimator {
         try {
             String path = switch (archetype) {
                 case MELEE_NORMAL -> "/assets/Enemy/slime_sheet.png";
-                case RANGED_NORMAL -> "/assets/Enemy/sleketon_sheet.png";
+                case RANGED_NORMAL, RANGED_ELITE -> "/assets/Enemy/sleketon_sheet.png";
                 default -> "/assets/Enemy/slime_sheet.png";
             };
 
