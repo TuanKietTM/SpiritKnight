@@ -15,6 +15,9 @@ import java.util.List;
 
 public final class LevelManager {
 
+    // Đếm số lần mở hộp phần thưởng để trả về vũ khí theo thứ tự
+    private int rewardBoxCount = 0;
+
     private final List<LevelDefinition> levels = List.of(
             new LevelDefinition(
                     1,
@@ -68,6 +71,7 @@ public final class LevelManager {
 
     public void startNewRun() {
         currentLevelIndex = 1;
+        rewardBoxCount = 0; // Reset số lần mở hộp khi bắt đầu run mới
     }
 
     public LevelDefinition getCurrentLevel() {
@@ -108,6 +112,27 @@ public final class LevelManager {
 
     public Weapon getLevelRewardWeapon() {
         return getCurrentLevel().rewardWeapon();
+    }
+
+    /**
+     * Lấy vũ khí làm phần thưởng khi hoàn thành nhiệm vụ của màn hiện tại.
+     * Thứ tự vũ khí từ hộp quà đầu tiên đến cuối cùng:
+     * 1. Old Pistol (OldPistol.png)
+     * 2. Shotgun (Shotgun.png)
+     * 3. Sniper (Sniper.png)
+     * 4. SMG (SMG.png)
+     * 5. Laser Rifle (sunglaser.png)
+     */
+    public Weapon getRewardWeaponForCurrentLevel() {
+        rewardBoxCount++;
+        return switch (rewardBoxCount) {
+            case 1 -> com.soulknight.weapon.WeaponType.OLD_PISTOL.createWeapon();
+            case 2 -> com.soulknight.weapon.WeaponType.SHOTGUN.createWeapon();
+            case 3 -> com.soulknight.weapon.WeaponType.SNIPER.createWeapon();
+            case 4 -> com.soulknight.weapon.WeaponType.SMG.createWeapon();
+            case 5 -> com.soulknight.weapon.WeaponType.LASER_RIFLE.createWeapon();
+            default -> com.soulknight.weapon.WeaponType.LASER_RIFLE.createWeapon();
+        };
     }
 
     public Mission createMissionForCurrentLevel() {

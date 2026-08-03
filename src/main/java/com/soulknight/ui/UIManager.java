@@ -259,6 +259,11 @@ public final class UIManager {
                     pauseRoot.setVisible(true);
                     pauseRoot.toFront();
                 }
+                case REWARD_PICK -> {
+                    hideAllScreens();
+                    hudRoot.setVisible(true);
+                    hudRoot.toFront();
+                }
             }
         });
     }

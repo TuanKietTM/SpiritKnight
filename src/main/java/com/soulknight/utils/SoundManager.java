@@ -141,6 +141,40 @@ public final class SoundManager {
         }
     }
 
+    /**
+     * Phát âm thanh với thời gian cụ thể (cắt ngắn).
+     * @param keyOrPath Tên key hoặc đường dẫn file âm thanh
+     * @param durationSeconds Thời lượng phát (giây)
+     */
+    public void playSFXShort(String keyOrPath, double durationSeconds) {
+        if (keyOrPath == null || keyOrPath.isBlank()) return;
+        AudioClip clip = sfxMap.get(keyOrPath);
+        if (clip == null && keyOrPath.contains("/")) {
+            try {
+                URL res = getClass().getResource(keyOrPath);
+                if (res != null) {
+                    clip = new AudioClip(res.toExternalForm());
+                    sfxMap.put(keyOrPath, clip);
+                }
+            } catch (Exception ignored) {}
+        }
+
+        if (clip != null) {
+            clip.setCycleCount(1);
+            clip.play(sfxVolume);
+            // Tạo biến final để sử dụng trong lambda
+            final AudioClip finalClip = clip;
+            // Dừng âm thanh sau khoảng thời gian chỉ định
+            Timeline stopTimeline = new Timeline(
+                    new KeyFrame(Duration.seconds(durationSeconds),
+                            event -> finalClip.stop())
+            );
+            stopTimeline.play();
+        } else {
+            System.err.println("Loi SPX " + keyOrPath);
+        }
+    }
+
     public void playLoopSFX(String key) {
         if (isMuted()) return;
         AudioClip clip = sfxMap.get(key);
