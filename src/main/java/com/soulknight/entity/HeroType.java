@@ -14,7 +14,7 @@ public enum HeroType {
             64,
             0.15
     ),
-    RED_NIGHT(
+    RED_KNIGHT(
             "UETot",
             "/assets/sprites/UET_IDLE.png",
             "/assets/sprites/UET_RUN.png",

@@ -211,9 +211,16 @@ public final class UIManager {
                 }
                 case MAIN_MENU -> {
                     hideAllScreens();
+
                     menuRoot.setOpacity(1.0);
                     menuRoot.setVisible(true);
+                    menuRoot.setManaged(true);
                     menuRoot.toFront();
+
+                    if (menuController != null) {
+                        menuController.setContinueAvailable(continueAvailable);
+                        menuController.startAnimation();
+                    }
                 }
                 case PLAYING -> {
                     hideAllScreens();
@@ -351,20 +358,45 @@ public final class UIManager {
                         return hasSave && !UserSession.isFirstPlay();
                     })
                     .thenAccept(canContinue -> Platform.runLater(() -> {
+                        hideLoading();
+
+                        /*
+                         * Tai khoan moi di thang vao StoryIntro,
+                         * khong hien Main Menu.
+                         */
+                        if (UserSession.isFirstPlay()) {
+                            continueAvailable = false;
+                            menuController.setContinueAvailable(false);
+                            showFirstStory(world);
+                            return;
+                        }
+
+                        /*
+                         * Tai khoan cu moi vao Main Menu.
+                         */
                         continueAvailable = canContinue;
                         menuController.setContinueAvailable(canContinue);
-
-                        hideLoading();
                         showMainMenu(world);
                     }))
                     .exceptionally(exception -> {
                         exception.printStackTrace();
 
                         Platform.runLater(() -> {
+                            hideLoading();
+
+                            /*
+                             * Neu tai khoan moi thi van cho vao StoryIntro.
+                             * Khong de loi kiem tra save day nguoi choi vao Menu.
+                             */
+                            if (UserSession.isFirstPlay()) {
+                                continueAvailable = false;
+                                menuController.setContinueAvailable(false);
+                                showFirstStory(world);
+                                return;
+                            }
+
                             continueAvailable = false;
                             menuController.setContinueAvailable(false);
-
-                            hideLoading();
                             showMainMenu(world);
                         });
 
@@ -587,8 +619,25 @@ public final class UIManager {
                             );
                         }
                     },
-                    () -> { // Quay lại Main Menu
+                    () -> { // Quay lai Main Menu
                         sound.playSFX("button");
+
+                        /*
+                         * Nguoi choi dang o trong gameplay nen chac chan
+                         * co mot luot choi de Continue.
+                         */
+                        continueAvailable = true;
+
+                        if (menuController != null) {
+                            menuController.setContinueAvailable(true);
+                        }
+
+                        /*
+                         * Nen luu truoc khi roi gameplay neu GameWorld
+                         * cua ban da co saveGameAsync() public.
+                         */
+                        world.saveGameAsync();
+
                         sound.stopBGM();
                         world.changeState(GameState.MAIN_MENU);
                     }
@@ -735,6 +784,15 @@ public final class UIManager {
             int userId = UserSession.getCurrentUserId();
 
             UserSession.setFirstPlay(false);
+            /*
+             * Story da hoan thanh va gameplay sap bat dau.
+             * Tu thoi diem nay tai khoan da co the Continue.
+             */
+            continueAvailable = true;
+
+            if (menuController != null) {
+                menuController.setContinueAvailable(true);
+            }
 
             // Cap nhat firstPlay ngam de khong lam dung JavaFX thread
             Thread updateThread = new Thread(
