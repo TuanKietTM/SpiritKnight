@@ -21,6 +21,13 @@ public final class Menu {
     @FXML private Button btnShop;
     @FXML private Button btnExit;
     @FXML private ImageView imgCharacter;
+    @FXML private ImageView newGameIcon;
+    @FXML private ImageView continueIcon;
+    @FXML private ImageView leaderboardIcon;
+    @FXML private ImageView shopIcon;
+    @FXML private ImageView accountIcon;
+    @FXML private ImageView settingsIcon;
+    @FXML private ImageView exitIcon;
 
     private Runnable onNewGameCallback;
     private Runnable onContinueCallback;
@@ -64,6 +71,25 @@ public final class Menu {
             System.err.println("Khong the tai sprite Knight.");
             exception.printStackTrace();
         }
+        setIcon(newGameIcon, "/assets/icon/play.png");
+        setIcon(continueIcon, "/assets/icon/continue.png");
+        setIcon(leaderboardIcon, "/assets/icon/tropy.png");
+        setIcon(shopIcon, "/assets/icon/shop.png");
+        setIcon(accountIcon, "/assets/icon/person.png");
+        setIcon(settingsIcon, "/assets/icon/setting.png");
+        setIcon(exitIcon, "/assets/icon/close.png");
+    }
+    private void setIcon(ImageView imageView, String path) {
+        var resource = getClass().getResource(path);
+
+        if (resource == null) {
+            System.err.println("Khong tim thay icon: " + path);
+            imageView.setVisible(false);
+            imageView.setManaged(false);
+            return;
+        }
+
+        imageView.setImage(new Image(resource.toExternalForm()));
     }
 
     public void setOnNewGameRequested(Runnable callback) {
