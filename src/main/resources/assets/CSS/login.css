@@ -1,79 +1,73 @@
 /* ==========================================
-   SOUL KNIGHT STYLE - LOGIN & REGISTER SCREEN
+   LATE NIGHT DEVELOPER ROOM - LOGIN / REGISTER
    ========================================== */
 
-/* Font chữ Retro Pixel */
 @font-face {
     font-family: "Press Start 2P";
     src: url("../fonts/PressStart2P-Regular.ttf");
 }
 
-/* Root / Background toàn màn hình (1000x600) */
 .login-root, .register-root {
     -fx-pref-width: 1000px;
     -fx-pref-height: 600px;
     -fx-min-width: 1000px;
     -fx-min-height: 600px;
-    -fx-max-width: 1000px;
-    -fx-max-height: 600px;
-    -fx-background-color: radial-gradient(
-        center 50% 50%, radius 75%,
-        rgba(30, 15, 55, 0.95) 0%,
-        #080511 100%
-    );
+    -fx-background-color: #080d16;
 }
 
-/* Khung Dialog Đăng nhập/Đăng ký (Khung kim loại u tối) */
 .login-box, .register-box {
-    -fx-background-color: #120a21;
-    -fx-border-color: #5a2e91 #2b1745 #2b1745 #5a2e91; /* Viền 3D pixel */
+    -fx-background-color: rgba(10, 15, 22, 0.93);
+    -fx-border-color: #43505d #1b232c #1b232c #43505d;
     -fx-border-width: 4px;
     -fx-border-radius: 0px;
     -fx-background-radius: 0px;
-    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.9), 20, 0.5, 0, 8);
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.88), 22, 0.45, 0, 9);
 }
 
-/* Tiêu đề */
 .login-title, .register-title {
     -fx-font-family: "Press Start 2P";
     -fx-font-size: 22px;
-    -fx-text-fill: #00f0ff;
-    -fx-effect: dropshadow(three-pass-box, #8a2be2, 12, 0.6, 0, 0);
-    -fx-padding: 0 0 10 0;
+    -fx-text-fill: #c7d2dc;
+    -fx-effect: dropshadow(three-pass-box, rgba(96, 135, 155, 0.65), 7, 0.35, 0, 0);
+    -fx-padding: 0 0 2 0;
 }
 
-/* Ô nhập liệu Username & Password */
+.session-label {
+    -fx-font-family: "Press Start 2P";
+    -fx-font-size: 7px;
+    -fx-text-fill: #6f8796;
+    -fx-opacity: 0.82;
+    -fx-padding: 0 0 8 0;
+}
+
 .text-field, .password-field, .pixel-field {
     -fx-font-family: "Press Start 2P";
     -fx-font-size: 10px;
-    -fx-background-color: #090514;
-    -fx-text-fill: #ffd166;
-    -fx-prompt-text-fill: #5c4d7d;
-    -fx-highlight-fill: #8a2be2;
+    -fx-background-color: rgba(5, 10, 15, 0.96);
+    -fx-text-fill: #d6c29a;
+    -fx-prompt-text-fill: #66717d;
+    -fx-highlight-fill: #526d82;
     -fx-highlight-text-fill: #ffffff;
     -fx-padding: 12px 14px;
-    -fx-border-color: #3b1d66;
+    -fx-border-color: #34414d;
     -fx-border-width: 3px;
     -fx-border-radius: 0px;
     -fx-background-radius: 0px;
 }
 
-/* Hiệu ứng khi chọn vào ô nhập */
 .text-field:focused, .password-field:focused, .pixel-field:focused {
-    -fx-border-color: #00f0ff;
-    -fx-effect: dropshadow(three-pass-box, rgba(0, 240, 255, 0.4), 8, 0, 0, 0);
+    -fx-border-color: #7895a5;
+    -fx-effect: dropshadow(three-pass-box, rgba(91, 132, 151, 0.34), 8, 0, 0, 0);
 }
 
-/* Thông báo lỗi / trạng thái */
 .message-label {
     -fx-font-family: "Press Start 2P";
     -fx-font-size: 9px;
-    -fx-text-fill: #ff4d6d;
+    -fx-text-fill: #d7746a;
     -fx-alignment: center;
     -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.8), 0, 0, 1, 1);
 }
 
-/* Style Button mặc định */
 .login-box .button, .register-box .button {
     -fx-font-family: "Press Start 2P";
     -fx-font-size: 11px;
@@ -83,19 +77,18 @@
     -fx-background-radius: 0px;
 }
 
-/* Button chính (Đăng nhập / Đăng ký) */
 #loginButton, .button-primary {
-    -fx-background-color: linear-gradient(to bottom, #ff9e00, #b15b00);
+    -fx-background-color: linear-gradient(to bottom, #d88b32, #96561f);
     -fx-text-fill: #ffffff;
-    -fx-border-color: #ffe169 #7a3e00 #7a3e00 #ffe169;
+    -fx-border-color: #e6b66e #603714 #603714 #e6b66e;
     -fx-border-width: 3px;
-    -fx-effect: dropshadow(three-pass-box, rgba(255, 158, 0, 0.4), 8, 0, 0, 2);
+    -fx-effect: dropshadow(three-pass-box, rgba(200, 122, 50, 0.38), 8, 0, 0, 2);
 }
 
 #loginButton:hover, .button-primary:hover {
-    -fx-background-color: linear-gradient(to bottom, #ffb703, #d46900);
-    -fx-border-color: #ffffff;
-    -fx-effect: dropshadow(three-pass-box, #ffb703, 12, 0.5, 0, 0);
+    -fx-background-color: linear-gradient(to bottom, #efa64c, #b76b27);
+    -fx-border-color: #f4d19d;
+    -fx-effect: dropshadow(three-pass-box, rgba(226, 151, 70, 0.65), 11, 0.35, 0, 0);
     -fx-translate-y: -2px;
 }
 
@@ -104,20 +97,19 @@
     -fx-effect: none;
 }
 
-/* Button phụ (Chuyển trang Đăng ký / Quay lại) */
 .login-box .button:not(#loginButton), .button-secondary {
-    -fx-background-color: linear-gradient(to bottom, #2b1745, #180b2b);
-    -fx-text-fill: #e2d1f9;
-    -fx-border-color: #5a2e91 #120721 #120721 #5a2e91;
+    -fx-background-color: linear-gradient(to bottom, #303b46, #1b242d);
+    -fx-text-fill: #c7d0d8;
+    -fx-border-color: #53616d #111820 #111820 #53616d;
     -fx-border-width: 3px;
     -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.8), 6, 0, 0, 2);
 }
 
 .login-box .button:not(#loginButton):hover, .button-secondary:hover {
-    -fx-background-color: linear-gradient(to bottom, #4a287a, #281148);
-    -fx-text-fill: #00f0ff;
-    -fx-border-color: #00f0ff;
-    -fx-effect: dropshadow(three-pass-box, #00f0ff, 10, 0.4, 0, 0);
+    -fx-background-color: linear-gradient(to bottom, #465663, #28343e);
+    -fx-text-fill: #eef3f6;
+    -fx-border-color: #879ba8;
+    -fx-effect: dropshadow(three-pass-box, rgba(91, 132, 151, 0.45), 9, 0.25, 0, 0);
     -fx-translate-y: -2px;
 }
 
@@ -125,6 +117,7 @@
     -fx-translate-y: 2px;
     -fx-effect: none;
 }
+
 /* ==========================================
    SOUL KNIGHT STYLE - LEADERBOARD
    ========================================== */

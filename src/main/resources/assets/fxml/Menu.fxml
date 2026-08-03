@@ -1,127 +1,100 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.scene.canvas.Canvas?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
-<AnchorPane xmlns="http://javafx.com/javafx/21"
-            xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="com.soulknight.ui.Menu"
-            stylesheets="@../CSS/Menu.css"
-            styleClass="menu-container">
+<StackPane xmlns="http://javafx.com/javafx/21"
+           xmlns:fx="http://javafx.com/fxml/1"
+           fx:controller="com.soulknight.ui.Menu"
+           stylesheets="@../CSS/Menu.css"
+           styleClass="menu-container">
 
-    <!-- Lop phu lam toi background -->
-    <AnchorPane styleClass="menu-background-overlay"
-                mouseTransparent="true"
-                AnchorPane.topAnchor="0.0"
-                AnchorPane.bottomAnchor="0.0"
-                AnchorPane.leftAnchor="0.0"
-                AnchorPane.rightAnchor="0.0"/>
+    <!-- Renderer ve khong gian trung gian tai layer duoi cung -->
+    <Canvas fx:id="nexusCanvas"
+            width="1024.0"
+            height="576.0"
+            mouseTransparent="true"/>
 
-    <!-- Tieu de -->
-    <VBox alignment="CENTER"
-          spacing="6"
-          mouseTransparent="true"
-          AnchorPane.topAnchor="38.0"
-          AnchorPane.leftAnchor="0.0"
-          AnchorPane.rightAnchor="0.0">
+    <!-- Lop toi mep man hinh -->
+    <AnchorPane mouseTransparent="true"
+                styleClass="menu-vignette"/>
 
-        <Label text="SOUL KNIGHT"
-               styleClass="menu-title"/>
+    <AnchorPane pickOnBounds="false">
 
-        <Label text="THE KCD VERSION"
-               styleClass="menu-subtitle"/>
-    </VBox>
+        <!-- Tieu de -->
+        <VBox alignment="TOP_LEFT"
+              spacing="8.0"
+              AnchorPane.topAnchor="38.0"
+              AnchorPane.leftAnchor="56.0">
 
-    <!-- Noi dung chinh -->
-    <HBox alignment="CENTER"
-          spacing="150"
-          AnchorPane.topAnchor="130.0"
-          AnchorPane.bottomAnchor="45.0"
-          AnchorPane.leftAnchor="70.0"
-          AnchorPane.rightAnchor="70.0">
+            <Label text="SOUL KNIGHT"
+                   styleClass="menu-title"/>
 
-        <!-- Khu vuc nhan vat -->
-        <StackPane prefWidth="430"
-                   prefHeight="430"
-                   alignment="CENTER"
-                   styleClass="character-area">
+            <HBox alignment="CENTER_LEFT"
+                  spacing="10.0">
 
-            <VBox styleClass="mystic-aura-circle"
-                  mouseTransparent="true"/>
+                <Region prefWidth="44.0"
+                        prefHeight="2.0"
+                        styleClass="title-line"/>
 
-            <VBox alignment="BOTTOM_CENTER"
-                  spacing="5"
-                  mouseTransparent="true">
+                <Label text="THE CROSSROADS"
+                       styleClass="menu-subtitle"/>
+            </HBox>
+        </VBox>
 
-                <ImageView fx:id="imgCharacter"
-                           fitWidth="260"
-                           fitHeight="310"
-                           preserveRatio="true"
-                           smooth="false"
-                           styleClass="menu-sprite"/>
+        <!-- Bang menu ben trai -->
+        <VBox alignment="CENTER_LEFT"
+              spacing="10.0"
+              prefWidth="326.0"
+              styleClass="menu-panel"
+              AnchorPane.leftAnchor="54.0"
+              AnchorPane.topAnchor="148.0"
+              AnchorPane.bottomAnchor="50.0">
 
-                <VBox prefWidth="190"
-                      prefHeight="25"
-                      styleClass="shadow-ellipse"/>
-            </VBox>
-        </StackPane>
+            <Label text="CHOOSE YOUR PATH"
+                   styleClass="menu-section-title"/>
 
-        <!-- Khu vuc nut menu -->
-        <VBox alignment="CENTER"
-              spacing="11"
-              prefWidth="310"
-              styleClass="button-container">
+            <Region prefHeight="1.0"
+                    maxWidth="292.0"
+                    styleClass="menu-divider"/>
 
-            <Button fx:id="btnNewGame"
-                    text="NEW GAME"
-                    onAction="#onNewGameClicked"
-                    prefWidth="290"
+            <Button fx:id="btnContinue"
+                    text="CONTINUE MISSION"
+                    onAction="#onContinueClicked"
                     focusTraversable="false"
+                    contentDisplay="LEFT"
+                    graphicTextGap="14.0"
                     styleClass="menu-button, menu-button-primary">
 
                 <graphic>
-                    <ImageView fx:id="newGameIcon"
-                               fitWidth="22"
-                               fitHeight="22"
-                               preserveRatio="true"
-                               smooth="false"
-                               mouseTransparent="true"/>
-                </graphic>
-            </Button>
-
-            <Button fx:id="btnContinue"
-                    text="CONTINUE"
-                    onAction="#onContinueClicked"
-                    prefWidth="290"
-                    focusTraversable="false"
-                    styleClass="menu-button">
-
-                <graphic>
                     <ImageView fx:id="continueIcon"
-                               fitWidth="22"
-                               fitHeight="22"
+                               fitWidth="22.0"
+                               fitHeight="22.0"
                                preserveRatio="true"
                                smooth="false"
                                mouseTransparent="true"/>
                 </graphic>
             </Button>
 
-            <Button fx:id="btnLeaderboard"
-                    text="LEADERBOARD"
-                    onAction="#onLeaderboardClicked"
-                    prefWidth="290"
+            <Button fx:id="btnNewGame"
+                    text="NEW EXPEDITION"
+                    onAction="#onNewGameClicked"
                     focusTraversable="false"
+                    contentDisplay="LEFT"
+                    graphicTextGap="14.0"
                     styleClass="menu-button">
 
                 <graphic>
-                    <ImageView fx:id="leaderboardIcon"
-                               fitWidth="22"
-                               fitHeight="22"
+                    <ImageView fx:id="newGameIcon"
+                               fitWidth="22.0"
+                               fitHeight="22.0"
                                preserveRatio="true"
                                smooth="false"
                                mouseTransparent="true"/>
@@ -129,16 +102,35 @@
             </Button>
 
             <Button fx:id="btnShop"
-                    text="SHOP"
+                    text="ARMORY"
                     onAction="#onShopClicked"
-                    prefWidth="290"
                     focusTraversable="false"
+                    contentDisplay="LEFT"
+                    graphicTextGap="14.0"
                     styleClass="menu-button">
 
                 <graphic>
                     <ImageView fx:id="shopIcon"
-                               fitWidth="22"
-                               fitHeight="22"
+                               fitWidth="22.0"
+                               fitHeight="22.0"
+                               preserveRatio="true"
+                               smooth="false"
+                               mouseTransparent="true"/>
+                </graphic>
+            </Button>
+
+            <Button fx:id="btnLeaderboard"
+                    text="HALL OF HEROES"
+                    onAction="#onLeaderboardClicked"
+                    focusTraversable="false"
+                    contentDisplay="LEFT"
+                    graphicTextGap="14.0"
+                    styleClass="menu-button">
+
+                <graphic>
+                    <ImageView fx:id="leaderboardIcon"
+                               fitWidth="22.0"
+                               fitHeight="22.0"
                                preserveRatio="true"
                                smooth="false"
                                mouseTransparent="true"/>
@@ -148,14 +140,15 @@
             <Button fx:id="accountButton"
                     text="PLAYER ACCOUNT"
                     onAction="#openAccount"
-                    prefWidth="290"
                     focusTraversable="false"
+                    contentDisplay="LEFT"
+                    graphicTextGap="14.0"
                     styleClass="menu-button">
 
                 <graphic>
                     <ImageView fx:id="accountIcon"
-                               fitWidth="22"
-                               fitHeight="22"
+                               fitWidth="22.0"
+                               fitHeight="22.0"
                                preserveRatio="true"
                                smooth="false"
                                mouseTransparent="true"/>
@@ -165,36 +158,54 @@
             <Button fx:id="btnSettings"
                     text="SETTINGS"
                     onAction="#onSettingsClicked"
-                    prefWidth="290"
                     focusTraversable="false"
+                    contentDisplay="LEFT"
+                    graphicTextGap="14.0"
                     styleClass="menu-button">
 
                 <graphic>
                     <ImageView fx:id="settingsIcon"
-                               fitWidth="22"
-                               fitHeight="22"
+                               fitWidth="22.0"
+                               fitHeight="22.0"
                                preserveRatio="true"
                                smooth="false"
                                mouseTransparent="true"/>
                 </graphic>
             </Button>
 
+            <Region VBox.vgrow="ALWAYS"/>
+
             <Button fx:id="btnExit"
-                    text="EXIT GAME"
+                    text="LEAVE THE NEXUS"
                     onAction="#onExitClicked"
-                    prefWidth="290"
                     focusTraversable="false"
-                    styleClass="menu-button-exit">
+                    contentDisplay="LEFT"
+                    graphicTextGap="14.0"
+                    styleClass="menu-button, menu-button-exit">
 
                 <graphic>
                     <ImageView fx:id="exitIcon"
-                               fitWidth="22"
-                               fitHeight="22"
+                               fitWidth="22.0"
+                               fitHeight="22.0"
                                preserveRatio="true"
                                smooth="false"
                                mouseTransparent="true"/>
                 </graphic>
             </Button>
         </VBox>
-    </HBox>
-</AnchorPane>
+
+        <!-- Ten khu vuc -->
+        <VBox alignment="BOTTOM_RIGHT"
+              spacing="5.0"
+              mouseTransparent="true"
+              AnchorPane.rightAnchor="42.0"
+              AnchorPane.bottomAnchor="28.0">
+
+            <Label text="SOUL NEXUS"
+                   styleClass="location-name"/>
+
+            <Label text="A PLACE BETWEEN WORLDS"
+                   styleClass="location-caption"/>
+        </VBox>
+    </AnchorPane>
+</StackPane>

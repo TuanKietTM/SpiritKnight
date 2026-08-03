@@ -2,108 +2,203 @@
     font-family: "Press Start 2P";
     src: url("../fonts/PressStart2P-Regular.ttf");
 }
+
 .menu-container {
-    -fx-background-color: #080511;
-    -fx-background-size: cover;
-    -fx-background-position: center;
     -fx-min-width: 1024px;
     -fx-min-height: 576px;
+    -fx-pref-width: 1024px;
+    -fx-pref-height: 576px;
+    -fx-background-color: #0b1220;
 }
-.menu-background-overlay {
-    -fx-background-color: radial-gradient(
-        center 50% 50%, radius 70%,
-        rgba(30, 15, 55, 0.4) 0%,
-        rgba(8, 5, 17, 0.95) 100%
-    );
+
+.menu-vignette {
+    -fx-background-color:
+        linear-gradient(to right,
+            rgba(6, 10, 18, 0.88) 0%,
+            rgba(6, 10, 18, 0.58) 34%,
+            rgba(6, 10, 18, 0.10) 66%,
+            rgba(6, 10, 18, 0.34) 100%),
+        linear-gradient(to bottom,
+            rgba(4, 7, 13, 0.42) 0%,
+            transparent 30%,
+            transparent 72%,
+            rgba(4, 7, 13, 0.62) 100%);
 }
 
 .menu-title {
     -fx-font-family: "Press Start 2P";
-    -fx-font-size: 52px;
-    -fx-text-fill: #00f0ff;
-    -fx-effect: dropshadow(three-pass-box, #8a2be2, 18, 0.6, 0, 0);
+    -fx-font-size: 34px;
+    -fx-text-fill: #ece3bd;
+    -fx-effect: dropshadow(three-pass-box, rgba(5, 8, 13, 0.95), 8, 0.35, 2, 3);
 }
 
 .menu-subtitle {
     -fx-font-family: "Press Start 2P";
-    -fx-font-size: 13px;
-    -fx-text-fill: #ffd166;
-    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.9), 0, 0, 2, 2);
+    -fx-font-size: 10px;
+    -fx-text-fill: #9fb7c4;
+    -fx-opacity: 0.88;
 }
 
-.mystic-aura-circle {
-    -fx-min-width: 170px;
-    -fx-min-height: 170px;
-    -fx-max-width: 170px;
-    -fx-max-height: 170px;
-    -fx-background-color: radial-gradient(center 50% 50%, radius 50%, rgba(138, 43, 226, 0.35) 0%, transparent 70%);
-    -fx-background-radius: 50%;
+.title-line {
+    -fx-background-color: #b9a66a;
+    -fx-opacity: 0.72;
 }
 
-.shadow-ellipse {
-    -fx-min-width: 100px;
-    -fx-min-height: 14px;
-    -fx-max-width: 100px;
-    -fx-max-height: 14px;
-    -fx-background-color: rgba(0, 0, 0, 0.7);
-    -fx-background-radius: 50%;
+.menu-panel {
+    -fx-padding: 22px 18px 18px 18px;
+    -fx-background-color: linear-gradient(to right,
+        rgba(10, 17, 29, 0.90),
+        rgba(10, 17, 29, 0.69));
+    -fx-border-color: rgba(178, 164, 112, 0.36);
+    -fx-border-width: 1px 0 1px 3px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.70), 18, 0.35, 7, 5);
 }
 
-.menu-sprite {
-    -fx-smooth: false;
+.menu-section-title {
+    -fx-font-family: "Press Start 2P";
+    -fx-font-size: 9px;
+    -fx-text-fill: #8299a8;
+    -fx-padding: 0 0 3px 8px;
 }
 
-.menu-button, .menu-button-primary, .menu-button-exit {
-    -fx-background-color: linear-gradient(to bottom, #2b1745, #180b2b);
-    -fx-text-fill: #e2d1f9;
-    -fx-font-family: "Press Start 2P", monospace;
-    -fx-font-size: 13px;
-    -fx-background-radius: 6px;
-    -fx-padding: 14px 20px;
+.menu-divider {
+    -fx-background-color: linear-gradient(to right,
+        rgba(217, 198, 132, 0.70),
+        rgba(217, 198, 132, 0.06));
+}
+
+.menu-button {
+    -fx-pref-width: 290px;
+    -fx-min-height: 39px;
+    -fx-alignment: CENTER_LEFT;
+    -fx-padding: 10px 18px 10px 23px;
+    -fx-background-color: transparent;
+    -fx-background-radius: 0;
+    -fx-border-radius: 0;
+    -fx-border-width: 0 0 0 2px;
+    -fx-border-color: rgba(130, 153, 168, 0.30);
+    -fx-font-family: "Press Start 2P";
+    -fx-font-size: 10px;
+    -fx-text-fill: #c8d1d5;
     -fx-cursor: hand;
-    -fx-pref-width: 260px;
-    -fx-border-color: #5a2e91;
-    -fx-border-width: 3px;
-    -fx-border-radius: 6px;
-    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.8), 6, 0, 0, 4);
-}
-.menu-button-primary {
-    -fx-background-color: linear-gradient(to bottom, #ff9e00, #b15b00);
-    -fx-text-fill: #ffffff;
-    -fx-border-color: #ffe169;
-    -fx-effect: dropshadow(three-pass-box, rgba(255, 158, 0, 0.5), 10, 0, 0, 0);
 }
 
 .menu-button:hover {
-    -fx-background-color: linear-gradient(to bottom, #4a287a, #281148);
-    -fx-text-fill: #00f0ff;
-    -fx-border-color: #00f0ff;
-    -fx-effect: dropshadow(three-pass-box, #00f0ff, 12, 0.4, 0, 0);
-    -fx-translate-y: -2px;
+    -fx-background-color: linear-gradient(to right,
+        rgba(166, 201, 213, 0.18),
+        rgba(166, 201, 213, 0.02));
+    -fx-border-color: #b9d9df;
+    -fx-text-fill: #f3fafb;
+    -fx-effect: dropshadow(three-pass-box, rgba(128, 207, 223, 0.20), 7, 0.15, 0, 0);
+}
+
+.menu-button:pressed {
+    -fx-background-color: linear-gradient(to right,
+        rgba(217, 198, 132, 0.20),
+        rgba(217, 198, 132, 0.02));
+    -fx-border-color: #d9c684;
+    -fx-text-fill: #fff2ba;
+}
+
+.menu-button-primary {
+    -fx-background-color: linear-gradient(to right,
+        rgba(192, 174, 107, 0.23),
+        rgba(192, 174, 107, 0.03));
+    -fx-border-color: #d6c176;
+    -fx-text-fill: #f1e5b8;
 }
 
 .menu-button-primary:hover {
-    -fx-background-color: linear-gradient(to bottom, #ffb703, #d46900);
-    -fx-text-fill: #ffffff;
-    -fx-border-color: #ffffff;
-    -fx-effect: dropshadow(three-pass-box, #ffb703, 14, 0.5, 0, 0);
-    -fx-translate-y: -2px;
+    -fx-background-color: linear-gradient(to right,
+        rgba(223, 203, 127, 0.30),
+        rgba(223, 203, 127, 0.03));
+    -fx-border-color: #f0dc8d;
+    -fx-text-fill: #fff6cf;
 }
 
 .menu-button-exit {
-    -fx-background-color: linear-gradient(to bottom, #3d2b3d, #221422);
-    -fx-border-color: #723d46;
-    -fx-text-fill: #e5989b;
+    -fx-text-fill: #aa9b9e;
+    -fx-border-color: rgba(154, 103, 108, 0.48);
 }
 
 .menu-button-exit:hover {
-    -fx-background-color: linear-gradient(to bottom, #e63946, #9b2226);
-    -fx-text-fill: #ffffff;
-    -fx-border-color: #ff758f;
-    -fx-effect: dropshadow(three-pass-box, #e63946, 12, 0.4, 0, 0);
-    -fx-translate-y: -2px;
+    -fx-background-color: linear-gradient(to right,
+        rgba(132, 58, 67, 0.22),
+        rgba(132, 58, 67, 0.02));
+    -fx-border-color: #bd747b;
+    -fx-text-fill: #efd4d6;
 }
 
-.menu-button:pressed, .menu-button-primary:pressed, .menu-button-exit:pressed {
-    -fx-translate-y: 2px;
+.menu-button:disabled {
+    -fx-opacity: 0.32;
+    -fx-cursor: default;
+}
+
+.location-name {
+    -fx-font-family: "Press Start 2P";
+    -fx-font-size: 9px;
+    -fx-text-fill: #d2c48f;
+    -fx-opacity: 0.78;
+}
+
+.location-caption {
+    -fx-font-family: "Press Start 2P";
+    -fx-font-size: 7px;
+    -fx-text-fill: #92a5af;
+    -fx-opacity: 0.56;
+}
+.menu-button .image-view,
+.menu-button-primary .image-view,
+.menu-button-exit .image-view {
+    -fx-opacity: 0.82;
+}
+
+.menu-button:hover .image-view,
+.menu-button-primary:hover .image-view,
+.menu-button-exit:hover .image-view {
+    -fx-opacity: 1.0;
+}
+.menu-base-background {
+    -fx-background-color: #050a13;
+}
+
+.menu-art-region {
+    -fx-background-color: #080d17;
+    -fx-border-color: rgba(194, 178, 111, 0.32);
+    -fx-border-width: 1px;
+    -fx-padding: 10px;
+    -fx-alignment: center;
+}
+
+.menu-art-region .image-view {
+    -fx-opacity: 0.94;
+}
+
+.menu-art-overlay {
+    -fx-background-color: linear-gradient(
+        to right,
+        rgba(5, 10, 19, 0.42) 0%,
+        rgba(5, 10, 19, 0.10) 20%,
+        transparent 45%,
+        rgba(5, 10, 19, 0.08) 100%
+    );
+}
+
+.menu-vignette {
+    -fx-background-color: radial-gradient(
+        center 65% 50%,
+        radius 88%,
+        transparent 45%,
+        rgba(1, 4, 10, 0.52) 100%
+    );
+}
+.menu-art-region {
+    -fx-effect: innershadow(
+        three-pass-box,
+        rgba(0, 0, 0, 0.75),
+        18,
+        0.25,
+        0,
+        0
+    );
 }
