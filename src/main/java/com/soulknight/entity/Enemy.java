@@ -4,6 +4,7 @@ import com.soulknight.engine.Camera;
 import com.soulknight.engine.GameWorld;
 import com.soulknight.event.GameEventListener;
 import com.soulknight.map.Obstacle;
+import com.soulknight.utils.Constants;
 import com.soulknight.utils.Vector2D;
 import com.soulknight.weapon.Bullet;
 import com.soulknight.weapon.Weapon;
@@ -94,7 +95,8 @@ public class Enemy extends Entity {
 //        Chia tung loai quai
         switch (archetype) {
             case MELEE_NORMAL -> meleeAI(world, playerPos, distanceToPlayer, deltaSeconds);
-            case RANGED_NORMAL -> rangedAI(world, playerPos, deltaSeconds);
+            case RANGED_NORMAL, RANGED_ELITE-> rangedAI(world, playerPos, deltaSeconds);
+
         }
 
         // Cập nhật khung hình Animator
@@ -365,11 +367,13 @@ public class Enemy extends Entity {
                 // Trừ thời gian ngắm
                 this.aimTimer -= deltaSeconds;
                 if (this.aimTimer <= 0.0) {
-                    // Bắn đạn về phía Player
-                    shootBulletAt(world, playerPos);
-
-                    // Gán Cooldown riêng cho bắn đạn (1.5 giây)
-                    this.rangedAttackCooldown = 1.5;
+                    if (this.archetype == EnemyArchetype.RANGED_ELITE) {
+                        shootShotgunSpreadAt(world, playerPos);
+                        this.rangedAttackCooldown = 2.5;
+                    } else {
+                        shootBulletAt(world, playerPos);
+                        this.rangedAttackCooldown = 1.5;
+                    }
 
                     // Chuyển sang chạy đổi vị trí
                     this.rangedState = RangedState.REPOSITION;
@@ -571,6 +575,52 @@ public class Enemy extends Entity {
         move(world, dir.getX() * stepSize, dir.getY() * stepSize);
     }
 
+    private void shootShotgunSpreadAt(GameWorld world, Vector2D targetPos) {
+        Vector2D dir = targetPos.copy().subtract(getPosition());
+        if (dir.length() > 0) {
+            dir.normalize();
+        } else {
+            dir = new Vector2D(1, 0);
+        }
+
+        int bulletCount = 5;
+        double spreadAngleDeg = 45.0;
+        double initialSpeed = 300.0;
+        double maxDistance = 360.0;
+        double dragFactor = 0.97;
+
+        double startAngle = -spreadAngleDeg / 2.0;
+        double angleStep = spreadAngleDeg / (bulletCount - 1);
+
+        for (int i = 0; i < bulletCount; i++) {
+            double currentAngleDeg = startAngle + (i * angleStep);
+            double angleRad = Math.toRadians(currentAngleDeg);
+
+            double cos = Math.cos(angleRad);
+            double sin = Math.sin(angleRad);
+            Vector2D rotatedDir = new Vector2D(
+                    dir.getX() * cos - dir.getY() * sin,
+                    dir.getX() * sin + dir.getY() * cos
+            );
+
+            Vector2D bulletVelocity = rotatedDir.scale(initialSpeed);
+
+            Bullet bullet = new Bullet(
+                    getPosition().copy(),
+                    bulletVelocity,
+                    this.bulletDamage,
+                    this.bulletRadius,
+                    this,
+                    Color.RED
+            );
+
+            // Kích hoạt tính năng giảm tốc & tầm xa giới hạn
+            bullet.setDecelerationAndRange(dragFactor, maxDistance);
+
+            world.addBullet(bullet);
+        }
+    }
+
     public EnemyArchetype getArchetype() {
         return archetype;
     }
@@ -591,6 +641,7 @@ public class Enemy extends Entity {
         return switch (archetype) {
             case MELEE_NORMAL -> Color.BLUE;
             case RANGED_NORMAL -> Color.GRAY;
+            case RANGED_ELITE -> Color.GREEN;
             default -> Color.RED;
         };
     }

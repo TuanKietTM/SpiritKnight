@@ -250,6 +250,7 @@ public final class GameWorld {
     }
 
     private void updateBullets(double deltaSeconds) {
+
         for (Bullet bullet : bullets) {
             if (bullet == null || !bullet.isActive()) {
                 continue;
@@ -377,6 +378,8 @@ public final class GameWorld {
                 bullet -> bullet == null || !bullet.isActive()
         );
 
+        // Nếu đạn không còn hoạt động
+        bullets.removeIf(b -> b == null || !b.isActive());
         removeDeadEnemiesAndGiveRewards();
     }
     private void processDestroyedObstacles() {
@@ -670,7 +673,7 @@ public final class GameWorld {
         // 3. Hiệu ứng đạn, chém, nổ vẽ lên trên cùng
         for (Item item : items) item.render(graphicsContext, camera);
         for (Bullet bullet : bullets) {
-            if (bullet == null || bullet.getPosition() == null) {
+            if (bullet == null || bullet.getPosition() == null || !bullet.isActive()) {
                 continue;
             }
             double diameter = bullet.getRadius() * 2.0;

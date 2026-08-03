@@ -40,6 +40,17 @@ public final class Bullet {
     private final Set<Object> hitTargets;
     private double age;
     private boolean active = true;
+    // Biến nâng cấp đạn cho quái đánh xa tiến hóa
+    private double dragFactor = 1.0;     // Hệ số cản
+    private double maxDistance = 9999.0;    // Tầm bay tối đa
+    private double distanceTraveled = 0.0;
+
+    public Bullet setDecelerationAndRange(double dragFactor, double maxDistance) {
+        this.dragFactor = dragFactor;
+        this.maxDistance = maxDistance;
+        return this;
+    }
+
 
     public Bullet(Vector2D position, Vector2D velocity, int damage, double radius, Entity owner, Color color) {
         this(position, velocity, damage, radius, owner, color, false, false);
@@ -64,11 +75,35 @@ public final class Bullet {
     }
 
     public void update(double deltaSeconds) {
-        age += deltaSeconds;
-        position.add(velocity.copy().scale(deltaSeconds));
+        if (!active) return;
+
+        this.age += deltaSeconds;
+
+        if (dragFactor < 1.0) {
+            velocity.scale(Math.pow(dragFactor, deltaSeconds * 60.0));
+        }
+
+        if (velocity.length() < 25.0) {
+            this.deactivate();
+            return;
+        }
+
+        double stepX = velocity.getX() * deltaSeconds;
+        double stepY = velocity.getY() * deltaSeconds;
+        double stepDistance = Math.hypot(stepX, stepY);
+
+        distanceTraveled += stepDistance;
+
+        if (maxDistance > 0 && distanceTraveled >= maxDistance) {
+            this.deactivate();
+            return;
+        }
+
+        getPosition().add(stepX, stepY);
     }
 
     public void render(GraphicsContext graphicsContext, Camera camera) {
+        if (!active) return;
         double screenX = camera.worldToScreenX(position.getX());
         double screenY = camera.worldToScreenY(position.getY());
         if (piercing && LASER_SPRITE != null && LASER_SPRITE.getWidth() > 1.0) {
