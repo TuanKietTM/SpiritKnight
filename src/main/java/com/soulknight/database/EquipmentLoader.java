@@ -60,7 +60,6 @@ public final class EquipmentLoader {
             try {
                 hero = HeroType.valueOf(code);
             } catch (IllegalArgumentException exception) {
-                System.err.println("Hero trong DB khong hop le: " + code);
             }
         }
 
