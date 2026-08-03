@@ -117,20 +117,22 @@ public final class LevelManager {
     /**
      * Lấy vũ khí làm phần thưởng khi hoàn thành nhiệm vụ của màn hiện tại.
      * Thứ tự vũ khí từ hộp quà đầu tiên đến cuối cùng:
-     * 1. Old Pistol (OldPistol.png)
-     * 2. Shotgun (Shotgun.png)
-     * 3. Sniper (Sniper.png)
-     * 4. SMG (SMG.png)
-     * 5. Laser Rifle (sunglaser.png)
+     * 1. Shotgun (Shotgun.png)
+     * 2. Sniper (Sniper.png)
+     * 3. SMG (SMG.png)
+     * 4. Laser Rifle (sunglaser.png)
+     * 5+ Laser Rifle (sunglaser.png)
+     * 
+     * Lưu ý: Mặc định ban đầu người chơi đã có Old Pistol và Old Sword,
+     * nên hộp quà đầu tiên là Shotgun (không trùng Old Pistol).
      */
     public Weapon getRewardWeaponForCurrentLevel() {
         rewardBoxCount++;
         return switch (rewardBoxCount) {
-            case 1 -> com.soulknight.weapon.WeaponType.OLD_PISTOL.createWeapon();
-            case 2 -> com.soulknight.weapon.WeaponType.SHOTGUN.createWeapon();
-            case 3 -> com.soulknight.weapon.WeaponType.SNIPER.createWeapon();
-            case 4 -> com.soulknight.weapon.WeaponType.SMG.createWeapon();
-            case 5 -> com.soulknight.weapon.WeaponType.LASER_RIFLE.createWeapon();
+            case 1 -> com.soulknight.weapon.WeaponType.SHOTGUN.createWeapon();
+            case 2 -> com.soulknight.weapon.WeaponType.SNIPER.createWeapon();
+            case 3 -> com.soulknight.weapon.WeaponType.SMG.createWeapon();
+            case 4 -> com.soulknight.weapon.WeaponType.LASER_RIFLE.createWeapon();
             default -> com.soulknight.weapon.WeaponType.LASER_RIFLE.createWeapon();
         };
     }
