@@ -126,6 +126,7 @@ public final class UIManager {
             pauseController = pauseLoader.getController();
             configFullRegion(pauseRoot);
             pauseRoot.setPickOnBounds(false);
+            pauseRoot.setPickOnBounds(false);
 
             FXMLLoader settingLoader = new FXMLLoader(com.soulknight.Main.class.getResource("/assets/fxml/SettingScreen.fxml"));
             settingRoot = settingLoader.load();
@@ -258,6 +259,11 @@ public final class UIManager {
                     hudRoot.setVisible(true);
                     pauseRoot.setVisible(true);
                     pauseRoot.toFront();
+                }
+                case REWARD_PICK -> {
+                    hideAllScreens();
+                    hudRoot.setVisible(true);
+                    hudRoot.toFront();
                 }
             }
         });
@@ -643,6 +649,7 @@ public final class UIManager {
                         world.saveGameAsync();
 
                         sound.stopBGM();
+                        world.saveBeforeReturnToMenu();
                         world.changeState(GameState.MAIN_MENU);
                     }
             );

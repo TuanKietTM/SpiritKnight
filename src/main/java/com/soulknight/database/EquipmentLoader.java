@@ -40,15 +40,18 @@ public final class EquipmentLoader {
     }
 
     private void applyWeapon(String code) {
-        WeaponType weapon = WeaponType.BLASTER;
+        // LUÔN LUÔN bắt đầu với Old Pistol, bỏ qua database
+        // Để người chơi phải tìm hộp quà để nâng cấp vũ khí
+        WeaponType weapon = WeaponType.OLD_PISTOL;
 
-        if (code != null && !code.isBlank()) {
-            try {
-                weapon = WeaponType.valueOf(code);
-            } catch (IllegalArgumentException exception) {
-                System.err.println("Weapon trong DB khong hop le: " + code);
-            }
-        }
+        // Bỏ qua giá trị từ database, luôn dùng OLD_PISTOL
+        // if (code != null && !code.isBlank()) {
+        //     try {
+        //         weapon = WeaponType.valueOf(code);
+        //     } catch (IllegalArgumentException exception) {
+        //         System.err.println("Weapon trong DB khong hop le: " + code);
+        //     }
+        // }
 
         WeaponSelectionManager.getInstance().selectWeapon(weapon);
     }
