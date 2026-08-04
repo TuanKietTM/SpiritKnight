@@ -9,6 +9,7 @@ import com.soulknight.engine.InputHandler;
 import com.soulknight.ui.UIManager;
 import com.soulknight.utils.Constants;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
@@ -75,23 +76,34 @@ public final class Main extends Application {
         stage.setMinHeight(Constants.WINDOW_HEIGHT);
 
         stage.setOnCloseRequest(event -> {
-            gameLoop.stop();
-            if (com.soulknight.database.UserSession.isLoggedIn()) {
-                Thread saveThread = new Thread(world::saveGameNow);
-
-                saveThread.setName("shutdown-save-thread");
-
-                saveThread.start();
-
-                try {saveThread.join(3000);
-                } catch (InterruptedException exception) {
-                    Thread.currentThread().interrupt();
+            try {
+                if (gameLoop != null) {
+                    gameLoop.stop();
                 }
+
+                if (com.soulknight.database.UserSession.isLoggedIn()) {
+                    Thread saveThread = new Thread(world::saveGameNow);
+                    saveThread.setName("shutdown-save-thread");
+                    saveThread.start();
+
+                    try {
+                        saveThread.join(3000);
+                    } catch (InterruptedException exception) {
+                        Thread.currentThread().interrupt();
+                    }
+                }
+
+                if (world != null) {
+                    world.shutdown();
+                }
+            } catch (Exception e) {
+                System.err.println("Có lỗi xảy ra khi tắt game: " + e.getMessage());
+            } finally {
+
+                Platform.exit();
+                System.exit(0);
             }
-
-            world.shutdown();
         });
-
         stage.show();
         canvas.requestFocus();
         gameLoop.start();
