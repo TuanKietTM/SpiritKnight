@@ -3,7 +3,9 @@ package com.soulknight.engine;
 import com.soulknight.animation.ParticleManager;
 import com.soulknight.animation.ShadowRenderer;
 import com.soulknight.animation.SpawnEffect;
+import com.soulknight.animation.PlayerDeathEffect;
 import com.soulknight.animation.EnemySpawnEffect;
+import com.soulknight.animation.EnemyDeathEffect;
 import com.soulknight.entity.Enemy;
 import com.soulknight.entity.EnemyFactory;
 import com.soulknight.entity.Entity;
@@ -51,7 +53,7 @@ import javafx.geometry.BoundingBox;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 
-public final class GameWorld {
+public final class  GameWorld {
 
     private static final boolean DEBUG_LOGGING = false;
 
@@ -93,6 +95,7 @@ public final class GameWorld {
 
     private final List<Enemy> enemies = new ArrayList<>();
     private final Map<Enemy, EnemySpawnEffect> enemySpawnEffects = new IdentityHashMap<>();
+    private final Map<Enemy, EnemyDeathEffect> enemyDeathEffects = new IdentityHashMap<>();
     private final List<Bullet> bullets = new ArrayList<>();
     // Danh sach hieu ung no khi dan va cham (tuong hoac muc tieu)
     private final List<ExplosionEffect> explosions = new ArrayList<>();
@@ -113,6 +116,8 @@ public final class GameWorld {
     //    Bien cho hieu ung dau tien cua start room
     private SpawnEffect playerSpawnEffect;
     private SpawnEffect petSpawnEffect;
+    private PlayerDeathEffect playerDeathEffect;
+    private boolean playerDeathHandled;
     private final List<Obstacle> obstacles = new ArrayList<>();
     private final List<Obstacle> readOnlyObstacles = java.util.Collections.unmodifiableList(obstacles);
     private final List<Obstacle> destroyedObstacleQueue = new ArrayList<>();
@@ -197,6 +202,7 @@ public final class GameWorld {
         }
     }
 
+//    update cho trang thai PLAYING, cap nhat tat ca cac doi tuong trong game
     private void updatePlaying(double deltaSeconds, double viewportWidth, double viewportHeight, boolean allowSpawns) {
         if (player == null || mapManager == null) {
             return;
@@ -209,11 +215,16 @@ public final class GameWorld {
         if (petSpawnEffect != null) {
             petSpawnEffect.update(deltaSeconds);
         }
+        if (playerDeathEffect != null) {
+            playerDeathEffect.update(deltaSeconds);
+        }
         updateEnemySpawnEffects(deltaSeconds);
 
-        player.update(this, deltaSeconds);
-        updatePet(deltaSeconds);
-        updateCurrentRoom();
+        if (player.isAlive()) {
+            player.update(this, deltaSeconds);
+            updatePet(deltaSeconds);
+            updateCurrentRoom();
+        }
 
         if (currentRoom != null) {
             currentRoom.update(this, player, enemies, deltaSeconds);
@@ -221,7 +232,7 @@ public final class GameWorld {
 
 
         for (Enemy enemy : enemies) {
-            if (isEnemySpawning(enemy)) {
+            if (!enemy.isAlive() ||isEnemySpawning(enemy)) {
                 continue;
             }
             enemy.update(this, deltaSeconds);
@@ -234,6 +245,7 @@ public final class GameWorld {
         processDestroyedObstacles();
         updateExplosions(deltaSeconds);
         updateSlashEffects(deltaSeconds);
+        updateEnemyDeaths(deltaSeconds);
         updateItemCollection();
         openRewardPickerOnMissionComplete();
         updateAutoSave(deltaSeconds);
@@ -245,12 +257,7 @@ public final class GameWorld {
         camera.follow(player.getPosition(), viewportWidth, viewportHeight, mapManager.getWorldWidth(), mapManager.getWorldHeight());
 
         if (!player.isAlive()) {
-            inputHandler.consumeConfirmRequest();
-            addScore(100);
-            // Luu run va chot phan thuong tich luy
-            saveGameAsync();
-            syncBankRewardsAsync();
-            changeState(GameState.GAME_OVER);
+            updatePlayerDeath();
             return;
         }
         if (particleManager != null) {
@@ -335,10 +342,8 @@ public final class GameWorld {
                         bullet.markHit(obstacle);
                         damageObstacle(obstacle, bullet.getDamage(), bullet.getPosition());
                     }
-
                     continue;
                 }
-
                 damageObstacle(obstacle, bullet.getDamage(), bullet.getPosition());
                 bullet.deactivate();
                 break;
@@ -367,24 +372,20 @@ public final class GameWorld {
                             continue;
                         }
 //                        dan thuong
-
-
                         enemy.takeDamage(bullet.getDamage());
                         floatingTextManager.spawnDamage(
                                 enemy.getPosition(),
                                 bullet.getDamage()
                         );
-
                         if (particleManager != null) {
                             particleManager.spawnHitImpact(enemy.getPosition());
                         }
                         spawnBulletExplosion(bullet.getPosition());
-
                         bullet.deactivate();
                         break;
                     }
                 }
-            } else if (player != null && bullet.intersects(player)) {
+            } else if (player != null &&  player.isAlive() &&  bullet.intersects(player)) {
                 int healthBefore = player.getHealth();
 
                 player.takeDamage(bullet.getDamage());
@@ -402,14 +403,34 @@ public final class GameWorld {
                 bullet.deactivate();
             }
         }
-
-        bullets.removeIf(
-                bullet -> bullet == null || !bullet.isActive()
-        );
-
         // Nếu đạn không còn hoạt động
-        bullets.removeIf(b -> b == null || !b.isActive());
-        removeDeadEnemiesAndGiveRewards();
+        bullets.removeIf(bullet -> bullet == null || !bullet.isActive());
+    }
+
+    private void updatePlayerDeath() {
+        if (player == null || player.getPosition() == null) {
+            return;
+        }
+        if (playerDeathEffect == null) {
+            playerDeathEffect = new PlayerDeathEffect(player.getPosition(), 1.15);
+            playerSpawnEffect = null;
+            if (inputHandler != null) {
+                inputHandler.clearState();
+            }
+        }
+        if (!playerDeathEffect.isFinished()) {
+            return;
+        }
+        if (playerDeathHandled) {
+            return;
+        }
+        playerDeathHandled = true;
+        inputHandler.consumeConfirmRequest();
+        addScore(100);
+        // Luu run va chot phan thuong tich luy
+        saveGameAsync();
+        syncBankRewardsAsync();
+        changeState(GameState.GAME_OVER);
     }
 
     private void processDestroyedObstacles() {
@@ -578,32 +599,59 @@ public final class GameWorld {
         }
 
 // B. Thêm PLAYER (Mốc Y tính ở BÀN CHÂN)
+//        render theo cac trang thai : binh thuong , spwan , die
         if (player != null && player.getPosition() != null) {
             double playerFootY = player.getPosition().getY() + 10.0;
             renderList.add(new SortableObject(playerFootY, () -> {
+                if (playerDeathEffect != null) {
+                    double alpha = playerDeathEffect.getEntityAlpha();
+
+                    if (alpha > 0.0) {
+                        double zoom = camera.getZoom();
+                        double screenX = camera.worldToScreenX(player.getPosition().getX());
+                        double screenY = camera.worldToScreenY(player.getPosition().getY());
+
+                        double scaleX = playerDeathEffect.getEntityScaleX();
+                        double scaleY = playerDeathEffect.getEntityScaleY();
+                        graphicsContext.save();
+                        graphicsContext.setGlobalAlpha(alpha);
+                        graphicsContext.translate(playerDeathEffect.getShakeX() * zoom, playerDeathEffect.getShakeY() * zoom);
+
+                        graphicsContext.translate(screenX, screenY);
+                        graphicsContext.scale(scaleX, scaleY);
+                        graphicsContext.translate(-screenX, -screenY);
+
+                        ShadowRenderer.render(graphicsContext, camera, player.getPosition(), 22.0, 6.0);
+                        player.render(graphicsContext, camera);
+                        graphicsContext.restore();
+                    }
+
+                    playerDeathEffect.renderSoulCopy(graphicsContext, camera, player
+                    );
+                    playerDeathEffect.render(graphicsContext, camera);
+                    return;
+                }
+
                 boolean isSpawning = playerSpawnEffect != null && playerSpawnEffect.isSpawning();
 
                 if (isSpawning) {
                     double alpha = playerSpawnEffect.getEntityAlpha();
-
-                    // chi ve bong khi cac doi tuong xuat hien
                     if (alpha > 0.0) {
                         graphicsContext.save();
                         graphicsContext.setGlobalAlpha(alpha);
+
                         ShadowRenderer.render(graphicsContext, camera, player.getPosition(), 22.0, 6.0);
+
                         graphicsContext.restore();
                     }
 
-                    // ve player mo dan
                     graphicsContext.save();
                     graphicsContext.setGlobalAlpha(alpha);
                     player.render(graphicsContext, camera);
                     graphicsContext.restore();
 
-                    // ve hieu ung cot sang de len tren
                     playerSpawnEffect.render(graphicsContext, camera);
                 } else {
-                    // khi da spawn xong ve bong va player binh thuong
                     ShadowRenderer.render(graphicsContext, camera, player.getPosition(), 22.0, 6.0);
                     player.render(graphicsContext, camera);
                 }
@@ -647,9 +695,29 @@ public final class GameWorld {
                     renderWidth, renderHeight)) {
                 continue;
             }
-
             double enemyFootY = enemy.getPosition().getY() + 12.0;
+
             renderList.add(new SortableObject(enemyFootY, () -> {
+                EnemyDeathEffect deathEffect = enemyDeathEffects.get(enemy);
+                if (deathEffect != null) {
+                    double alpha = deathEffect.getEntityAlpha();
+
+                    if (alpha > 0.0) {
+                        graphicsContext.save();
+                        graphicsContext.setGlobalAlpha(alpha);
+                        double zoom = camera.getZoom();
+                        graphicsContext.translate(deathEffect.getShakeX() * zoom, deathEffect.getShakeY() * zoom);
+
+                        ShadowRenderer.render(graphicsContext, camera, enemy.getPosition(), 22.0, 6.0, 10.0, false);
+
+                        enemy.render(graphicsContext, camera);
+                        graphicsContext.restore();
+                    }
+
+                    deathEffect.render(graphicsContext, camera);
+                    return;
+                }
+
                 EnemySpawnEffect spawnEffect = enemySpawnEffects.get(enemy);
 
                 if (spawnEffect != null && spawnEffect.isSpawning()) {
@@ -673,6 +741,8 @@ public final class GameWorld {
 
                 enemy.render(graphicsContext, camera);
             }));
+
+
         }
 
         // E. Thêm thân/sprite OBSTACLE vào Y-Sorting. Bóng đã được vẽ trên sàn ở phía trên.
@@ -764,8 +834,8 @@ public final class GameWorld {
         } else {
             this.player.getPosition().set(spawnPoint);
         }
-
-
+        this.playerDeathEffect = null;
+        this.playerDeathHandled = false;
         /*
          * Player phải được tạo trước rồi mới khôi phục HP
          * và các dữ liệu trong database.
@@ -793,6 +863,7 @@ public final class GameWorld {
         // 6. Reset toàn bộ danh sách Thực thể & Hiệu ứng của màn cũ
         this.enemies.clear();
         this.enemySpawnEffects.clear();
+        this.enemyDeathEffects.clear();
         this.bullets.clear();
         this.explosions.clear();
         this.slashEffects.clear();
@@ -1814,15 +1885,27 @@ public final class GameWorld {
         }
     }
 
-    private void removeDeadEnemiesAndGiveRewards() {
+    private void updateEnemyDeaths(double deltaSeconds) {
         for (int i = enemies.size() - 1; i >= 0; i--) {
             Enemy enemy = enemies.get(i);
-
-            if (!enemy.isAlive()) {
-                giveEnemyReward(enemy);
-                enemySpawnEffects.remove(enemy);
-                enemies.remove(i);
+            if (enemy == null || enemy.isAlive()) {
+                continue;
             }
+            EnemyDeathEffect deathEffect = enemyDeathEffects.get(enemy);
+
+            if (deathEffect == null) {
+                enemySpawnEffects.remove(enemy);
+                deathEffect = new EnemyDeathEffect(enemy.getPosition(), enemy.getRadius(), 0.5);
+                enemyDeathEffects.put(enemy, deathEffect);
+            }
+            deathEffect.update(deltaSeconds);
+
+            if (!deathEffect.isFinished()) {
+                continue;
+            }
+            giveEnemyReward(enemy);
+            enemyDeathEffects.remove(enemy);
+            enemies.remove(i);
         }
     }
 
@@ -2079,6 +2162,8 @@ public final class GameWorld {
         score = 0;
         playerEnergy = 100.0;
         autoSaveTimer = 0.0;
+        playerDeathEffect = null;
+        playerDeathHandled = false;
         /*
          * pending da duoc snapshot trong syncBankRewardsAsync().
          * Tien moi cua run moi se duoc tinh tu 0.
