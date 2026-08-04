@@ -126,6 +126,7 @@ public final class UIManager {
             pauseController = pauseLoader.getController();
             configFullRegion(pauseRoot);
             pauseRoot.setPickOnBounds(false);
+            pauseRoot.setPickOnBounds(false);
 
             FXMLLoader settingLoader = new FXMLLoader(com.soulknight.Main.class.getResource("/assets/fxml/SettingScreen.fxml"));
             settingRoot = settingLoader.load();
@@ -644,6 +645,7 @@ public final class UIManager {
                         world.saveGameAsync();
 
                         sound.stopBGM();
+                        world.saveBeforeReturnToMenu();
                         world.changeState(GameState.MAIN_MENU);
                     }
             );

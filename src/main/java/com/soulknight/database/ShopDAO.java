@@ -30,9 +30,7 @@ public final class ShopDAO {
             statement.setString(2, normalizeItemType(itemType));
 
             try (ResultSet resultSet = statement.executeQuery()) {
-                while (resultSet.next()) {
-                    ownedItems.add(resultSet.getString("item_code"));
-                }
+                while (resultSet.next()) ownedItems.add(resultSet.getString("item_code"));
             }
 
         } catch (SQLException exception) {
@@ -69,10 +67,6 @@ public final class ShopDAO {
         return null;
     }
 
-    /*
-     * Cap pet, weapon va hero khoi dau trong cung mot transaction.
-     * Item khoi dau chi duoc equipped neu loai do chua co item nao dang equipped.
-     */
     public void grantStarterEquipment(int userId, String starterPet, String starterWeapon, String starterHero) {
         try (Connection connection = DatabaseManager.getConnection()) {
             connection.setAutoCommit(false);
@@ -82,11 +76,9 @@ public final class ShopDAO {
                 grantStarterItem(connection, userId, ITEM_TYPE_WEAPON, starterWeapon);
                 grantStarterItem(connection, userId, ITEM_TYPE_HERO, starterHero);
                 connection.commit();
-
             } catch (SQLException exception) {
                 connection.rollback();
                 throw exception;
-
             } finally {
                 connection.setAutoCommit(true);
             }
@@ -96,10 +88,6 @@ public final class ShopDAO {
         }
     }
 
-    /*
-     * Giu lai ham cu de cac cho dang goi khong bi loi.
-     * Hero co the duoc cap rieng bang grantStarterHero().
-     */
     public void grantStarterItems(int userId, String starterPet, String starterWeapon) {
         try (Connection connection = DatabaseManager.getConnection()) {
             connection.setAutoCommit(false);
@@ -108,11 +96,9 @@ public final class ShopDAO {
                 grantStarterItem(connection, userId, ITEM_TYPE_PET, starterPet);
                 grantStarterItem(connection, userId, ITEM_TYPE_WEAPON, starterWeapon);
                 connection.commit();
-
             } catch (SQLException exception) {
                 connection.rollback();
                 throw exception;
-
             } finally {
                 connection.setAutoCommit(true);
             }
@@ -129,11 +115,9 @@ public final class ShopDAO {
             try {
                 grantStarterItem(connection, userId, ITEM_TYPE_HERO, starterHero);
                 connection.commit();
-
             } catch (SQLException exception) {
                 connection.rollback();
                 throw exception;
-
             } finally {
                 connection.setAutoCommit(true);
             }
@@ -147,7 +131,7 @@ public final class ShopDAO {
         if (itemCode == null || itemCode.isBlank()) return;
 
         String sql = """
-                INSERT IGNORE INTO user_inventory (user_id, item_type, item_code, equipped)
+                INSERT IGNORE INTO user_inventory(user_id, item_type, item_code, equipped)
                 SELECT ?, ?, ?, NOT EXISTS (
                     SELECT 1
                     FROM user_inventory
@@ -168,6 +152,10 @@ public final class ShopDAO {
     }
 
     public PurchaseResult purchaseItem(int userId, String username, String itemType, String itemCode, int price) {
+        return purchaseItem(userId, itemType, itemCode, price);
+    }
+
+    public PurchaseResult purchaseItem(int userId, String itemType, String itemCode, int price) {
         String checkOwnedSql = """
                 SELECT 1
                 FROM user_inventory
@@ -176,31 +164,30 @@ public final class ShopDAO {
                   AND item_code = ?
                 """;
 
-        String getGoldSql = """
-                SELECT gold
-                FROM player_saves
-                WHERE player_name = ?
+        String getBankGoldSql = """
+                SELECT gold_bank
+                FROM users
+                WHERE id = ?
                 FOR UPDATE
                 """;
 
-        String deductGoldSql = """
-                UPDATE player_saves
-                SET gold = gold - ?
-                WHERE player_name = ?
-                  AND gold >= ?
+        String deductBankGoldSql = """
+                UPDATE users
+                SET gold_bank = gold_bank - ?
+                WHERE id = ?
+                  AND gold_bank >= ?
                 """;
 
         String insertInventorySql = """
-                INSERT INTO user_inventory (user_id, item_type, item_code, equipped)
+                INSERT INTO user_inventory(user_id, item_type, item_code, equipped)
                 VALUES (?, ?, ?, FALSE)
                 """;
 
         String safeItemType = normalizeItemType(itemType);
         String safeItemCode = itemCode == null ? "" : itemCode.trim();
-        String safeUsername = username == null ? "" : username.trim();
         int safePrice = Math.max(0, price);
 
-        if (safeUsername.isBlank() || safeItemCode.isBlank()) return PurchaseResult.SAVE_NOT_FOUND;
+        if (userId <= 0 || safeItemCode.isBlank()) return PurchaseResult.SAVE_NOT_FOUND;
 
         try (Connection connection = DatabaseManager.getConnection()) {
             connection.setAutoCommit(false);
@@ -221,16 +208,15 @@ public final class ShopDAO {
 
                 int currentGold;
 
-                try (PreparedStatement statement = connection.prepareStatement(getGoldSql)) {
-                    statement.setString(1, safeUsername);
+                try (PreparedStatement statement = connection.prepareStatement(getBankGoldSql)) {
+                    statement.setInt(1, userId);
 
                     try (ResultSet resultSet = statement.executeQuery()) {
                         if (!resultSet.next()) {
                             connection.rollback();
                             return PurchaseResult.SAVE_NOT_FOUND;
                         }
-
-                        currentGold = resultSet.getInt("gold");
+                        currentGold = resultSet.getInt("gold_bank");
                     }
                 }
 
@@ -239,9 +225,9 @@ public final class ShopDAO {
                     return PurchaseResult.NOT_ENOUGH_GOLD;
                 }
 
-                try (PreparedStatement statement = connection.prepareStatement(deductGoldSql)) {
+                try (PreparedStatement statement = connection.prepareStatement(deductBankGoldSql)) {
                     statement.setInt(1, safePrice);
-                    statement.setString(2, safeUsername);
+                    statement.setInt(2, userId);
                     statement.setInt(3, safePrice);
 
                     if (statement.executeUpdate() == 0) {
@@ -263,7 +249,6 @@ public final class ShopDAO {
             } catch (SQLException exception) {
                 connection.rollback();
                 throw exception;
-
             } finally {
                 connection.setAutoCommit(true);
             }
@@ -273,10 +258,6 @@ public final class ShopDAO {
         }
     }
 
-    /*
-     * Moi loai PET, WEAPON hoac HERO chi duoc co mot item equipped.
-     * Chi thay doi RAM sau khi ham nay tra ve true.
-     */
     public boolean equipItem(int userId, String itemType, String itemCode) {
         String checkOwnedSql = """
                 SELECT 1
@@ -304,7 +285,7 @@ public final class ShopDAO {
         String safeItemType = normalizeItemType(itemType);
         String safeItemCode = itemCode == null ? "" : itemCode.trim();
 
-        if (safeItemCode.isBlank()) return false;
+        if (userId <= 0 || safeItemCode.isBlank()) return false;
 
         try (Connection connection = DatabaseManager.getConnection()) {
             connection.setAutoCommit(false);
@@ -329,18 +310,15 @@ public final class ShopDAO {
                     statement.executeUpdate();
                 }
 
-                int updatedRows;
-
                 try (PreparedStatement statement = connection.prepareStatement(equipSql)) {
                     statement.setInt(1, userId);
                     statement.setString(2, safeItemType);
                     statement.setString(3, safeItemCode);
-                    updatedRows = statement.executeUpdate();
-                }
 
-                if (updatedRows == 0) {
-                    connection.rollback();
-                    return false;
+                    if (statement.executeUpdate() == 0) {
+                        connection.rollback();
+                        return false;
+                    }
                 }
 
                 connection.commit();
@@ -349,7 +327,6 @@ public final class ShopDAO {
             } catch (SQLException exception) {
                 connection.rollback();
                 throw exception;
-
             } finally {
                 connection.setAutoCommit(true);
             }
@@ -361,9 +338,9 @@ public final class ShopDAO {
 
     public int getGold(String username) {
         String sql = """
-                SELECT gold
-                FROM player_saves
-                WHERE player_name = ?
+                SELECT gold_bank
+                FROM users
+                WHERE username = ?
                 """;
 
         String safeUsername = username == null ? "" : username.trim();
@@ -375,14 +352,132 @@ public final class ShopDAO {
             statement.setString(1, safeUsername);
 
             try (ResultSet resultSet = statement.executeQuery()) {
-                if (resultSet.next()) return resultSet.getInt("gold");
+                if (resultSet.next()) return resultSet.getInt("gold_bank");
             }
 
         } catch (SQLException exception) {
-            throw new IllegalStateException("Khong the tai so vang.", exception);
+            throw new IllegalStateException("Khong the tai vang tich luy.", exception);
         }
 
         return 0;
+    }
+
+    public int getGold(int userId) {
+        String sql = """
+                SELECT gold_bank
+                FROM users
+                WHERE id = ?
+                """;
+
+        if (userId <= 0) return 0;
+
+        try (Connection connection = DatabaseManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setInt(1, userId);
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) return resultSet.getInt("gold_bank");
+            }
+
+        } catch (SQLException exception) {
+            throw new IllegalStateException("Khong the tai vang tich luy.", exception);
+        }
+
+        return 0;
+    }
+
+    public int getGems(int userId) {
+        String sql = """
+                SELECT gem_bank
+                FROM users
+                WHERE id = ?
+                """;
+
+        if (userId <= 0) return 0;
+
+        try (Connection connection = DatabaseManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setInt(1, userId);
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) return resultSet.getInt("gem_bank");
+            }
+
+        } catch (SQLException exception) {
+            throw new IllegalStateException("Khong the tai gem tich luy.", exception);
+        }
+
+        return 0;
+    }
+
+    public boolean addBankGold(int userId, int amount) {
+        if (userId <= 0 || amount <= 0) return false;
+
+        String sql = """
+                UPDATE users
+                SET gold_bank = gold_bank + ?
+                WHERE id = ?
+                """;
+
+        try (Connection connection = DatabaseManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setInt(1, amount);
+            statement.setInt(2, userId);
+            return statement.executeUpdate() > 0;
+
+        } catch (SQLException exception) {
+            throw new IllegalStateException("Khong the cong vang tich luy.", exception);
+        }
+    }
+
+    public boolean addBankGem(int userId, int amount) {
+        if (userId <= 0 || amount <= 0) return false;
+
+        String sql = """
+                UPDATE users
+                SET gem_bank = gem_bank + ?
+                WHERE id = ?
+                """;
+
+        try (Connection connection = DatabaseManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setInt(1, amount);
+            statement.setInt(2, userId);
+            return statement.executeUpdate() > 0;
+
+        } catch (SQLException exception) {
+            throw new IllegalStateException("Khong the cong gem tich luy.", exception);
+        }
+    }
+
+    public boolean depositRunRewards(int userId, int goldAmount, int gemAmount) {
+        int safeGold = Math.max(0, goldAmount);
+        int safeGem = Math.max(0, gemAmount);
+
+        if (userId <= 0 || (safeGold == 0 && safeGem == 0)) return false;
+
+        String sql = """
+                UPDATE users
+                SET gold_bank = gold_bank + ?,
+                    gem_bank = gem_bank + ?
+                WHERE id = ?
+                """;
+
+        try (Connection connection = DatabaseManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setInt(1, safeGold);
+            statement.setInt(2, safeGem);
+            statement.setInt(3, userId);
+            return statement.executeUpdate() > 0;
+
+        } catch (SQLException exception) {
+            throw new IllegalStateException("Khong the luu phan thuong tich luy.", exception);
+        }
     }
 
     private String normalizeItemType(String itemType) {

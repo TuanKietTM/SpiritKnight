@@ -35,6 +35,8 @@ import com.soulknight.pet.PetType;
 import com.soulknight.database.PlayerSave;
 import com.soulknight.database.PlayerSaveDAO;
 import com.soulknight.database.PlayerSaveMapper;
+import com.soulknight.database.ShopDAO;
+import com.soulknight.database.UserSession;
 import com.soulknight.animation.FloatingTextManager;
 import java.util.ArrayList;
 import java.util.List;
@@ -72,6 +74,13 @@ public final class GameWorld {
 
     private int gold = 0;
     private int gems = 0;
+    // Tien cua run hien tai, dung cho HUD va Continue
+    private int pendingBankGold = 0;
+    private int pendingBankGems = 0;
+
+    // Ngan cong trung khi nhieu su kien save xay ra lien tiep
+    private final AtomicBoolean bankSyncInProgress = new AtomicBoolean(false);
+    private final Object bankRewardLock = new Object();
     private int score = 0;
     private int currentRoomNumber = 1;
     private Room currentRoom;
@@ -241,9 +250,11 @@ public final class GameWorld {
 
         if (!player.isAlive()) {
             inputHandler.consumeConfirmRequest();
-            changeState(GameState.GAME_OVER);
             addScore(100);
+            // Luu run va chot phan thuong tich luy
             saveGameAsync();
+            syncBankRewardsAsync();
+            changeState(GameState.GAME_OVER);
             return;
         }
         if (particleManager != null) {
@@ -467,35 +478,25 @@ public final class GameWorld {
     }
 
     private void updateItemCollection() {
-        if (player == null || player.getPosition() == null) {
-            return;
-        }
+        if (player == null || player.getPosition() == null) return;
 
         for (Item item : items) {
-            if (item.isCollected()) {
-                continue;
-            }
-
-            if (!item.intersects(player.getPosition(), player.getRadius())) {
-                continue;
-            }
+            if (item == null || item.isCollected()) continue;
+            if (!item.intersects(player.getPosition(), player.getRadius())) continue;
 
             if (item instanceof GoldItem goldItem) {
                 int amount = goldItem.getAmount();
 
                 addGold(amount);
+                floatingTextManager.spawnGold(player.getPosition(), amount);
+                particleManager.spawnCoinBurst(player.getPosition(), amount);
 
-                floatingTextManager.spawnGold(
-                        player.getPosition(),
-                        amount
-                );
+            } else if (item instanceof GemItem gemItem) {
+                int amount = gemItem.getAmount();
 
-                particleManager.spawnCoinBurst(
-                        player.getPosition(),
-                        amount
-                );
+                addGems(amount);
 
-                debug("Da nhat " + amount + " vang.");
+                floatingTextManager.spawnCustom("+" + amount, player.getPosition(), Color.MEDIUMPURPLE);
             }
 
             item.collect();
@@ -1030,8 +1031,9 @@ public final class GameWorld {
             changeState(GameState.PLAYING);
             saveGameAsync();
         } else {
-            changeState(GameState.GAME_VICTORY);
             saveGameAsync();
+            syncBankRewardsAsync();
+            changeState(GameState.GAME_VICTORY);
         }
     }
     public GameState getState() { return state; }
@@ -1077,8 +1079,12 @@ public final class GameWorld {
     }
 
     public void addGold(int amount) {
-        if (amount > 0) {
-            gold += amount;
+        if (amount <= 0) return;
+
+        gold += amount;
+
+        synchronized (bankRewardLock) {
+            pendingBankGold += amount;
         }
     }
 
@@ -1100,8 +1106,12 @@ public final class GameWorld {
     }
 
     public void addGems(int amount) {
-        if (amount > 0) {
-            gems += amount;
+        if (amount <= 0) return;
+
+        gems += amount;
+
+        synchronized (bankRewardLock) {
+            pendingBankGems += amount;
         }
     }
 
@@ -1595,10 +1605,7 @@ public final class GameWorld {
                     pendingPlayerSave = saveOptional.get();
                     success = true;
 
-                    System.out.println(
-                            "Da tai save cua " + safePlayerName
-                                    + ": room=" + pendingPlayerSave.getCurrentRoom()
-                    );
+                    System.out.println("Da tai save cua " + safePlayerName + ": room=" + pendingPlayerSave.getCurrentRoom());
                 } else {
                     System.out.println("Khong tim thay save cua " + safePlayerName + ".");
                 }
@@ -1620,18 +1627,118 @@ public final class GameWorld {
     }
 
     public void shutdown() {
+        syncBankRewardsNow();
         databaseExecutor.shutdown();
     }
+    private void syncBankRewardsNow() {
+        int userId = UserSession.getCurrentUserId();
+        if (userId <= 0) return;
 
+        final int goldToDeposit;
+        final int gemsToDeposit;
+
+        synchronized (bankRewardLock) {
+            goldToDeposit = pendingBankGold;
+            gemsToDeposit = pendingBankGems;
+        }
+
+        if (goldToDeposit <= 0 && gemsToDeposit <= 0) {
+            return;
+        }
+
+        try {
+            ShopDAO shopDAO = new ShopDAO();
+            if (shopDAO.depositRunRewards(userId, goldToDeposit, gemsToDeposit)) {
+                synchronized (bankRewardLock) {
+                    pendingBankGold = Math.max(0, pendingBankGold - goldToDeposit);
+                    pendingBankGems = Math.max(0, pendingBankGems - gemsToDeposit);
+                }
+            }
+
+        } catch (RuntimeException exception) {
+            System.err.println("Khong the chot tien khi tat game: " + exception.getMessage());
+        }
+    }
+
+    public void saveBeforeReturnToMenu() {
+        saveGameAsync();
+        syncBankRewardsAsync();
+    }
     private void applyPendingPlayerSave() {
         if (pendingPlayerSave == null || player == null) {
             return;
         }
         PlayerSave saveToApply = pendingPlayerSave;
         PlayerSaveMapper.applyToWorld(this, saveToApply);
+        synchronized (bankRewardLock) {
+            pendingBankGold = 0;
+            pendingBankGems = 0;}
 
         pendingPlayerSave = null;
         System.out.println("Đã áp dụng save vào Player: player=" + saveToApply.getPlayerName() + ", room=" + currentRoomNumber);
+    }
+//    dong bo vang , gem
+    public void syncBankRewardsAsync() {
+        int userId = UserSession.getCurrentUserId();
+        if (userId <= 0) {
+            return;
+        }
+
+        if (!bankSyncInProgress.compareAndSet(false, true)) {
+            return;
+        }
+
+        final int goldToDeposit;
+        final int gemsToDeposit;
+        synchronized (bankRewardLock) {
+            goldToDeposit = pendingBankGold;
+            gemsToDeposit = pendingBankGems;
+            pendingBankGold = 0;
+            pendingBankGems = 0;
+        }
+
+        if (goldToDeposit <= 0 && gemsToDeposit <= 0) {
+            bankSyncInProgress.set(false);
+            return;
+        }
+
+        databaseExecutor.submit(() -> {
+            boolean success = false;
+
+            try {
+                ShopDAO shopDAO = new ShopDAO();
+                success = shopDAO.depositRunRewards(userId, goldToDeposit, gemsToDeposit);
+
+                if (success) {
+                    debug("Da cong vao tai khoan: +" + goldToDeposit + " gold, +" + gemsToDeposit + " gem.");
+                }
+
+            } catch (RuntimeException exception) {
+                System.err.println("Khong the dong bo tien tich luy: " + exception.getMessage()
+                );
+
+            } finally {
+                if (!success) {
+                    // Loi database thi tra lai de lan sau thu lai
+                    synchronized (bankRewardLock) {
+                        pendingBankGold += goldToDeposit;
+                        pendingBankGems += gemsToDeposit;
+                    }
+                }
+
+                bankSyncInProgress.set(false);
+
+                // Neu luc dang save nguoi choi nhat them tien, dong bo tiep
+                boolean hasMoreRewards;
+                synchronized (bankRewardLock) {
+                    hasMoreRewards = pendingBankGold > 0 || pendingBankGems > 0;
+                }
+
+                if (hasMoreRewards) {
+                    javafx.application.Platform.runLater(this::syncBankRewardsAsync);
+                }
+            }
+        });
     }
     public boolean saveGameNow() {
         if (player == null || currentPlayerName.isBlank()) {
@@ -1692,13 +1799,18 @@ public final class GameWorld {
         debug("Đã tiêu diệt quái | +" + scoreReward + " điểm");
         debug("Quái rơi " + goldReward + " vàng" + (droppedGem ? " và 1 kim cương." : "."));
     }
+//    ham dong bo thoi gian thuc moi 30s
     private void updateAutoSave(double deltaSeconds) {
         autoSaveTimer += deltaSeconds;
 
-        if (autoSaveTimer >= AUTO_SAVE_INTERVAL) {
-            autoSaveTimer = 0.0;
-            saveGameAsync();
+        if (autoSaveTimer < AUTO_SAVE_INTERVAL) {
+            return;
         }
+        autoSaveTimer = 0.0;
+        // Luu run de Continue
+        saveGameAsync();
+        // Cong phan thuong moi vao tai khoan
+        syncBankRewardsAsync();
     }
     private void updateCurrentRoom() {
         if (player == null || player.getPosition() == null || mapManager == null || mapManager.getRooms() == null) {
@@ -1897,16 +2009,25 @@ public final class GameWorld {
     }
     public void startNewGameFromMenu() {
         /*
-         * New Game xoa tien trinh cu va tao lai tu phong 1.
+         * Chot phan thuong cua run cu truoc khi reset HUD.
          */
+        syncBankRewardsAsync();
         pendingPlayerSave = null;
         currentRoomNumber = 1;
+        // Chi reset tien cua run, khong reset users.gold_bank
         gold = 0;
         gems = 0;
         score = 0;
         playerEnergy = 100.0;
         autoSaveTimer = 0.0;
-
+        /*
+         * pending da duoc snapshot trong syncBankRewardsAsync().
+         * Tien moi cua run moi se duoc tinh tu 0.
+         */
+        synchronized (bankRewardLock) {
+            pendingBankGold = 0;
+            pendingBankGems = 0;
+        }
         levelManager.startNewRun();
         loadCurrentLevel(true);
         playGameBGM();
