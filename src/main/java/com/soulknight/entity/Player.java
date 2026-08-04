@@ -1,5 +1,6 @@
 package com.soulknight.entity;
 
+import com.soulknight.buff.BuffManager;
 import com.soulknight.engine.GameWorld;
 import com.soulknight.utils.Constants;
 import com.soulknight.utils.Vector2D;
@@ -35,6 +36,16 @@ public final class Player extends Entity {
     // vi SlashEffect da ve san thanh kiem trong sprite sheet
     private double meleeSwingTimer = 0.0;
 
+    // Quan ly cac buff dang hoat dong tren Player
+    private final BuffManager buffManager;
+
+    // He so buff, 1.0 = giu nguyen chi so goc
+    private double buffSpeedMultiplier = 1.0;
+    private double buffDamageMultiplier = 1.0;
+
+    // Phan tram giam sat thuong, vi du 0.5 = giam 50%
+    private double buffDamageReduction = 0.0;
+
     public Player(Vector2D spawnPoint) {
         this(spawnPoint, HeroSelectionManager.getInstance().getSelectedHero());
     }
@@ -47,6 +58,7 @@ public final class Player extends Entity {
         this.heroType = heroType == null ? HeroType.KNIGHT : heroType;
 
         this.animator = new PlayerAnimator(this.heroType);
+        this.buffManager = new BuffManager(this);
     }
 
     public String getWeaponName() {
@@ -69,11 +81,16 @@ public final class Player extends Entity {
     // Tạo thời gian bất tử để giảm đòn đánh liên tục
     @Override
     public void takeDamage(int amount) {
-        if (invulnerabilityTimer > 0.0) {
+        if (invulnerabilityTimer > 0.0 || amount <= 0) {
             return;
         }
-        super.takeDamage(amount);
-        this.invulnerabilityTimer = MAX_INVULNERABILITY_TIME;
+
+        int finalDamage = (int) Math.round(amount * (1.0 - buffDamageReduction));
+        super.takeDamage(Math.max(0, finalDamage));
+
+        if (finalDamage > 0) {
+            this.invulnerabilityTimer = MAX_INVULNERABILITY_TIME;
+        }
     }
 
     // Bat dau vung chem: an kiem dang cam trong suot thoi luong hieu ung chem
@@ -90,6 +107,7 @@ public final class Player extends Entity {
             meleeSwingTimer = Math.max(0.0, meleeSwingTimer - deltaSeconds);
         }
         weapon.tick(deltaSeconds);
+        buffManager.tick(deltaSeconds);
 
         double dx = 0.0;
         double dy = 0.0;
@@ -127,7 +145,7 @@ public final class Player extends Entity {
                 movement.normalize();
             }
 
-            movement.scale(Constants.PLAYER_SPEED * deltaSeconds);
+            movement.scale(getSpeed() * deltaSeconds);
             this.move(world, movement.getX(), movement.getY());
         } else {
             this.movementState = PlayerAnimator.State.IDLE;
@@ -222,6 +240,9 @@ public final class Player extends Entity {
 
         // Ve sung tren tay nhan vat, xoay theo huong ban
         renderWeapon(graphicsContext, camera);
+
+        // Ve hieu ung buff
+        buffManager.render(graphicsContext);
     }
 
     /**
@@ -298,8 +319,46 @@ public final class Player extends Entity {
 
         gc.restore();
     }
+    public BuffManager getBuffManager() {
+        return buffManager;
+    }
+
+    public void setBuffSpeedMultiplier(double multiplier) {
+        buffSpeedMultiplier = Math.max(0.1, multiplier);
+    }
+
+    public double getBuffSpeedMultiplier() {
+        return buffSpeedMultiplier;
+    }
+
+    public void setBuffDamageMultiplier(double multiplier) {
+        buffDamageMultiplier = Math.max(0.0, multiplier);
+    }
+
+    public double getBuffDamageMultiplier() {
+        return buffDamageMultiplier;
+    }
+
+    public int calculateBuffedDamage(int baseDamage) {
+        return Math.max(0, (int) Math.round(baseDamage * buffDamageMultiplier));
+    }
+
+    public void setBuffDamageReduction(double reduction) {
+        buffDamageReduction = Math.max(0.0, Math.min(0.9, reduction));
+    }
+
+    public double getBuffDamageReduction() {
+        return buffDamageReduction;
+    }
 
     public double getSpeed() {
-        return Constants.PLAYER_SPEED;
+        return Constants.PLAYER_SPEED * buffSpeedMultiplier;
+    }
+
+    public void clearBuffs() {
+        buffManager.clear();
+        buffSpeedMultiplier = 1.0;
+        buffDamageMultiplier = 1.0;
+        buffDamageReduction = 0.0;
     }
 }

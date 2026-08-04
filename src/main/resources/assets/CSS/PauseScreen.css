@@ -66,10 +66,11 @@
     -fx-padding: 5px 0 0 0;
 }
 
-.buff-slot,
-.buff-slot-empty {
+.buff-slot {
     -fx-min-width: 48px;
     -fx-min-height: 48px;
+    -fx-pref-width: 48px;
+    -fx-pref-height: 48px;
     -fx-max-width: 48px;
     -fx-max-height: 48px;
     -fx-background-color: #080d17;
@@ -82,18 +83,16 @@
     -fx-border-color: #788c98;
 }
 
-.buff-slot-empty {
-    -fx-opacity: 0.50;
-}
-
-.buff-placeholder-icon {
-    -fx-font-size: 20px;
-}
-
-.buff-plus {
+.buff-slot-quantity {
     -fx-font-family: "Press Start 2P";
-    -fx-font-size: 16px;
-    -fx-text-fill: #647987;
+    -fx-font-size: 8px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #ffffff;
+    -fx-background-color: rgba(0, 0, 0, 0.82);
+    -fx-background-radius: 5px;
+    -fx-padding: 2px 3px 2px 3px;
+    -fx-translate-x: 3px;
+    -fx-translate-y: 3px;
 }
 
 .settings-header {

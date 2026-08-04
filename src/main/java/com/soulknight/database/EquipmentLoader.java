@@ -1,5 +1,7 @@
 package com.soulknight.database;
 
+import com.soulknight.buff.BuffInventoryManager;
+import com.soulknight.buff.BuffType;
 import com.soulknight.entity.HeroSelectionManager;
 import com.soulknight.entity.HeroType;
 import com.soulknight.pet.PetSelectionManager;
@@ -7,6 +9,13 @@ import com.soulknight.pet.PetType;
 import com.soulknight.weapon.WeaponSelectionManager;
 import com.soulknight.weapon.WeaponType;
 
+import java.util.EnumMap;
+import java.util.Map;
+
+/**
+ * Class này chịu trách nhiệm tải dữ liệu trang bị
+ * của người chơi từ cơ sở dữ liệu và áp dụng chúng vào trò chơi.
+ */
 public final class EquipmentLoader {
 
     private static final String ITEM_TYPE_PET = "PET";
@@ -16,13 +25,23 @@ public final class EquipmentLoader {
     private final ShopDAO shopDAO = new ShopDAO();
 
     public void loadForUser(int userId) {
+        if (userId <= 0) {
+            applyPet(null);
+            applyWeapon(null);
+            applyHero(null);
+            BuffInventoryManager.getInstance().clear();
+            return;
+        }
+
         String petCode = shopDAO.getEquippedItem(userId, ITEM_TYPE_PET);
         String weaponCode = shopDAO.getEquippedItem(userId, ITEM_TYPE_WEAPON);
         String heroCode = shopDAO.getEquippedItem(userId, ITEM_TYPE_HERO);
+        Map<String, Integer> buffQuantities = shopDAO.getBuffQuantities(userId);
 
         applyPet(petCode);
         applyWeapon(weaponCode);
         applyHero(heroCode);
+        applyBuffs(buffQuantities);
     }
 
     private void applyPet(String code) {
@@ -68,4 +87,29 @@ public final class EquipmentLoader {
 
         HeroSelectionManager.getInstance().selectHero(hero);
     }
+
+    private void applyBuffs(Map<String, Integer> rawBuffQuantities) {
+        Map<BuffType, Integer> parsedBuffs = new EnumMap<>(BuffType.class);
+
+        if (rawBuffQuantities != null) {
+            for (Map.Entry<String, Integer> entry : rawBuffQuantities.entrySet()) {
+                String code = entry.getKey();
+                Integer quantity = entry.getValue();
+
+                if (code == null || code.isBlank() || quantity == null || quantity <= 0) {
+                    continue;
+                }
+
+                try {
+                    BuffType type = BuffType.valueOf(code.trim().toUpperCase());
+                    parsedBuffs.put(type, quantity);
+                } catch (IllegalArgumentException exception) {
+                    System.err.println("Buff trong DB khong hop le: " + code);
+                }
+            }
+        }
+
+        BuffInventoryManager.getInstance().replaceAll(parsedBuffs);
+    }
+
 }
