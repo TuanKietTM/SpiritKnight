@@ -35,6 +35,7 @@ public class ShopController {
 
     @FXML private Button closeButton;
     @FXML private Label coinLabel;
+    @FXML private Label gemLabel;
 
     @FXML private Button tabPet;
     @FXML private Button tabWeapon;
@@ -70,6 +71,7 @@ public class ShopController {
     private final Set<HeroType> ownedHeroes = new HashSet<>();
 
     private int currentGold;
+    private int currentGems;
     private boolean shopLoading;
     private boolean shopDataLoaded = false;
     private int loadedUserId = -1;
@@ -131,9 +133,9 @@ public class ShopController {
         // Mo lai shop thi hien du lieu trong RAM ngay, sau do cap nhat vang ngam
         if (shopDataLoaded && loadedUserId == currentUserId) {
             setShopLoading(false);
-            updateCoinLabel();
+            updateCurrencyLabels();
             showTab(tabPet, this::loadPetShop);
-            refreshGold();
+            refreshCurrencies();
             return;
         }
 
@@ -142,7 +144,6 @@ public class ShopController {
     }
     private void loadShopData() {
         int userId = UserSession.getCurrentUserId();
-        String username = UserSession.getCurrentUsername();
 
         if (onShowLoading != null) {
             onShowLoading.accept("Loading shop...");
@@ -159,15 +160,22 @@ public class ShopController {
                             () -> shopDAO.getOwnedItems(userId, ITEM_TYPE_WEAPON),DatabaseExecutor.getExecutor()
                     );
                     CompletableFuture<Integer> goldFuture = CompletableFuture.supplyAsync(
-                            () -> shopDAO.getGold(username),DatabaseExecutor.getExecutor()
+                            () -> shopDAO.getGold(userId), DatabaseExecutor.getExecutor()
+                    );
+                    CompletableFuture<Integer> gemsFuture = CompletableFuture.supplyAsync(
+                            () -> shopDAO.getGems(userId), DatabaseExecutor.getExecutor()
                     );
                     CompletableFuture<Set<String>> heroesFuture = CompletableFuture.supplyAsync(() ->
-                                    shopDAO.getOwnedItems(userId, ITEM_TYPE_HERO),DatabaseExecutor.getExecutor()
-                            );
+                            shopDAO.getOwnedItems(userId, ITEM_TYPE_HERO),DatabaseExecutor.getExecutor()
+                    );
 
-                    return CompletableFuture.allOf(petsFuture, weaponsFuture,  heroesFuture, goldFuture)
-                            .thenApply(value -> new ShopData(petsFuture.join(), weaponsFuture.join(),
-                                    heroesFuture.join(), goldFuture.join()
+                    return CompletableFuture.allOf(petsFuture, weaponsFuture, heroesFuture, goldFuture, gemsFuture)
+                            .thenApply(value -> new ShopData(
+                                    petsFuture.join(),
+                                    weaponsFuture.join(),
+                                    heroesFuture.join(),
+                                    goldFuture.join(),
+                                    gemsFuture.join()
                             ));
                 })
                 .thenAccept(data -> Platform.runLater(() -> {
@@ -195,10 +203,11 @@ public class ShopController {
         addOwnedHeroes(data.heroCodes());
 
         currentGold = data.gold();
+        currentGems = data.gems();
         loadedUserId = userId;
         shopDataLoaded = true;
 
-        updateCoinLabel();
+        updateCurrencyLabels();
         setShopLoading(false);
         showTab(tabPet, this::loadPetShop);
     }
@@ -223,15 +232,26 @@ public class ShopController {
         }
     }
 
-    // Chi tai lai vang khi mo lai shop, khong tai lai toan bo inventory
-    private void refreshGold() {
-        String username = UserSession.getCurrentUsername();
+    // Chi tai lai tien tich luy khi mo lai shop, khong tai lai toan bo inventory
+    private void refreshCurrencies() {
+        int userId = UserSession.getCurrentUserId();
+
+        CompletableFuture<Integer> goldFuture = CompletableFuture.supplyAsync(
+                () -> shopDAO.getGold(userId),
+                DatabaseExecutor.getExecutor()
+        );
+
+        CompletableFuture<Integer> gemsFuture = CompletableFuture.supplyAsync(
+                () -> shopDAO.getGems(userId),
+                DatabaseExecutor.getExecutor()
+        );
 
         CompletableFuture
-                .supplyAsync(() -> shopDAO.getGold(username), DatabaseExecutor.getExecutor())
-                .thenAccept(gold -> Platform.runLater(() -> {
-                    currentGold = gold;
-                    updateCoinLabel();
+                .allOf(goldFuture, gemsFuture)
+                .thenRun(() -> Platform.runLater(() -> {
+                    currentGold = goldFuture.join();
+                    currentGems = gemsFuture.join();
+                    updateCurrencyLabels();
                 }))
                 .exceptionally(exception -> {
                     exception.printStackTrace();
@@ -257,11 +277,13 @@ public class ShopController {
 
         if (loading) {
             coinLabel.setText("Loading...");
+            gemLabel.setText("Loading...");
         }
     }
 
-    private void updateCoinLabel() {
+    private void updateCurrencyLabels() {
         coinLabel.setText(String.valueOf(currentGold));
+        gemLabel.setText(String.valueOf(currentGems));
     }
 
     private void switchTab(Button selectedTab, Runnable loadContent) {
@@ -406,7 +428,7 @@ public class ShopController {
                         case SUCCESS -> {
                             ownedPets.add(pet);
                             currentGold = Math.max(0, currentGold - price);
-                            updateCoinLabel();
+                            updateCurrencyLabels();
 
                             selectedItemName.setText(pet.getDisplayName());
                             selectedItemDesc.setText("PURCHASE SUCCESS");
@@ -416,18 +438,18 @@ public class ShopController {
 
                         case ALREADY_OWNED -> {
                             ownedPets.add(pet);
-                            updateCoinLabel();
+                            updateCurrencyLabels();
                             selectedItemDesc.setText("You already own this pet.");
                             loadPetShop();
                         }
 
                         case NOT_ENOUGH_GOLD -> {
-                            updateCoinLabel();
+                            updateCurrencyLabels();
                             selectedItemDesc.setText("Not enough gold.");
                         }
 
                         case SAVE_NOT_FOUND -> {
-                            updateCoinLabel();
+                            updateCurrencyLabels();
                             selectedItemDesc.setText("No player data found.");
                         }
                     }
@@ -438,7 +460,7 @@ public class ShopController {
                     Platform.runLater(() -> {
                         hideLoadingOverlay();
                         setShopLoading(false);
-                        updateCoinLabel();
+                        updateCurrencyLabels();
                         selectedItemDesc.setText("You cannot buy a pet.");
                     });
 
@@ -462,7 +484,7 @@ public class ShopController {
                 .thenAccept(success -> Platform.runLater(() -> {
                     hideLoadingOverlay();
                     setShopLoading(false);
-                    updateCoinLabel();
+                    updateCurrencyLabels();
 
                     if (!success) {
                         selectedItemDesc.setText("You don't own this pet yet.");
@@ -484,7 +506,7 @@ public class ShopController {
                     Platform.runLater(() -> {
                         hideLoadingOverlay();
                         setShopLoading(false);
-                        updateCoinLabel();
+                        updateCurrencyLabels();
                         selectedItemDesc.setText("Pets cannot be equipped.");
                     });
                     return null;
@@ -609,8 +631,8 @@ public class ShopController {
         showLoadingOverlay("Buying weapon...");
 
         CompletableFuture.supplyAsync(() -> shopDAO.purchaseItem(UserSession.getCurrentUserId(),
-                                UserSession.getCurrentUsername(), ITEM_TYPE_WEAPON, weapon.name(),
-                                price), DatabaseExecutor.getExecutor()
+                        UserSession.getCurrentUsername(), ITEM_TYPE_WEAPON, weapon.name(),
+                        price), DatabaseExecutor.getExecutor()
                 )
                 .thenAccept(result -> Platform.runLater(() -> {
                     hideLoadingOverlay();
@@ -620,7 +642,7 @@ public class ShopController {
                         case SUCCESS -> {
                             ownedWeapons.add(weapon);
                             currentGold = Math.max(0, currentGold - price);
-                            updateCoinLabel();
+                            updateCurrencyLabels();
 
                             selectedItemName.setText(weapon.getDisplayName());
                             selectedItemDesc.setText("PURCHASE SUCCESS");
@@ -630,18 +652,18 @@ public class ShopController {
 
                         case ALREADY_OWNED -> {
                             ownedWeapons.add(weapon);
-                            updateCoinLabel();
+                            updateCurrencyLabels();
                             selectedItemDesc.setText("You already own this weapon.");
                             loadWeaponShop();
                         }
 
                         case NOT_ENOUGH_GOLD -> {
-                            updateCoinLabel();
+                            updateCurrencyLabels();
                             selectedItemDesc.setText("Not enough gold.");
                         }
 
                         case SAVE_NOT_FOUND -> {
-                            updateCoinLabel();
+                            updateCurrencyLabels();
                             selectedItemDesc.setText("Khong tim thay du lieu nguoi choi.");
                         }
                     }
@@ -652,7 +674,7 @@ public class ShopController {
                     Platform.runLater(() -> {
                         hideLoadingOverlay();
                         setShopLoading(false);
-                        updateCoinLabel();
+                        updateCurrencyLabels();
                         selectedItemDesc.setText("Weapons cannot be purchased.");
                     });
 
@@ -676,7 +698,7 @@ public class ShopController {
                 .thenAccept(success -> Platform.runLater(() -> {
                     hideLoadingOverlay();
                     setShopLoading(false);
-                    updateCoinLabel();
+                    updateCurrencyLabels();
 
                     if (!success) {
                         selectedItemDesc.setText("You don't have any weapons yet.");
@@ -698,7 +720,7 @@ public class ShopController {
                     Platform.runLater(() -> {
                         hideLoadingOverlay();
                         setShopLoading(false);
-                        updateCoinLabel();
+                        updateCurrencyLabels();
                         selectedItemDesc.setText("Cannot be equipped with weapons.");
                     });
 
@@ -858,7 +880,7 @@ public class ShopController {
         return image;
     }
 
-    private record ShopData(Set<String> petCodes, Set<String> weaponCodes,  Set<String> heroCodes,int gold) {}
+    private record ShopData(Set<String> petCodes, Set<String> weaponCodes, Set<String> heroCodes, int gold, int gems) {}
     private void addOwnedHeroes(Set<String> heroCodes) {
         ownedHeroes.clear();
 
@@ -998,7 +1020,7 @@ public class ShopController {
                                     ownedHeroes.add(hero);
                                     currentGold = Math.max(0, currentGold - price);
 
-                                    updateCoinLabel();
+                                    updateCurrencyLabels();
                                     selectedItemDesc.setText("PURCHASE SUCCESS");
 
                                     loadHeroShop();

@@ -60,7 +60,7 @@ public final class UserDAO {
                         keys.getInt(1),
                         username,
                         passwordHash,
-                        true
+                        true,0,0
                 );
 
                 return RegisterResult.success(account);
@@ -123,7 +123,7 @@ public final class UserDAO {
     public Optional<UserAccount> findByUsername(String username) {
 
         String sql = """
-                SELECT id,username,password_hash,first_play
+                SELECT id,username,password_hash,first_play,gold_bank, gem_bank
                 FROM users
                 WHERE username=?
                 """;
@@ -145,7 +145,9 @@ public final class UserDAO {
                         resultSet.getInt("id"),
                         resultSet.getString("username"),
                         resultSet.getString("password_hash"),
-                        resultSet.getBoolean("first_play")
+                        resultSet.getBoolean("first_play"),
+                        resultSet.getInt("gold_bank"),
+                        resultSet.getInt("gem_bank")
                 );
 
                 return Optional.of(account);
