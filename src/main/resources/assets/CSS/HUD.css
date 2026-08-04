@@ -197,3 +197,36 @@
     -fx-font-size: 15px;
     -fx-font-weight: bold;
 }
+
+/* Danh sach buff nam ben canh hop thanh mau */
+.top-buff-container {
+    -fx-padding: 2px;
+    -fx-alignment: top-left;
+}
+
+.hud-buff-item {
+    -fx-min-width: 50px;
+    -fx-min-height: 50px;
+    -fx-pref-width: 50px;
+    -fx-pref-height: 50px;
+    -fx-max-width: 50px;
+    -fx-max-height: 50px;
+    -fx-background-color: rgba(20, 20, 28, 0.88);
+    -fx-background-radius: 8px;
+    -fx-border-color: #5c3a21;
+    -fx-border-width: 3px;
+    -fx-border-radius: 8px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.55), 5, 0.0, 0, 2);
+}
+
+.hud-buff-quantity {
+    -fx-font-family: "Press Start 2P";
+    -fx-font-size: 9px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #ffffff;
+    -fx-background-color: rgba(0, 0, 0, 0.82);
+    -fx-background-radius: 6px;
+    -fx-padding: 2px 3px 2px 3px;
+    -fx-translate-x: 3px;
+    -fx-translate-y: 3px;
+}

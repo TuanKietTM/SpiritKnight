@@ -1,6 +1,9 @@
 package com.soulknight.ui;
 
+import com.soulknight.buff.BuffInventoryManager;
+import com.soulknight.buff.BuffType;
 import com.soulknight.database.PlayerSaveDAO;
+import com.soulknight.database.ShopDAO;
 import com.soulknight.engine.GameState;
 import com.soulknight.engine.GameWorld;
 import com.soulknight.entity.Player;
@@ -58,11 +61,14 @@ public final class UIManager {
     private final UserDAO userDAO = new UserDAO();
     private final CatLoadingOverlay loadingOverlay = new CatLoadingOverlay();
     private final EquipmentLoader equipmentLoader = new EquipmentLoader();
+    private final ShopDAO shopDAO = new ShopDAO();
 
     private final PortalOverlay portalOverlay = new PortalOverlay();
     private IntroToLoginTransition introToLoginTransition;
     // Luu trang thai Continue cua tai khoan dang dang nhap
     private boolean continueAvailable;
+    private GameWorld boundWorld;
+    private boolean buffUseInProgress;
 
     public UIManager(StackPane rootNode) {
         this.rootNode = rootNode;
@@ -257,6 +263,11 @@ public final class UIManager {
                 case PAUSED -> {
                     hideAllScreens();
                     hudRoot.setVisible(true);
+//pause hien cac buff
+                    if (pauseController != null && boundWorld != null) {
+                        pauseController.setPlayer(boundWorld.getPlayer());
+                    }
+
                     pauseRoot.setVisible(true);
                     pauseRoot.toFront();
                 }
@@ -302,6 +313,7 @@ public final class UIManager {
             return;
         }
 
+        this.boundWorld = world;
         world.setGameStateListener(this::handleStateChange);
 
         bindIntroActions(world);
@@ -592,6 +604,10 @@ public final class UIManager {
                     }
                 }
             });
+
+            hudController.setOnBuffUseRequested(buffType ->
+                    useBuffFromHud(world, buffType)
+            );
         }
 
         if (pauseController != null) {
@@ -655,7 +671,102 @@ public final class UIManager {
             );
         }
     }
+//    quy dinh an vao de su dung buff
+    private void useBuffFromHud(GameWorld world, BuffType buffType) {
+        if (world == null || buffType == null || buffUseInProgress) {
+            return;
+        }
+
+        if (world.getState() != GameState.PLAYING) {
+            return;
+        }
+
+        Player player = world.getPlayer();
+
+        if (player == null || !player.isAlive()) {
+            return;
+        }
+
+        BuffInventoryManager inventory = BuffInventoryManager.getInstance();
+
+        if (!inventory.hasBuff(buffType)) {
+            return;
+        }
+
+        // Heal khong duoc dung khi da day mau
+        if (buffType == BuffType.HEAL
+                && player.getHealth() >= player.getMaxHealth()) {
+            return;
+        }
+
+        // Buff co thoi gian khong bi tru them khi van dang hoat dong
+        if (!buffType.isInstant()
+                && player.getBuffManager().isActive(buffType)) {
+            return;
+        }
+
+        int userId = UserSession.getCurrentUserId();
+
+        if (userId <= 0) {
+            return;
+        }
+
+        buffUseInProgress = true;
+
+        CompletableFuture
+                .supplyAsync(
+                        () -> shopDAO.consumeBuff(userId, buffType.name()),
+                        com.soulknight.utils.DatabaseExecutor.getExecutor()
+                )
+                .thenAccept(success -> Platform.runLater(() -> {
+                    buffUseInProgress = false;
+
+                    if (!success) {
+                        return;
+                    }
+
+                    if (!inventory.consume(buffType)) {
+                        // DB da tru nhung RAM lech, tai lai inventory de dong bo
+                        CompletableFuture
+                                .supplyAsync(
+                                        () -> shopDAO.getBuffQuantities(userId),
+                                        com.soulknight.utils.DatabaseExecutor.getExecutor()
+                                )
+                                .thenAccept(raw -> Platform.runLater(() -> {
+                                    java.util.Map<BuffType, Integer> parsed =
+                                            new java.util.EnumMap<>(BuffType.class);
+
+                                    for (java.util.Map.Entry<String, Integer> entry : raw.entrySet()) {
+                                        try {
+                                            BuffType type = BuffType.valueOf(
+                                                    entry.getKey().trim().toUpperCase()
+                                            );
+
+                                            if (entry.getValue() != null
+                                                    && entry.getValue() > 0) {
+                                                parsed.put(type, entry.getValue());
+                                            }
+                                        } catch (Exception ignored) {
+                                        }
+                                    }
+
+                                    inventory.replaceAll(parsed);
+                                }));
+                        return;
+                    }
+
+                    SoundManager.getInstance().playSFX("button");
+                    player.getBuffManager().activate(buffType);
+                }))
+                .exceptionally(exception -> {
+                    exception.printStackTrace();
+                    Platform.runLater(() -> buffUseInProgress = false);
+                    return null;
+                });
+    }
+
     private void handleLogout(GameWorld world) {
+        BuffInventoryManager.getInstance().clear();
         UserSession.logout();
         continueAvailable = false;
 

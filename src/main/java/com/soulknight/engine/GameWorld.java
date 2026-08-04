@@ -1907,6 +1907,7 @@ public final class  GameWorld {
             enemyDeathEffects.remove(enemy);
             enemies.remove(i);
         }
+
     }
 
     private void giveEnemyReward(Enemy enemy) {

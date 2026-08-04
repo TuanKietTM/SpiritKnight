@@ -54,7 +54,19 @@ public abstract class Entity {
     }
 
     public void takeDamage(int amount) {
+        if (amount <= 0 || !isAlive()) {
+            return;
+        }
         health = Math.max(0, health - amount);
+    }
+
+    public void heal(double amount) {
+        if (amount <= 0.0 || !isAlive()) {
+            return;
+        }
+
+        int healAmount = (int) Math.round(amount);
+        health = Math.min(maxHealth, health + healAmount);
     }
 
     public Vector2D getPosition() {
@@ -73,6 +85,6 @@ public abstract class Entity {
         return maxHealth;
     }
     public void setHealth(int health) {
-        this.health = Math.max(0, health);
+        this.health = Math.max(0, Math.min(maxHealth, health));
     }
 }

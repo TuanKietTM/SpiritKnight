@@ -1,5 +1,7 @@
 package com.soulknight.ui;
 
+import com.soulknight.buff.BuffInventoryManager;
+import com.soulknight.buff.BuffType;
 import com.soulknight.engine.GameWorld;
 import com.soulknight.pet.PetSelectionManager;
 import com.soulknight.pet.PetType;
@@ -25,12 +27,20 @@ import javafx.scene.layout.VBox;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.EnumMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
+/**
+ * Quan li SHOP : voi cac tab PET , WEAPON , HERO va BUFF
+ * luu trang thai cua shop trong database tu shopDAO UserSession
+ * du lieu hien len cac the trong shop lay tu cac class type (PetType, WeaponType, HeroType, BuffType)
+ * doi voi PET,WEAPON , HERO mua va trang bi
+ * doi voi buff luu so luong buffinventory va cap nhat so luong buff trong database
+ */
 public class ShopController {
 
     @FXML private Button closeButton;
@@ -109,7 +119,8 @@ public class ShopController {
         tabPet.setOnAction(e -> switchTab(tabPet, this::loadPetShop));
         tabWeapon.setOnAction(e -> switchTab(tabWeapon, this::loadWeaponShop));
         tabHero.setOnAction(e -> switchTab(tabHero, this::loadHeroShop));
-        tabUpgrade.setOnAction(e -> switchTab(tabUpgrade, () -> loadPlaceholderCategory("UPGRADE", "UP")));
+        tabUpgrade.setText("BUFF");
+        tabUpgrade.setOnAction(e -> switchTab(tabUpgrade, this::loadBuffShop));
 
         closeButton.setOnAction(e -> {
             SoundManager.getInstance().playSFX("button");
@@ -166,14 +177,18 @@ public class ShopController {
                             () -> shopDAO.getGems(userId), DatabaseExecutor.getExecutor()
                     );
                     CompletableFuture<Set<String>> heroesFuture = CompletableFuture.supplyAsync(() ->
-                            shopDAO.getOwnedItems(userId, ITEM_TYPE_HERO),DatabaseExecutor.getExecutor()
+                            shopDAO.getOwnedItems(userId, ITEM_TYPE_HERO), DatabaseExecutor.getExecutor()
+                    );
+                    CompletableFuture<Map<String, Integer>> buffsFuture = CompletableFuture.supplyAsync(
+                            () -> shopDAO.getBuffQuantities(userId), DatabaseExecutor.getExecutor()
                     );
 
-                    return CompletableFuture.allOf(petsFuture, weaponsFuture, heroesFuture, goldFuture, gemsFuture)
+                    return CompletableFuture.allOf(petsFuture, weaponsFuture, heroesFuture, buffsFuture, goldFuture, gemsFuture)
                             .thenApply(value -> new ShopData(
                                     petsFuture.join(),
                                     weaponsFuture.join(),
                                     heroesFuture.join(),
+                                    buffsFuture.join(),
                                     goldFuture.join(),
                                     gemsFuture.join()
                             ));
@@ -197,10 +212,12 @@ public class ShopController {
     private void applyShopData(int userId, ShopData data) {
         ownedPets.clear();
         ownedWeapons.clear();
+        ownedHeroes.clear();
 
         addOwnedPets(data.petCodes());
         addOwnedWeapons(data.weaponCodes());
         addOwnedHeroes(data.heroCodes());
+        applyBuffQuantities(data.buffQuantities());
 
         currentGold = data.gold();
         currentGems = data.gems();
@@ -452,6 +469,11 @@ public class ShopController {
                             updateCurrencyLabels();
                             selectedItemDesc.setText("No player data found.");
                         }
+
+                        case ERROR -> {
+                            updateCurrencyLabels();
+                            selectedItemDesc.setText("Cannot buy pet.");
+                        }
                     }
                 }))
                 .exceptionally(exception -> {
@@ -665,6 +687,11 @@ public class ShopController {
                         case SAVE_NOT_FOUND -> {
                             updateCurrencyLabels();
                             selectedItemDesc.setText("Khong tim thay du lieu nguoi choi.");
+                        }
+
+                        case ERROR -> {
+                            updateCurrencyLabels();
+                            selectedItemDesc.setText("Weapons cannot be purchased.");
                         }
                     }
                 }))
@@ -880,7 +907,151 @@ public class ShopController {
         return image;
     }
 
-    private record ShopData(Set<String> petCodes, Set<String> weaponCodes, Set<String> heroCodes, int gold, int gems) {}
+//    buff
+    private record ShopData(Set<String> petCodes, Set<String> weaponCodes, Set<String> heroCodes,
+                            Map<String, Integer> buffQuantities, int gold, int gems) {}
+
+    private void applyBuffQuantities(Map<String, Integer> rawQuantities) {
+        Map<BuffType, Integer> parsed = new EnumMap<>(BuffType.class);
+
+        if (rawQuantities != null) {
+            for (Map.Entry<String, Integer> entry : rawQuantities.entrySet()) {
+                String code = entry.getKey();
+                Integer quantity = entry.getValue();
+
+                if (code == null || code.isBlank() || quantity == null || quantity <= 0) {
+                    continue;
+                }
+
+                try {
+                    BuffType type = BuffType.valueOf(code.trim().toUpperCase());
+                    parsed.put(type, quantity);
+                } catch (IllegalArgumentException ignored) {
+                    System.err.println("Buff trong DB khong ton tai trong enum: " + code);
+                }
+            }
+        }
+
+        BuffInventoryManager.getInstance().replaceAll(parsed);
+    }
+
+    private void loadBuffShop() {
+        activeRenderers.clear();
+        activeHeroRenderers.clear();
+        itemGrid.getChildren().clear();
+
+        for (BuffType buff : BuffType.values()) {
+            itemGrid.getChildren().add(createBuffCard(buff));
+        }
+    }
+
+    private VBox createBuffCard(BuffType buff) {
+        VBox card = new VBox(6);
+        card.setAlignment(Pos.CENTER);
+        card.getStyleClass().add("item-card");
+        int quantity = BuffInventoryManager.getInstance().getQuantity(buff);
+        Canvas canvas = new Canvas(SHOP_CANVAS_SIZE, SHOP_CANVAS_SIZE);
+        Image buffImage = loadImage(buff.getImagePath());
+        drawWeaponIcon(canvas, buffImage);
+
+        Label nameLabel = new Label(buff.getDisplayName());
+        nameLabel.getStyleClass().add("item-card-title");
+        Label quantityLabel = new Label("OWNED: x" + quantity);
+        quantityLabel.getStyleClass().add("item-card-quantity");
+
+        card.getChildren().addAll(canvas, nameLabel, quantityLabel);
+
+        card.setOnMouseClicked(event -> {
+            if (shopLoading) {
+                return;
+            }
+            SoundManager.getInstance().playSFX("button");
+            itemGrid.getChildren().forEach(node ->
+                    node.getStyleClass().remove("item-card-selected")
+            );
+            card.getStyleClass().add("item-card-selected");
+
+            selectedPet = null;
+            selectedWeapon = null;
+
+            int currentQuantity = BuffInventoryManager.getInstance().getQuantity(buff);
+
+            selectedItemName.setText(buff.getDisplayName());
+            selectedItemDesc.setText(buildBuffDesc(buff) + " | OWNED: x" + currentQuantity
+                            + " | PRICE: " + buff.getPrice() + " GOLD"
+            );
+
+            actionButton.setVisible(true);
+            actionButton.setDisable(false);
+            actionButton.setText("BUY - " + buff.getPrice() + " GOLD");
+            actionButton.setOnAction(e -> purchaseBuff(buff));
+        });
+
+        return card;
+    }
+
+    private String buildBuffDesc(BuffType buff) {
+        String duration = buff.isInstant()
+                ? "INSTANT" : "DURATION: " + buff.getDurationSeconds() + "s";
+
+        return buff.getDescription() + " | POWER: " + buff.getValue() + " | " + duration;
+    }
+
+    private void purchaseBuff(BuffType buff) {
+        if (shopLoading || buff == null) {
+            return;
+        }
+
+        int price = buff.getPrice();
+        setShopLoading(true);
+        showLoadingOverlay("Buying buff...");
+
+        CompletableFuture.supplyAsync(() -> shopDAO.purchaseBuff(UserSession.getCurrentUserId(),
+                        UserSession.getCurrentUsername(), buff.name(), price), DatabaseExecutor.getExecutor())
+                .thenAccept(result -> Platform.runLater(() -> {
+                    hideLoadingOverlay();
+                    setShopLoading(false);
+
+                    switch (result) {
+                        case SUCCESS -> {
+                            BuffInventoryManager.getInstance().add(buff, 1);
+                            currentGold = Math.max(0, currentGold - price);
+                            updateCurrencyLabels();
+
+                            int quantity = BuffInventoryManager.getInstance().getQuantity(buff);
+                            selectedItemName.setText(buff.getDisplayName());
+                            selectedItemDesc.setText("PURCHASE SUCCESS | OWNED: x" + quantity);
+
+                            loadBuffShop();
+                        }
+                        case NOT_ENOUGH_GOLD -> {
+                            updateCurrencyLabels();
+                            selectedItemDesc.setText("Not enough gold.");
+                        }
+                        case SAVE_NOT_FOUND -> {
+                            updateCurrencyLabels();
+                            selectedItemDesc.setText("No player data found.");
+                        }
+                        case ERROR -> {
+                            updateCurrencyLabels();
+                            selectedItemDesc.setText("Cannot buy buff.");
+                        }
+                    }
+                }))
+                .exceptionally(exception -> {
+                    exception.printStackTrace();
+
+                    Platform.runLater(() -> {
+                        hideLoadingOverlay();
+                        setShopLoading(false);
+                        updateCurrencyLabels();
+                        selectedItemDesc.setText("Cannot buy buff.");
+                    });
+
+                    return null;
+                });
+    }
+
     private void addOwnedHeroes(Set<String> heroCodes) {
         ownedHeroes.clear();
 
@@ -1033,6 +1204,7 @@ public class ShopController {
                                 }
                                 case NOT_ENOUGH_GOLD -> selectedItemDesc.setText("Not enough gold.");
                                 case SAVE_NOT_FOUND -> selectedItemDesc.setText("No save file found.");
+                                case ERROR -> selectedItemDesc.setText("Cannot buy heroes.");
                             }
                         })
                 )
