@@ -132,10 +132,6 @@ public final class GameWorld {
     public void changeState(GameState newState) {
         if (newState == null || this.state == newState) return;
 
-        /*
-         * Khong tu dong startNewRun khi tu Menu sang Playing.
-         * New Game va Continue se tu xu ly du lieu truoc.
-         */
         this.state = newState;
 
         if (inputHandler != null) {
@@ -209,7 +205,7 @@ public final class GameWorld {
             }
             enemy.update(this, deltaSeconds);
             // xử lý va chạm quái vs quái
-            enemy.separateFromOtherEnemies(this,enemies, deltaSeconds);
+            enemy.separateFromOtherEnemies(this, enemies, deltaSeconds);
         }
         resolvePlayerEnemyCollisions(deltaSeconds);
 
@@ -248,6 +244,7 @@ public final class GameWorld {
             advanceToNextLevel();
         }
     }
+
     //    update pet
     private void updatePet(double deltaSeconds) {
         if (currentPet == null || player == null || player.getPosition() == null) {
@@ -324,7 +321,7 @@ public final class GameWorld {
             }
             if (bullet.getOwner() instanceof Player) {
                 for (Enemy enemy : enemies) {
-                    if (enemy == null || !enemy.isAlive()||  isEnemySpawning(enemy)) {
+                    if (enemy == null || !enemy.isAlive() || isEnemySpawning(enemy)) {
                         continue;
                     }
 
@@ -390,6 +387,7 @@ public final class GameWorld {
         bullets.removeIf(b -> b == null || !b.isActive());
         removeDeadEnemiesAndGiveRewards();
     }
+
     private void processDestroyedObstacles() {
         if (destroyedObstacleQueue.isEmpty() || mapManager == null || mapManager.getRooms() == null) {
             return;
@@ -541,6 +539,7 @@ public final class GameWorld {
         class SortableObject {
             double depthY;
             Runnable renderAction;
+
             SortableObject(double depthY, Runnable renderAction) {
                 this.depthY = depthY;
                 this.renderAction = renderAction;
@@ -769,7 +768,7 @@ public final class GameWorld {
             // player xuat hien truoc pet xuat hien sau mot chut
             Vector2D petSpawnPos = new Vector2D(spawnPoint.getX() + 25, spawnPoint.getY() + 10);
             currentPet.getPosition().set(petSpawnPos);
-            this.petSpawnEffect = new SpawnEffect(petSpawnPos, 0.55,0.7);
+            this.petSpawnEffect = new SpawnEffect(petSpawnPos, 0.55, 0.7);
         }
 
         // 5. Trang bị vũ khí cho lượt chơi mới
@@ -805,6 +804,7 @@ public final class GameWorld {
             this.enemies.add(this.enemyFactory.createGrandKnight(this.mapManager.getBossSpawnPoint()));
         }
     }
+
     private void refreshCurrentRoomReference() {
         currentRoom = null;
 
@@ -831,6 +831,7 @@ public final class GameWorld {
             }
         }
     }
+
     private void createSelectedPet() {
         if (player == null) {
             currentPet = null;
@@ -850,6 +851,7 @@ public final class GameWorld {
             currentPet = null;
         }
     }
+
     private void loadObstaclesFromCurrentMap() {
         if (mapManager == null || mapManager.getRooms() == null) {
             return;
@@ -906,20 +908,51 @@ public final class GameWorld {
             saveGameAsync();
         }
     }
-    public GameState getState() { return state; }
+
+    public GameState getState() {
+        return state;
+    }
+
     public InputHandler getInputHandler() {
 //        goi trong player de dieu khien nhan vat tu ban phim ,ngam ban tu chuot
-        return inputHandler; }
-    public MapManager getMapManager() { return mapManager; }
-    public Player getPlayer() { return player; }
-    public List<Enemy> getEnemies() { return enemies; }
-    public List<Item> getItems() { return items; }
+        return inputHandler;
+    }
 
-    public void addBullet(Bullet bullet) { bullets.add(bullet); }
-    public List<Bullet> getBullets() { return bullets; }
-    public Camera getCamera() { return camera; }
-    public LevelManager getLevelManager() { return levelManager; }
-    public MissionManager getMissionManager() { return missionManager; }
+    public MapManager getMapManager() {
+        return mapManager;
+    }
+
+    public Player getPlayer() {
+        return player;
+    }
+
+    public List<Enemy> getEnemies() {
+        return enemies;
+    }
+
+    public List<Item> getItems() {
+        return items;
+    }
+
+    public void addBullet(Bullet bullet) {
+        bullets.add(bullet);
+    }
+
+    public List<Bullet> getBullets() {
+        return bullets;
+    }
+
+    public Camera getCamera() {
+        return camera;
+    }
+
+    public LevelManager getLevelManager() {
+        return levelManager;
+    }
+
+    public MissionManager getMissionManager() {
+        return missionManager;
+    }
 
 
     public String getCurrentPlayerName() {
@@ -985,6 +1018,7 @@ public final class GameWorld {
         gems -= amount;
         return true;
     }
+
     public List<Obstacle> getObstacles() {
         return readOnlyObstacles;
     }
@@ -992,6 +1026,7 @@ public final class GameWorld {
     public FloatingTextManager getFloatingTextManager() {
         return floatingTextManager;
     }
+
     public int getScore() {
         return score;
     }
@@ -1041,6 +1076,7 @@ public final class GameWorld {
 //        xu li ngam ban tu chuot
         return camera.screenToWorld(inputHandler.getMousePosition());
     }
+
     //Kiem tra xem di duoc khong
     public boolean canMoveTo(Vector2D position, double radius) {
         if (position == null || mapManager == null || radius < 0.0) {
@@ -1062,10 +1098,12 @@ public final class GameWorld {
         }
         return true;
     }
+
     public boolean isPlaying() {
         return state == GameState.PLAYING;
     }
-    public void spawnEnemiesInRoom(com.soulknight.map.Room room, int waveNumber){
+
+    public void spawnEnemiesInRoom(com.soulknight.map.Room room, int waveNumber) {
         List<Vector2D> roomSpawnPoints = new ArrayList<>();
         javafx.geometry.BoundingBox bound = room.getBound();
 
@@ -1120,6 +1158,7 @@ public final class GameWorld {
             addEnemyWithSpawnEffect(enemy, i * 0.08);
         }
     }
+
     private void addEnemyWithSpawnEffect(Enemy enemy, double delay) {
         if (enemy == null || enemy.getPosition() == null) {
             return;
@@ -1147,6 +1186,7 @@ public final class GameWorld {
 
         return effect != null && effect.blocksEnemyLogic();
     }
+
     private boolean intersectsRoomObstacle(Room room, Vector2D position, double radius) {
         if (room == null || position == null || room.getObstacles() == null) {
             return false;
@@ -1172,7 +1212,7 @@ public final class GameWorld {
         double pRadius = player.getRadius();
 
         for (Enemy enemy : enemies) {
-            if (!enemy.isAlive() || isEnemySpawning(enemy) ) continue;
+            if (!enemy.isAlive() || isEnemySpawning(enemy)) continue;
 
             Vector2D ePos = enemy.getPosition();
             double eRadius = enemy.getRadius();
@@ -1203,6 +1243,7 @@ public final class GameWorld {
             }
         }
     }
+
     /**
      * (cuong)Xu li he thong ESC, Mute
      * goi lien tuc o moi frame de tranh bi fxml button de len
@@ -1222,6 +1263,7 @@ public final class GameWorld {
             }
         }
     }
+
     // Gay sat thuong theo hinh quat: chi trung ke dich nam trong tam danh
     // va lech khong qua halfArcRadians so voi huong ngam (dung cho vu khi can chien)
     public void damageEnemiesInArc(Vector2D origin, double aimAngle, double range, double halfArcRadians, int damage) {
@@ -1286,6 +1328,7 @@ public final class GameWorld {
             }
         }
     }
+
     /**
      * Kiem tra xem duong ngam ban co vat can khong
      * giong thuat toan trong bai co tuong
@@ -1350,6 +1393,7 @@ public final class GameWorld {
 
         return (ua >= 0.0 && ua <= 1.0 && ub >= 0.0 && ub <= 1.0);
     }
+
     //    cac phuong thuc pet
     public void equipPet(PetType type) {
         PetType safeType = (type != null) ? type : PetType.NONE;
@@ -1374,12 +1418,15 @@ public final class GameWorld {
             currentPet = null;
         }
     }
+
     public void removePet() {
         equipPet(PetType.NONE);
     }
+
     public Pet getCurrentPet() {
         return currentPet;
     }
+
     public PetType getEquippedPetType() {
         return PetSelectionManager.getInstance().getSelectedPet();
     }
@@ -1398,6 +1445,7 @@ public final class GameWorld {
 
         player.equipWeapon(safeType.createWeapon());
     }
+
     //    data base
     public void saveGameAsync() {
         if (currentPlayerName == null || currentPlayerName.isBlank()) {
@@ -1440,6 +1488,7 @@ public final class GameWorld {
     public void loadGameAsync(String playerName) {
         loadGameAsync(playerName, null);
     }
+
     public void loadGameAsync(String playerName, java.util.function.Consumer<Boolean> callback) {
         if (playerName == null || playerName.isBlank()) {
             System.err.println("Khong the load save vi username trong.");
@@ -1485,6 +1534,7 @@ public final class GameWorld {
             }
         });
     }
+
     private void runLoadCallback(java.util.function.Consumer<Boolean> callback, boolean success) {
         if (callback == null) return;
 
@@ -1505,6 +1555,7 @@ public final class GameWorld {
         pendingPlayerSave = null;
         System.out.println("Đã áp dụng save vào Player: player=" + saveToApply.getPlayerName() + ", room=" + currentRoomNumber);
     }
+
     public boolean saveGameNow() {
         if (player == null || currentPlayerName.isBlank()) {
             return false;
@@ -1528,6 +1579,7 @@ public final class GameWorld {
             return false;
         }
     }
+
     private void removeDeadEnemiesAndGiveRewards() {
         for (int i = enemies.size() - 1; i >= 0; i--) {
             Enemy enemy = enemies.get(i);
@@ -1539,6 +1591,7 @@ public final class GameWorld {
             }
         }
     }
+
     private void giveEnemyReward(Enemy enemy) {
         if (enemy == null || enemy.getPosition() == null) {
             return;
@@ -1564,6 +1617,7 @@ public final class GameWorld {
         debug("Đã tiêu diệt quái | +" + scoreReward + " điểm");
         debug("Quái rơi " + goldReward + " vàng" + (droppedGem ? " và 1 kim cương." : "."));
     }
+
     private void updateAutoSave(double deltaSeconds) {
         autoSaveTimer += deltaSeconds;
 
@@ -1572,6 +1626,7 @@ public final class GameWorld {
             saveGameAsync();
         }
     }
+
     private void updateCurrentRoom() {
         if (player == null || player.getPosition() == null || mapManager == null || mapManager.getRooms() == null) {
             return;
@@ -1604,6 +1659,7 @@ public final class GameWorld {
             return;
         }
     }
+
     private void restorePlayerRoomPosition() {
         if (player == null || player.getPosition() == null || mapManager == null
                 || mapManager.getRooms() == null || mapManager.getRooms().isEmpty()) {
@@ -1658,6 +1714,7 @@ public final class GameWorld {
 
         System.out.println("Đã khôi phục Player tại phòng " + currentRoomNumber + " | position=" + player.getPosition());
     }
+
     private Vector2D findWalkablePositionInSavedRoom(Room savedRoom) {
         if (savedRoom == null || savedRoom.getBound() == null || mapManager == null || player == null) {
             return null;
@@ -1708,6 +1765,7 @@ public final class GameWorld {
 
         return null;
     }
+
     // Cache obstacle để các phép va chạm không phải tạo ArrayList mới mỗi lần gọi.
     private void rebuildObstacleCache() {
         obstacles.clear();
@@ -1728,6 +1786,7 @@ public final class GameWorld {
             }
         }
     }
+
     private void debug(String message) {
         if (DEBUG_LOGGING) {
             System.out.println(message);
@@ -1764,9 +1823,11 @@ public final class GameWorld {
             destroyedObstacleQueue.add(obstacle);
         }
     }
+
     public boolean isSaveLoadInProgress() {
         return saveLoadInProgress.get();
     }
+
     public void startNewGameFromMenu() {
         /*
          * New Game xoa tien trinh cu va tao lai tu phong 1.
@@ -1785,6 +1846,7 @@ public final class GameWorld {
         changeState(GameState.PLAYING);
         saveGameAsync();
     }
+
     public void continueGameFromMenu() {
         /*
          * Continue phai co save da load truoc.
@@ -1799,6 +1861,7 @@ public final class GameWorld {
         playGameBGM();
         changeState(GameState.PLAYING);
     }
+
     private void playGameBGM() {
         SoundManager sound = SoundManager.getInstance();
         sound.stopBGM();
