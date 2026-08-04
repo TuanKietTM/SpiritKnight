@@ -457,7 +457,11 @@ public final class UIManager {
                 if (!continueAvailable || world.isSaveLoadInProgress()) return;
 
                 sound.playSFX("button");
-                loadSaveAndContinue(world);
+                if (world.getPlayer() != null && world.getPlayer().isAlive()) {
+                    world.changeState(GameState.PLAYING);
+                } else {
+                    loadSaveAndContinue(world);
+                }
             });
             menuController.setOnAccountRequested(() -> {
                 sound.playSFX("button");
