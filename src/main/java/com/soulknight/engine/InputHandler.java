@@ -6,6 +6,7 @@ import javafx.scene.Scene;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
 
 public final class InputHandler {
     // Xu ly su kien dau vao: ban phim, chuot va touchpad
@@ -14,6 +15,7 @@ public final class InputHandler {
     private boolean confirmRequested;
     private boolean escapeRequested;
     private boolean toggleMuteRequested;
+    private int buffHotkeyRequested = -1;
 
     private double mouseX;
     private double mouseY;
@@ -26,11 +28,24 @@ public final class InputHandler {
         // Sử dụng EventFilter cho ESC & M để không bị JavaFX UI swallow/focus nút
         scene.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
             KeyCode code = event.getCode();
+
             if (code == KeyCode.ESCAPE) {
                 escapeRequested = true;
-                event.consume(); // Chặn sự kiện truyền vào UI
+                event.consume();
             } else if (code == KeyCode.M) {
                 toggleMuteRequested = true;
+                event.consume();
+            } else if (code == KeyCode.DIGIT1 || code == KeyCode.NUMPAD1) {
+                buffHotkeyRequested = 0;
+                event.consume();
+            } else if (code == KeyCode.DIGIT2 || code == KeyCode.NUMPAD2) {
+                buffHotkeyRequested = 1;
+                event.consume();
+            } else if (code == KeyCode.DIGIT3 || code == KeyCode.NUMPAD3) {
+                buffHotkeyRequested = 2;
+                event.consume();
+            } else if (code == KeyCode.DIGIT4 || code == KeyCode.NUMPAD4) {
+                buffHotkeyRequested = 3;
                 event.consume();
             }
         });
@@ -74,26 +89,29 @@ public final class InputHandler {
             mouseX = event.getX();
             mouseY = event.getY();
 
+            if (event.isConsumed() || isHudInteraction(event.getTarget())) {
+                fireHeld = false;
+                return;
+            }
+
             if (event.getButton() == MouseButton.PRIMARY) {
                 if (touchpadModeEnabled) {
-                    // Chế độ Touchpad: Chuột dùng để vuốt Joystick di chuyển, không giữ bắn
                     touchpadJoystick.onTouchStart(event.getX(), event.getY());
-                    fireHeld = true; // Tự động bắn khi đang giữ cảm ứng/chuột
+                    fireHeld = true;
                 } else {
-                    // Chế độ Keyboard & Mouse: Chuột trái dùng để bắn
                     fireHeld = true;
                 }
             }
+
             confirmRequested = true;
         });
 
         scene.setOnMouseReleased(event -> {
             if (event.getButton() == MouseButton.PRIMARY) {
+                fireHeld = false;
+
                 if (touchpadModeEnabled) {
                     touchpadJoystick.onTouchEnd();
-                    fireHeld = false;// Ngừng bắn khi nhả cảm ứng
-                } else {
-                    fireHeld = false;
                 }
             }
         });
@@ -122,6 +140,32 @@ public final class InputHandler {
         }
     }
 
+    private boolean isHudInteraction(Object target) {
+        if (!(target instanceof javafx.scene.Node node)) {
+            return false;
+        }
+
+        javafx.scene.Node current = node;
+
+        while (current != null) {
+            if (current.getStyleClass().contains("hud-buff-item")
+                    || current.getStyleClass().contains("weapon-ring-container")
+                    || current.getStyleClass().contains("hud-pause-button")) {
+                return true;
+            }
+
+            current = current.getParent();
+        }
+
+        return false;
+    }
+
+    public int consumeBuffHotkeyRequest() {
+        int requested = buffHotkeyRequested;
+        buffHotkeyRequested = -1;
+        return requested;
+    }
+
     // Dọn dẹp trạng thái phím tránh tình trạng kẹt phím
     public void clearState() {
         pressedKeys.clear();
@@ -129,6 +173,7 @@ public final class InputHandler {
         confirmRequested = false;
         escapeRequested = false;
         toggleMuteRequested = false;
+        buffHotkeyRequested = -1;
         touchpadJoystick.onTouchEnd();
     }
 

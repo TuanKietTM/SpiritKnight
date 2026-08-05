@@ -76,13 +76,17 @@
             </StackPane>
         </HBox>
     </VBox>
+
+
     <HBox fx:id="topBuffContainer"
           layoutX="190.0"
           layoutY="20.0"
           alignment="TOP_LEFT"
           spacing="7"
           styleClass="top-buff-container"
-          mouseTransparent="false"/>
+          mouseTransparent="false"
+          pickOnBounds="false"/>
+
 
     <HBox layoutY="20.0"
           AnchorPane.rightAnchor="20.0"
@@ -174,24 +178,13 @@
         </VBox>
     </StackPane>
 
-
-    <StackPane fx:id="activeBuffTimerBox"
-               AnchorPane.bottomAnchor="25.0"
-               AnchorPane.leftAnchor="462.0"
-               visible="false"
-               managed="false"
-               styleClass="active-buff-timer">
-        <VBox alignment="CENTER" spacing="3" pickOnBounds="false">
-            <ImageView fx:id="activeBuffIcon"
-                       fitWidth="46"
-                       fitHeight="46"
-                       preserveRatio="true"
-                       smooth="false"/>
-            <Label fx:id="activeBuffTimerLabel"
-                   text="0.0s"
-                   styleClass="active-buff-time"/>
-        </VBox>
-    </StackPane>
+    <HBox fx:id="activeBuffContainer"
+          alignment="CENTER"
+          spacing="10"
+          mouseTransparent="true"
+          AnchorPane.leftAnchor="0.0"
+          AnchorPane.rightAnchor="0.0"
+          AnchorPane.bottomAnchor="25.0"/>
 
     <StackPane fx:id="joystickContainer"
                AnchorPane.bottomAnchor="30.0"

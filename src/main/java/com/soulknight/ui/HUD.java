@@ -17,16 +17,18 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.geometry.Pos;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.scene.shape.Circle;
-import java.util.function.Consumer;
 
 import java.net.URL;
 import java.util.EnumMap;
 import java.util.Map;
+import java.util.function.Consumer;
 
 public final class HUD {
 
@@ -95,13 +97,7 @@ public final class HUD {
     private HBox topBuffContainer;
 
     @FXML
-    private StackPane activeBuffTimerBox;
-
-    @FXML
-    private ImageView activeBuffIcon;
-
-    @FXML
-    private Label activeBuffTimerLabel;
+    private HBox activeBuffContainer;
 
     private MinimapRenderer minimapRenderer;
     private Runnable onPauseRequested;
@@ -254,12 +250,25 @@ public final class HUD {
         root.setPickOnBounds(true);
         root.setCursor(javafx.scene.Cursor.HAND);
 
-        root.setOnMouseClicked(event -> {
+        // Xu ly ngay khi nhan chuot de tranh click bi truyen xuong gameplay
+        root.addEventFilter(MouseEvent.MOUSE_PRESSED, event -> {
+            if (event.getButton() != MouseButton.PRIMARY) {
+                return;
+            }
+
+            event.consume();
+
             if (onBuffUseRequested != null) {
                 onBuffUseRequested.accept(type);
             }
 
-            event.consume();
+            playBuffClickAnimation(root);
+        });
+
+        root.addEventFilter(MouseEvent.MOUSE_RELEASED, event -> {
+            if (event.getButton() == MouseButton.PRIMARY) {
+                event.consume();
+            }
         });
 
         ImageView icon = new ImageView(loadImage(type.getImagePath()));
@@ -279,46 +288,84 @@ public final class HUD {
         return root;
     }
 
+    private void playBuffClickAnimation(StackPane node) {
+        javafx.animation.ScaleTransition transition =
+                new javafx.animation.ScaleTransition(javafx.util.Duration.millis(90), node);
+
+        transition.setFromX(1.0);
+        transition.setFromY(1.0);
+        transition.setToX(0.82);
+        transition.setToY(0.82);
+        transition.setCycleCount(2);
+        transition.setAutoReverse(true);
+        transition.play();
+    }
+
     private void updateActiveBuffUI(Player player) {
-        if (player == null) {
-            setActiveBuffVisible(false);
+        if (activeBuffContainer == null) {
             return;
         }
 
-        BuffType shownType = null;
-        Buff shownBuff = null;
+        activeBuffContainer.getChildren().clear();
+
+        if (player == null) {
+            return;
+        }
 
         for (BuffType type : BuffType.values()) {
             Buff activeBuff = player.getBuffManager().getActiveBuff(type);
 
-            if (activeBuff != null && !activeBuff.isFinished() && !type.isInstant()) {
-                shownType = type;
-                shownBuff = activeBuff;
-                break;
+            if (activeBuff == null || activeBuff.isFinished() || type.isInstant()) {
+                continue;
             }
-        }
 
-        if (shownType == null || shownBuff == null) {
-            setActiveBuffVisible(false);
-            return;
-        }
-
-        setActiveBuffVisible(true);
-
-        if (activeBuffIcon != null) {
-            activeBuffIcon.setImage(loadImage(shownType.getImagePath()));
-            activeBuffIcon.setSmooth(false);
-        }
-
-        if (activeBuffTimerLabel != null) {
-            activeBuffTimerLabel.setText(String.format("%.1fs", shownBuff.getRemainingSeconds()));
+            activeBuffContainer.getChildren().add(createActiveBuffNode(type, activeBuff));
         }
     }
 
-    private void setActiveBuffVisible(boolean visible) {
-        if (activeBuffTimerBox != null) {
-            activeBuffTimerBox.setVisible(visible);
-            activeBuffTimerBox.setManaged(visible);
+    private VBox createActiveBuffNode(BuffType type, Buff buff) {
+        ImageView icon = new ImageView(loadImage(type.getImagePath()));
+        icon.setFitWidth(40);
+        icon.setFitHeight(40);
+        icon.setPreserveRatio(true);
+        icon.setSmooth(false);
+        icon.setMouseTransparent(true);
+
+        Label timerLabel = new Label(String.format("%.1fs", buff.getRemainingSeconds()));
+        timerLabel.getStyleClass().add("active-buff-time");
+        timerLabel.setMouseTransparent(true);
+
+        VBox box = new VBox(3, icon, timerLabel);
+        box.setAlignment(Pos.CENTER);
+        box.getStyleClass().add("active-buff-box");
+        box.setMouseTransparent(true);
+        return box;
+    }
+
+    public void useBuffByIndex(int index) {
+        if (index < 0 || onBuffUseRequested == null) {
+            return;
+        }
+
+        int currentIndex = 0;
+        BuffInventoryManager inventory = BuffInventoryManager.getInstance();
+
+        for (BuffType type : BuffType.values()) {
+            if (inventory.getQuantity(type) <= 0) {
+                continue;
+            }
+
+            if (currentIndex == index) {
+                onBuffUseRequested.accept(type);
+
+                StackPane node = buffNodes.get(type);
+                if (node != null) {
+                    playBuffClickAnimation(node);
+                }
+                return;
+            }
+
+            currentIndex++;
         }
     }
 
