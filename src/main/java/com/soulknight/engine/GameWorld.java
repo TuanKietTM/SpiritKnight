@@ -14,6 +14,7 @@ import com.soulknight.item.EnergyCrystal;
 import com.soulknight.item.GemItem;
 import com.soulknight.item.GoldItem;
 import com.soulknight.item.Item;
+import com.soulknight.item.ItemMagnetSystem;
 import com.soulknight.item.BuffItem;
 import com.soulknight.buff.BuffInventoryManager;
 import com.soulknight.buff.BuffType;
@@ -43,6 +44,7 @@ import com.soulknight.database.PlayerSaveMapper;
 import com.soulknight.database.ShopDAO;
 import com.soulknight.database.UserSession;
 import com.soulknight.animation.FloatingTextManager;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -56,54 +58,26 @@ import javafx.geometry.BoundingBox;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 
-public final class  GameWorld {
+public final class GameWorld {
 
     private static final boolean DEBUG_LOGGING = false;
-
+    private static final double ROOM_BUFF_DROP_CHANCE = 1;
+    private static final double AUTO_SAVE_INTERVAL = 30.0;
     private final Random random = new Random();
     // phong nao da roi buff thi khong roi lan nua
     private final java.util.Set<Room> buffRewardedRooms = java.util.Collections.newSetFromMap(new IdentityHashMap<>());
-
     // trang thai phong frame truoc
     private final java.util.Map<Room, Room.RoomState> previousRoomStates = new IdentityHashMap<>();
-
-    private static final double ROOM_BUFF_DROP_CHANCE = 1;
     private final InputHandler inputHandler;
     private final Camera camera = new Camera();
     private final DynamicBackground dynamicBackground = new DynamicBackground();
-
     private final LevelManager levelManager = new LevelManager();
     private final MissionManager missionManager = new MissionManager();
     private final EnemyFactory enemyFactory = new EnemyFactory(levelManager, missionManager);
     private final FloatingTextManager floatingTextManager = new FloatingTextManager();
-
-    private GameStateListener stateListener;
-    private java.util.function.IntConsumer buffHotkeyListener;
-
-    private MapManager mapManager;
-    private Player player;
-    private Pet currentPet;
-    private String currentPlayerName = "";
-
-    private int gold = 0;
-    private int gems = 0;
-    // Tien cua run hien tai, dung cho HUD va Continue
-    private int pendingBankGold = 0;
-    private int pendingBankGems = 0;
-
     // Ngan cong trung khi nhieu su kien save xay ra lien tiep
     private final AtomicBoolean bankSyncInProgress = new AtomicBoolean(false);
     private final Object bankRewardLock = new Object();
-    private int score = 0;
-    private int currentRoomNumber = 1;
-    private Room currentRoom;
-
-    private double autoSaveTimer = 0.0;
-    private static final double AUTO_SAVE_INTERVAL = 30.0;
-    private double playerEnergy = 100.0;
-
-    private PlayerSave pendingPlayerSave;
-
     private final List<Enemy> enemies = new ArrayList<>();
     private final Map<Enemy, EnemySpawnEffect> enemySpawnEffects = new IdentityHashMap<>();
     private final Map<Enemy, EnemyDeathEffect> enemyDeathEffects = new IdentityHashMap<>();
@@ -113,8 +87,37 @@ public final class  GameWorld {
     // Danh sach hieu ung chem cua vu khi can chien (kiem)
     private final List<SlashEffect> slashEffects = new ArrayList<>();
     private final List<Item> items = new ArrayList<>();
+    private final ItemMagnetSystem itemMagnetSystem = new ItemMagnetSystem();
     // Sửa tên biến từ effectManager -> particleManager
     private final ParticleManager particleManager = new ParticleManager();
+    private final List<Obstacle> obstacles = new ArrayList<>();
+    private final List<Obstacle> readOnlyObstacles = java.util.Collections.unmodifiableList(obstacles);
+    private final List<Obstacle> destroyedObstacleQueue = new ArrayList<>();
+    private final ExecutorService databaseExecutor =
+            Executors.newSingleThreadExecutor(runnable -> {
+                Thread thread = new Thread(runnable, "soul-knight-database-worker");
+                thread.setDaemon(true);
+                return thread;
+            });
+    private final AtomicBoolean saveInProgress = new AtomicBoolean(false);
+    private final AtomicBoolean saveLoadInProgress = new AtomicBoolean(false);
+    private GameStateListener stateListener;
+    private java.util.function.IntConsumer buffHotkeyListener;
+    private MapManager mapManager;
+    private Player player;
+    private Pet currentPet;
+    private String currentPlayerName = "";
+    private int gold = 0;
+    private int gems = 0;
+    // Tien cua run hien tai, dung cho HUD va Continue
+    private int pendingBankGold = 0;
+    private int pendingBankGems = 0;
+    private int score = 0;
+    private int currentRoomNumber = 1;
+    private Room currentRoom;
+    private double autoSaveTimer = 0.0;
+    private double playerEnergy = 100.0;
+    private PlayerSave pendingPlayerSave;
     private GameState state = GameState.INTRO;
     private double enemySpawnTimer;
     private Vector2D pendingPortalPosition;
@@ -129,24 +132,6 @@ public final class  GameWorld {
     private SpawnEffect petSpawnEffect;
     private PlayerDeathEffect playerDeathEffect;
     private boolean playerDeathHandled;
-    private final List<Obstacle> obstacles = new ArrayList<>();
-    private final List<Obstacle> readOnlyObstacles = java.util.Collections.unmodifiableList(obstacles);
-    private final List<Obstacle> destroyedObstacleQueue = new ArrayList<>();
-
-
-    private final ExecutorService databaseExecutor =
-            Executors.newSingleThreadExecutor(runnable -> {
-                Thread thread = new Thread(runnable, "soul-knight-database-worker");
-                thread.setDaemon(true);
-                return thread;
-            });
-
-    private final AtomicBoolean saveInProgress = new AtomicBoolean(false);
-    private final AtomicBoolean saveLoadInProgress = new AtomicBoolean(false);
-
-    public interface GameStateListener {
-        void onStateChanged(GameState newState);
-    }
 
     public GameWorld(InputHandler inputHandler) {
         this.inputHandler = inputHandler;
@@ -159,6 +144,7 @@ public final class  GameWorld {
             this.stateListener.onStateChanged(this.state);
         }
     }
+
     public void setBuffHotkeyListener(java.util.function.IntConsumer listener) {
         this.buffHotkeyListener = listener;
     }
@@ -223,7 +209,7 @@ public final class  GameWorld {
         }
     }
 
-//    update cho trang thai PLAYING, cap nhat tat ca cac doi tuong trong game
+    //    update cho trang thai PLAYING, cap nhat tat ca cac doi tuong trong game
     private void updatePlaying(double deltaSeconds, double viewportWidth, double viewportHeight, boolean allowSpawns) {
         if (player == null || mapManager == null) {
             return;
@@ -251,12 +237,12 @@ public final class  GameWorld {
             currentRoom.update(this, player, enemies, deltaSeconds);
         }
         Room.RoomState previousState = previousRoomStates.get(currentRoom);
-        handleRoomBuffReward(currentRoom,previousState);
+        handleRoomBuffReward(currentRoom, previousState);
         previousRoomStates.put(currentRoom, currentRoom.getState());
 
 
         for (Enemy enemy : enemies) {
-            if (!enemy.isAlive() ||isEnemySpawning(enemy)) {
+            if (!enemy.isAlive() || isEnemySpawning(enemy)) {
                 continue;
             }
             enemy.update(this, deltaSeconds);
@@ -270,6 +256,7 @@ public final class  GameWorld {
         updateExplosions(deltaSeconds);
         updateSlashEffects(deltaSeconds);
         updateEnemyDeaths(deltaSeconds);
+        itemMagnetSystem.update(items, player, deltaSeconds);// hut item ve player
         updateItemCollection();
         openRewardPickerOnMissionComplete();
         updateAutoSave(deltaSeconds);
@@ -409,7 +396,7 @@ public final class  GameWorld {
                         break;
                     }
                 }
-            } else if (player != null &&  player.isAlive() &&  bullet.intersects(player)) {
+            } else if (player != null && player.isAlive() && bullet.intersects(player)) {
                 int healthBefore = player.getHealth();
 
                 player.takeDamage(bullet.getDamage());
@@ -540,9 +527,9 @@ public final class  GameWorld {
                 addGems(amount);
 
                 floatingTextManager.spawnCustom("+" + amount, player.getPosition(), Color.MEDIUMPURPLE);
-            }else if (item instanceof BuffItem buffItem) {
+            } else if (item instanceof BuffItem buffItem) {
                 BuffType type = buffItem.getBuffType();
-                BuffInventoryManager.getInstance().add(type,1);
+                BuffInventoryManager.getInstance().add(type, 1);
 
                 floatingTextManager.spawnCustom("+1 " + type.getDisplayName(),
                         player.getPosition(), Color.LIMEGREEN);
@@ -604,8 +591,8 @@ public final class  GameWorld {
 
         // 2. Danh sách Y-Sorting
         class SortableObject {
-            double depthY;
-            Runnable renderAction;
+            final double depthY;
+            final Runnable renderAction;
 
             SortableObject(double depthY, Runnable renderAction) {
                 this.depthY = depthY;
@@ -840,7 +827,6 @@ public final class  GameWorld {
         floatingTextManager.render(graphicsContext, camera);
     }
 
-
     private void startNewRun() {
         levelManager.startNewRun();
         if (pendingPlayerSave == null) {
@@ -1011,7 +997,7 @@ public final class  GameWorld {
         if (player == null || player.getPosition() == null || currentRoom == null) {
             return;
         }
-        
+
         // Chỉ mở hộp khi phòng vừa được dọn sạch (không phải START room)
         if (currentRoom.getState() != Room.RoomState.CLEARED) {
             return;
@@ -1187,7 +1173,6 @@ public final class  GameWorld {
         return missionManager;
     }
 
-
     public String getCurrentPlayerName() {
         return currentPlayerName;
     }
@@ -1297,7 +1282,6 @@ public final class  GameWorld {
     public void setPlayerEnergy(double playerEnergy) {
         this.playerEnergy = Math.max(0.0, playerEnergy);
     }
-
 
     // Doi qua lai giua sung va kiem (bam nut vu khi tren HUD de test)
     public void switchPlayerWeapon() {
@@ -1783,6 +1767,7 @@ public final class  GameWorld {
         syncBankRewardsNow();
         databaseExecutor.shutdown();
     }
+
     private void syncBankRewardsNow() {
         int userId = UserSession.getCurrentUserId();
         if (userId <= 0) return;
@@ -1817,6 +1802,7 @@ public final class  GameWorld {
         saveGameAsync();
         syncBankRewardsAsync();
     }
+
     private void applyPendingPlayerSave() {
         if (pendingPlayerSave == null || player == null) {
             return;
@@ -1825,27 +1811,30 @@ public final class  GameWorld {
         PlayerSaveMapper.applyToWorld(this, saveToApply);
         synchronized (bankRewardLock) {
             pendingBankGold = 0;
-            pendingBankGems = 0;}
+            pendingBankGems = 0;
+        }
 
         pendingPlayerSave = null;
         System.out.println("Đã áp dụng save vào Player: player=" + saveToApply.getPlayerName() + ", room=" + currentRoomNumber);
     }
-//    luu buff khu nhat duoc
-    private void saveCollectedBuff(BuffType type){
+
+    //    luu buff khu nhat duoc
+    private void saveCollectedBuff(BuffType type) {
         int userId = UserSession.getCurrentUserId();
-        if(userId<=0){
+        if (userId <= 0) {
             return;
         }
         databaseExecutor.submit(() -> {
-            try{
-                ShopDAO dao=new ShopDAO();
+            try {
+                ShopDAO dao = new ShopDAO();
                 dao.grantBuff(userId, type.name(), 1);
-            }catch (Exception e){
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         });
     }
-//    dong bo vang , gem
+
+    //    dong bo vang , gem
     public void syncBankRewardsAsync() {
         int userId = UserSession.getCurrentUserId();
         if (userId <= 0) {
@@ -1908,6 +1897,7 @@ public final class  GameWorld {
             }
         });
     }
+
     public boolean saveGameNow() {
         if (player == null || currentPlayerName.isBlank()) {
             return false;
@@ -1982,7 +1972,8 @@ public final class  GameWorld {
         debug("Đã tiêu diệt quái | +" + scoreReward + " điểm");
         debug("Quái rơi " + goldReward + " vàng" + (droppedGem ? " và 1 kim cương." : "."));
     }
-//    ham dong bo thoi gian thuc moi 30s
+
+    //    ham dong bo thoi gian thuc moi 30s
     private void updateAutoSave(double deltaSeconds) {
         autoSaveTimer += deltaSeconds;
 
@@ -2028,6 +2019,7 @@ public final class  GameWorld {
             return;
         }
     }
+
     private void handleRoomBuffReward(Room room, Room.RoomState previousState) {
         if (room == null) {
             return;
@@ -2050,7 +2042,8 @@ public final class  GameWorld {
         }
         spawnRoomBuff(room);
     }
-//sinh bufff trong phong
+
+    //sinh bufff trong phong
     private void spawnRoomBuff(Room room) {
 
         Vector2D position = mapManager.findRandomWalkablePositionInRoom(room, random, 18);
@@ -2282,6 +2275,10 @@ public final class  GameWorld {
         SoundManager sound = SoundManager.getInstance();
         sound.stopBGM();
         sound.playBGM("/assets/Audio/StartGame.mp3");
+    }
+
+    public interface GameStateListener {
+        void onStateChanged(GameState newState);
     }
 }
 //NOTE : cac ham xu ly va cham

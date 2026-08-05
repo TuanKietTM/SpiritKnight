@@ -5,15 +5,13 @@ import javafx.animation.AnimationTimer;
 import javafx.geometry.Pos;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
 
 import java.net.URL;
 
 /**
- * class nay tao hieu ung con cat di trong khi dang load du lieu
+ * Class nay tao hieu ung con cat di trong khi dang load du lieu
  */
 public final class CatLoadingOverlay extends StackPane {
 
@@ -22,7 +20,6 @@ public final class CatLoadingOverlay extends StackPane {
     private static final PetType LOADING_CAT = PetType.CAT;
 
     private final Canvas canvas = new Canvas(CANVAS_SIZE, CANVAS_SIZE);
-    private final Label messageLabel = new Label("Dang tai...");
     private final Image runSpriteSheet;
     private final AnimationTimer animationTimer;
 
@@ -36,12 +33,7 @@ public final class CatLoadingOverlay extends StackPane {
         setManaged(false);
         setMouseTransparent(false);
 
-        messageLabel.getStyleClass().add("cat-loading-text");
-
-        VBox content = new VBox(8, canvas, messageLabel);
-        content.setAlignment(Pos.CENTER);
-        content.getStyleClass().add("cat-loading-box");
-        getChildren().add(content);
+        getChildren().add(canvas);
 
         runSpriteSheet = loadImage(LOADING_CAT.getRunImagePath());
 
@@ -53,13 +45,7 @@ public final class CatLoadingOverlay extends StackPane {
         };
     }
 
-    public void show(String message) {
-        messageLabel.setText(
-                message == null || message.isBlank()
-                        ? "Dang tai..."
-                        : message
-        );
-
+    public void show() {
         animTimer = 0.0;
         lastTime = 0;
 

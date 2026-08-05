@@ -14,20 +14,23 @@ import com.soulknight.weapon.WeaponType;
 import com.soulknight.database.UserDAO;
 import com.soulknight.database.UserSession;
 import com.soulknight.database.EquipmentLoader;
-import javafx.animation.FadeTransition;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Pos;
 import javafx.scene.Parent;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
-import javafx.util.Duration;
 
 import java.util.concurrent.CompletableFuture;
 
-public final class      UIManager {
+public final class UIManager {
 
     private final StackPane rootNode;
+    private final UserDAO userDAO = new UserDAO();
+    private final CatLoadingOverlay loadingOverlay = new CatLoadingOverlay();
+    private final EquipmentLoader equipmentLoader = new EquipmentLoader();
+    private final ShopDAO shopDAO = new ShopDAO();
+    private final PortalOverlay portalOverlay = new PortalOverlay();
     private IntroController introController;
     private StoryIntroController storyIntroController;
     private HUD hudController;
@@ -42,7 +45,6 @@ public final class      UIManager {
     private RegisterController registerController;
     private LeaderboardController leaderboardController;
     private AccountController accountController;
-
     private Parent introRoot;
     private Parent storyIntroRoot;
     private Parent hudRoot;
@@ -57,13 +59,6 @@ public final class      UIManager {
     private Parent registerRoot;
     private Parent leaderboardRoot;
     private Parent accountRoot;
-
-    private final UserDAO userDAO = new UserDAO();
-    private final CatLoadingOverlay loadingOverlay = new CatLoadingOverlay();
-    private final EquipmentLoader equipmentLoader = new EquipmentLoader();
-    private final ShopDAO shopDAO = new ShopDAO();
-
-    private final PortalOverlay portalOverlay = new PortalOverlay();
     private IntroToLoginTransition introToLoginTransition;
     // Luu trang thai Continue cua tai khoan dang dang nhap
     private boolean continueAvailable;
@@ -322,6 +317,7 @@ public final class      UIManager {
         bindRegisterActions();
         bindGameActions(world);
     }
+
     private void bindIntroActions(GameWorld world) {
         if (introController == null
                 || introRoot == null
@@ -333,6 +329,7 @@ public final class      UIManager {
                 Platform.runLater(this::transitionIntroToLogin)
         );
     }
+
     private void transitionIntroToLogin() {
         if (registerController != null) {
             registerController.stopBackground();
@@ -423,6 +420,7 @@ public final class      UIManager {
                     });
         });
     }
+
     private void bindRegisterActions() {
         if (registerController == null) {
             return;
@@ -672,7 +670,8 @@ public final class      UIManager {
             );
         }
     }
-//    quy dinh an vao de su dung buff
+
+    //    quy dinh an vao de su dung buff
     private void useBuffFromHud(GameWorld world, BuffType buffType) {
         if (world == null || buffType == null || buffUseInProgress) {
             return;
@@ -806,6 +805,7 @@ public final class      UIManager {
 
         return null;
     }
+
     private void showLoginScreen() {
         if (registerController != null) registerController.stopBackground();
         if (introToLoginTransition != null) introToLoginTransition.stop();
@@ -854,13 +854,14 @@ public final class      UIManager {
             menuController.setContinueAvailable(continueAvailable);
         }
     }
+
     public void showLoading(String message) {
         if (Platform.isFxApplicationThread()) {
-            loadingOverlay.show(message);
+            loadingOverlay.show();
             loadingOverlay.toFront();
         } else {
             Platform.runLater(() -> {
-                loadingOverlay.show(message);
+                loadingOverlay.show();
                 loadingOverlay.toFront();
             });
         }
@@ -873,6 +874,7 @@ public final class      UIManager {
             Platform.runLater(loadingOverlay::hide);
         }
     }
+
     //    chay portal truoc moi game
     private void playPortalBeforeGame(Runnable onFinished) {
         if (menuRoot != null) {
@@ -892,6 +894,7 @@ public final class      UIManager {
             }
         }));
     }
+
     private void showFirstStory(GameWorld world) {
         if (storyIntroController == null || storyIntroRoot == null) {
             world.startNewGameFromMenu();
@@ -968,6 +971,7 @@ public final class      UIManager {
             playPortalBeforeGame(world::continueGameFromMenu);
         });
     }
+
     public void useBuffByIndex(int index) {
         if (hudController != null) {
             hudController.useBuffByIndex(index);
@@ -990,7 +994,9 @@ public final class      UIManager {
         if (settingRoot != null) settingRoot.setVisible(false);
         if (shopRoot != null) shopRoot.setVisible(false);
         if (leaderboardRoot != null) leaderboardRoot.setVisible(false);
-        if (accountRoot != null) {accountRoot.setVisible(false);accountRoot.setManaged(false);
+        if (accountRoot != null) {
+            accountRoot.setVisible(false);
+            accountRoot.setManaged(false);
         }
     }
 }
