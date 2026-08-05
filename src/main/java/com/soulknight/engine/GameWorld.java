@@ -40,6 +40,7 @@ import com.soulknight.database.PlayerSaveMapper;
 import com.soulknight.database.ShopDAO;
 import com.soulknight.database.UserSession;
 import com.soulknight.animation.FloatingTextManager;
+import com.soulknight.ui.UIManager;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -68,6 +69,7 @@ public final class  GameWorld {
     private final FloatingTextManager floatingTextManager = new FloatingTextManager();
 
     private GameStateListener stateListener;
+    private java.util.function.IntConsumer buffHotkeyListener;
 
     private MapManager mapManager;
     private Player player;
@@ -148,6 +150,9 @@ public final class  GameWorld {
             this.stateListener.onStateChanged(this.state);
         }
     }
+    public void setBuffHotkeyListener(java.util.function.IntConsumer listener) {
+        this.buffHotkeyListener = listener;
+    }
 
     public void changeState(GameState newState) {
         if (newState == null || this.state == newState) return;
@@ -167,6 +172,13 @@ public final class  GameWorld {
         // Nếu game đang Pause thì ngưng toàn bộ logic cập nhật
         if (state == GameState.PAUSED) {
             return;
+        }
+        if (state == GameState.PLAYING && inputHandler != null) {
+            int buffIndex = inputHandler.consumeBuffHotkeyRequest();
+
+            if (buffIndex >= 0 && buffHotkeyListener != null) {
+                buffHotkeyListener.accept(buffIndex);
+            }
         }
         dynamicBackground.update(deltaSeconds);
 

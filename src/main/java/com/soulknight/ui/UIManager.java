@@ -315,6 +315,7 @@ public final class UIManager {
 
         this.boundWorld = world;
         world.setGameStateListener(this::handleStateChange);
+        world.setBuffHotkeyListener(this::useBuffByIndex);
 
         bindIntroActions(world);
         bindLoginActions(world);
@@ -966,6 +967,11 @@ public final class UIManager {
              */
             playPortalBeforeGame(world::continueGameFromMenu);
         });
+    }
+    public void useBuffByIndex(int index) {
+        if (hudController != null) {
+            hudController.useBuffByIndex(index);
+        }
     }
 
     private void hideAllScreens() {
