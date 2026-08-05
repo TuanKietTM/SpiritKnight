@@ -29,11 +29,22 @@ public class BuffItem extends Item {
             return;
         }
 
+        double time = System.nanoTime() / 1_000_000_000.0;
+        double bobOffset = Math.sin(time * 3.2) * 3.0;
+        double pulse = 1.0 + Math.sin(time * 4.5) * 0.06;
+
         double screenX = camera.worldToScreenX(getPosition().getX());
-        double screenY = camera.worldToScreenY(getPosition().getY());
+        double screenY = camera.worldToScreenY(getPosition().getY()) + bobOffset;
+        double size = 36.0 * pulse;
+
+        graphicsContext.save();
+        graphicsContext.setGlobalAlpha(0.22);
+        graphicsContext.setFill(Color.LIGHTGREEN);
+        graphicsContext.fillOval(screenX - 24.0, screenY - 24.0, 48.0, 48.0);
+        graphicsContext.restore();
 
         if (image != null) {
-            graphicsContext.drawImage(image, screenX - 18.0, screenY - 18.0, 36.0, 36.0);
+            graphicsContext.drawImage(image, screenX - size / 2.0, screenY - size / 2.0, size, size);
             return;
         }
 

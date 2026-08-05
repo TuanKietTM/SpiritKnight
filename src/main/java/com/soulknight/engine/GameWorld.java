@@ -14,6 +14,9 @@ import com.soulknight.item.EnergyCrystal;
 import com.soulknight.item.GemItem;
 import com.soulknight.item.GoldItem;
 import com.soulknight.item.Item;
+import com.soulknight.item.BuffItem;
+import com.soulknight.buff.BuffInventoryManager;
+import com.soulknight.buff.BuffType;
 import com.soulknight.level.LevelManager;
 import com.soulknight.map.MapManager;
 import com.soulknight.map.Obstacle;
@@ -40,7 +43,6 @@ import com.soulknight.database.PlayerSaveMapper;
 import com.soulknight.database.ShopDAO;
 import com.soulknight.database.UserSession;
 import com.soulknight.animation.FloatingTextManager;
-import com.soulknight.ui.UIManager;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -59,6 +61,13 @@ public final class  GameWorld {
     private static final boolean DEBUG_LOGGING = false;
 
     private final Random random = new Random();
+    // phong nao da roi buff thi khong roi lan nua
+    private final java.util.Set<Room> buffRewardedRooms = java.util.Collections.newSetFromMap(new IdentityHashMap<>());
+
+    // trang thai phong frame truoc
+    private final java.util.Map<Room, Room.RoomState> previousRoomStates = new IdentityHashMap<>();
+
+    private static final double ROOM_BUFF_DROP_CHANCE = 1;
     private final InputHandler inputHandler;
     private final Camera camera = new Camera();
     private final DynamicBackground dynamicBackground = new DynamicBackground();
@@ -241,6 +250,9 @@ public final class  GameWorld {
         if (currentRoom != null) {
             currentRoom.update(this, player, enemies, deltaSeconds);
         }
+        Room.RoomState previousState = previousRoomStates.get(currentRoom);
+        handleRoomBuffReward(currentRoom,previousState);
+        previousRoomStates.put(currentRoom, currentRoom.getState());
 
 
         for (Enemy enemy : enemies) {
@@ -528,6 +540,14 @@ public final class  GameWorld {
                 addGems(amount);
 
                 floatingTextManager.spawnCustom("+" + amount, player.getPosition(), Color.MEDIUMPURPLE);
+            }else if (item instanceof BuffItem buffItem) {
+                BuffType type = buffItem.getBuffType();
+                BuffInventoryManager.getInstance().add(type,1);
+
+                floatingTextManager.spawnCustom("+1 " + type.getDisplayName(),
+                        player.getPosition(), Color.LIMEGREEN);
+
+                saveCollectedBuff(type);
             }
 
             item.collect();
@@ -1810,6 +1830,21 @@ public final class  GameWorld {
         pendingPlayerSave = null;
         System.out.println("Đã áp dụng save vào Player: player=" + saveToApply.getPlayerName() + ", room=" + currentRoomNumber);
     }
+//    luu buff khu nhat duoc
+    private void saveCollectedBuff(BuffType type){
+        int userId = UserSession.getCurrentUserId();
+        if(userId<=0){
+            return;
+        }
+        databaseExecutor.submit(() -> {
+            try{
+                ShopDAO dao=new ShopDAO();
+                dao.grantBuff(userId, type.name(), 1);
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+        });
+    }
 //    dong bo vang , gem
     public void syncBankRewardsAsync() {
         int userId = UserSession.getCurrentUserId();
@@ -1992,6 +2027,42 @@ public final class  GameWorld {
             }
             return;
         }
+    }
+    private void handleRoomBuffReward(Room room, Room.RoomState previousState) {
+        if (room == null) {
+            return;
+        }
+        if (room.getState() != Room.RoomState.CLEARED) {
+            return;
+        }
+        if (previousState == Room.RoomState.CLEARED) {
+            return;
+        }
+        if (buffRewardedRooms.contains(room)) {
+            return;
+        }
+        buffRewardedRooms.add(room);
+        if (room.getType() == Room.RoomType.START || room.getType() == Room.RoomType.REST) {
+            return;
+        }
+        if (random.nextDouble() > ROOM_BUFF_DROP_CHANCE) {
+            return;
+        }
+        spawnRoomBuff(room);
+    }
+//sinh bufff trong phong
+    private void spawnRoomBuff(Room room) {
+
+        Vector2D position = mapManager.findRandomWalkablePositionInRoom(room, random, 18);
+        if (position == null) {
+            return;
+        }
+
+        BuffType[] types = BuffType.values();
+
+        BuffType buff = types[random.nextInt(types.length)];
+
+        items.add(new BuffItem(position, buff, null));
     }
 
     private void restorePlayerRoomPosition() {

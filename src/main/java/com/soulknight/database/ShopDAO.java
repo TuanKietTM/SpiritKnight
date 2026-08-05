@@ -302,7 +302,63 @@ public final class ShopDAO {
     public BuffPurchaseResult purchaseBuff(int userId, String username, String buffType, int price) {
         return purchaseBuff(userId, buffType, price);
     }
+    public boolean grantBuff(
+            int userId,
+            String buffType,
+            int amount
+    ){
 
+        if(userId<=0){
+            return false;
+        }
+
+        if(amount<=0){
+            return false;
+        }
+
+        String safeBuffType=
+                normalizeItemType(buffType);
+
+        if(safeBuffType.isBlank()){
+            return false;
+        }
+
+        String sql=
+                """
+                INSERT INTO user_buffs(
+                user_id,
+                buff_type,
+                quantity
+                )
+                VALUES(?,?,?)
+                ON DUPLICATE KEY UPDATE
+                quantity=quantity+VALUES(quantity)
+                """;
+
+        try(Connection connection=
+                    DatabaseManager.getConnection();
+
+            PreparedStatement statement=
+                    connection.prepareStatement(sql)){
+
+            statement.setInt(1,userId);
+
+            statement.setString(2,safeBuffType);
+
+            statement.setInt(3,amount);
+
+            return statement.executeUpdate()>0;
+
+        }catch(SQLException exception){
+
+            throw new IllegalStateException(
+                    "Khong the cong buff.",
+                    exception
+            );
+
+        }
+
+    }
     public BuffPurchaseResult purchaseBuff(int userId, String buffType, int price) {
         String getBankGoldSql = """
                 SELECT gold_bank
