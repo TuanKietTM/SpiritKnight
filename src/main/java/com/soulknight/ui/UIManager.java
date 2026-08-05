@@ -25,7 +25,7 @@ import javafx.util.Duration;
 
 import java.util.concurrent.CompletableFuture;
 
-public final class UIManager {
+public final class      UIManager {
 
     private final StackPane rootNode;
     private IntroController introController;
