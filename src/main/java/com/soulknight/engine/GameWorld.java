@@ -127,6 +127,8 @@ public final class GameWorld {
     private RewardPicker rewardPicker;
     // Phòng cuối cùng đã mở hộp phần thưởng (tránh mở trùng)
     private Room lastRewardRoom;
+    // Các phòng đã nhận thưởng trong run hiện tại, key = level:room
+    private final java.util.Set<String> rewardedRoomKeys = new java.util.HashSet<>();
     //    Bien cho hieu ung dau tien cua start room
     private SpawnEffect playerSpawnEffect;
     private SpawnEffect petSpawnEffect;
@@ -832,6 +834,7 @@ public final class GameWorld {
         if (pendingPlayerSave == null) {
             currentRoomNumber = 1;
         }
+        rewardedRoomKeys.clear();
         loadCurrentLevel(true);
         playGameBGM();
     }
@@ -1005,14 +1008,18 @@ public final class GameWorld {
         if (currentRoom.getType() == Room.RoomType.START || currentRoom.getType() == Room.RoomType.REST) {
             return;
         }
-        // Tránh mở hộp trùng cho cùng một phòng
-        if (currentRoom == lastRewardRoom) {
+        if (!currentRoom.hasSpawnedEnemies()) {
+            return;
+        }
+        String rewardKey = levelManager.getCurrentLevel().number() + ":" + currentRoomNumber;
+        if (rewardedRoomKeys.contains(rewardKey)) {
             return;
         }
 
         Weapon rewardWeapon = levelManager.getRewardWeaponForCurrentLevel();
         if (rewardWeapon == null) {
             rewardPickerShown = true;
+            rewardedRoomKeys.add(rewardKey);
             lastRewardRoom = currentRoom;
             return;
         }
@@ -1021,6 +1028,7 @@ public final class GameWorld {
 
         rewardPicker = new RewardPicker(rewardWeapon, goldReward);
         rewardPickerShown = true;
+        rewardedRoomKeys.add(rewardKey);
         lastRewardRoom = currentRoom;
 
         changeState(GameState.REWARD_PICK);
@@ -1328,7 +1336,7 @@ public final class GameWorld {
         return state == GameState.PLAYING;
     }
 
-    public void spawnEnemiesInRoom(com.soulknight.map.Room room, int waveNumber) {
+    public int spawnEnemiesInRoom(com.soulknight.map.Room room, int waveNumber) {
         List<Vector2D> roomSpawnPoints = new ArrayList<>();
         javafx.geometry.BoundingBox bound = room.getBound();
 
@@ -1382,6 +1390,7 @@ public final class GameWorld {
             Enemy enemy = enemyFactory.createEnemyByWave(random, spawnPt, waveNumber);
             addEnemyWithSpawnEffect(enemy, i * 0.08);
         }
+        return roomSpawnPoints.size();
     }
 
     private void addEnemyWithSpawnEffect(Enemy enemy, double delay) {
@@ -1463,7 +1472,7 @@ public final class GameWorld {
                 Vector2D pushEnemy = pushDirection.scale(overlap * 0.5);
                 enemy.move(this, pushEnemy.getX(), pushEnemy.getY());
 
-                // Đẩy ngược Player về phía sau 1 nửa khoảng cách lún để tạo phản lực mượt mà
+                // Đẩy ngược Player về phía sau 1 nửa khoảng cách lún để tạo phản lực mượt m�
                 player.move(this, -pushEnemy.getX(), -pushEnemy.getY());
             }
         }
