@@ -1,13 +1,13 @@
 package com.soulknight.entity;
 
 import com.soulknight.buff.BuffManager;
+import com.soulknight.buff.BuffType;
 import com.soulknight.engine.GameWorld;
 import com.soulknight.utils.Constants;
 import com.soulknight.utils.Vector2D;
 import com.soulknight.weapon.Gun;
 import com.soulknight.weapon.SlashEffect;
 import com.soulknight.weapon.Weapon;
-import com.soulknight.entity.PlayerAnimator;
 import javafx.scene.image.Image;
 import javafx.scene.input.KeyCode;
 import javafx.scene.paint.Color;
@@ -81,15 +81,33 @@ public final class Player extends Entity {
     // Tạo thời gian bất tử để giảm đòn đánh liên tục
     @Override
     public void takeDamage(int amount) {
-        if (invulnerabilityTimer > 0.0 || amount <= 0) {
+        if (invulnerabilityTimer > 0.0 || amount <= 0 || !isAlive()) {
+            return;
+        }
+        int finalDamage = (int) Math.round(amount * (1.0 - buffDamageReduction)
+        );
+
+        finalDamage = Math.max(0, finalDamage);
+
+        if (finalDamage <= 0) {
             return;
         }
 
-        int finalDamage = (int) Math.round(amount * (1.0 - buffDamageReduction));
-        super.takeDamage(Math.max(0, finalDamage));
+        int healthBefore = getHealth();
 
-        if (finalDamage > 0) {
-            this.invulnerabilityTimer = MAX_INVULNERABILITY_TIME;
+        super.takeDamage(finalDamage);
+
+        int realDamage = healthBefore - getHealth();
+
+        if (realDamage <= 0) {
+            return;
+        }
+
+        invulnerabilityTimer = MAX_INVULNERABILITY_TIME;
+
+        // Khi Shield dang hoat dong, cho effect loe sang luc hap thu don danh
+        if (buffManager.isActive(BuffType.SHIELD)) {
+            buffManager.notifyPlayerHit();
         }
     }
 
@@ -231,20 +249,34 @@ public final class Player extends Entity {
     }
 
     @Override
-    public void render(javafx.scene.canvas.GraphicsContext graphicsContext, com.soulknight.engine.Camera camera) {
+    public void render(
+            javafx.scene.canvas.GraphicsContext graphicsContext,
+            com.soulknight.engine.Camera camera
+    ) {
         double worldWidth = 24.0;
         double worldHeight = 24.0;
-        animator.render(graphicsContext, camera, getPosition().getX(), getPosition().getY(), worldWidth, worldHeight,
-                getRadius(), isFacingLeft
-        );
 
-        // Ve sung tren tay nhan vat, xoay theo huong ban
+        /*
+         * Ve nua sau cua quy dao Shield truoc Player.
+         */
+        buffManager.renderBehind(graphicsContext, camera);
+
+        /*
+         * Ve Player.
+         */
+        animator.render(graphicsContext, camera, getPosition().getX(), getPosition().getY(), worldWidth, worldHeight, getRadius(), isFacingLeft);
+
+        /*
+         * Ve vu khi tren tay.
+         */
         renderWeapon(graphicsContext, camera);
 
-        // Ve hieu ung buff
-        buffManager.render(graphicsContext);
+        /*
+         * Ve nua truoc cua quy dao Shield sau Player.
+         */
+        buffManager.renderFront(graphicsContext, camera
+        );
     }
-
     /**
      * Ve vu khi nhan vat dang cam.
      * Sung duoc xoay quanh vi tri tay theo goc aimAngle,
