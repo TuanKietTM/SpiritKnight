@@ -43,6 +43,7 @@ public class Room {
     private int maxWaves = 2;
     private double waveDelayTimer;
     private boolean isWaitingForNextWave;
+    private boolean enemiesSpawned;
 
     public Room(String name, double x, double y, double width, double height) {
         this.name = name;
@@ -129,7 +130,9 @@ public class Room {
         waveDelayTimer = 0.0;
         isWaitingForNextWave = false;
 
-        gameWorld.spawnEnemiesInRoom(this, currentWave);
+        if (gameWorld.spawnEnemiesInRoom(this, currentWave) > 0) {
+            enemiesSpawned = true;
+        }
     }
 
     private void updateWaves(GameWorld gameWorld, double deltaSeconds) {
@@ -145,7 +148,9 @@ public class Room {
 
         isWaitingForNextWave = false;
         currentWave++;
-        gameWorld.spawnEnemiesInRoom(this, currentWave);
+        if (gameWorld.spawnEnemiesInRoom(this, currentWave) > 0) {
+            enemiesSpawned = true;
+        }
     }
 
     private void checkRoomClear(List<Enemy> globalEnemies) {
@@ -252,6 +257,10 @@ public class Room {
 
     public boolean isDoorClosedAtTile(int tileX, int tileY, double tileSize) {
         return doorController.isDoorClosedAtTile(tileX, tileY, tileSize);
+    }
+
+    public boolean hasSpawnedEnemies() {
+        return enemiesSpawned;
     }
 
     public boolean containsPosition(Vector2D position, double radius) {
