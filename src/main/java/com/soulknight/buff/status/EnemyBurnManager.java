@@ -84,4 +84,7 @@ public final class EnemyBurnManager {
             this.remainingSeconds = remainingSeconds;
         }
     }
+    public boolean isBurning(Enemy enemy) {
+        return enemy != null && burningEnemies.containsKey(enemy);
+    }
 }

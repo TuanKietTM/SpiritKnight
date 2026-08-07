@@ -46,6 +46,10 @@ public final class Player extends Entity {
     // Phan tram giam sat thuong, vi du 0.5 = giam 50%
     private double buffDamageReduction = 0.0;
 
+    private Runnable dragonBreathAction;
+    private double lastMoveX = 1.0;
+    private double lastMoveY = 0.0;
+
     public Player(Vector2D spawnPoint) {
         this(spawnPoint, HeroSelectionManager.getInstance().getSelectedHero());
     }
@@ -157,6 +161,11 @@ public final class Player extends Entity {
         // Xử lý di chuyển
         Vector2D movement = new Vector2D(dx, dy);
         if (movement.length() > 0.0) {
+            double moveLength = movement.length();
+            if (moveLength > 0.001) {
+                lastMoveX = movement.getX() / moveLength;
+                lastMoveY = movement.getY() / moveLength;
+            }
             this.movementState = PlayerAnimator.State.RUN;
 
             if (touchpadDir.length() == 0.0) {
@@ -385,6 +394,22 @@ public final class Player extends Entity {
 
     public double getSpeed() {
         return Constants.PLAYER_SPEED * buffSpeedMultiplier;
+    }
+
+    public void setDragonBreathAction(Runnable dragonBreathAction) {
+        this.dragonBreathAction = dragonBreathAction;
+    }
+    public void requestDragonBreath() {
+        if (dragonBreathAction != null) {
+            dragonBreathAction.run();
+        }
+    }
+    public double getLastMoveX() {
+        return lastMoveX;
+    }
+
+    public double getLastMoveY() {
+        return lastMoveY;
     }
 
     public void clearBuffs() {

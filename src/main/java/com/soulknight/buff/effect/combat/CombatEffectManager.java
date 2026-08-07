@@ -39,6 +39,21 @@ public final class CombatEffectManager {
         }
         effects.add(new DeathFireExplosionEffect(position));
     }
+    public void spawnDragonBreath(Vector2D origin, double dirX, double dirY, double range, double halfAngle) {
+        if (origin == null) {
+            return;
+        }
+
+        effects.add(new DragonBreathEffect(origin, dirX, dirY, range, halfAngle));
+    }
+    public void spawnDragonExplosion(
+            Vector2D position
+    ) {
+        if (position == null) {
+            return;
+        }
+        effects.add(new DragonBreathExplosionEffect(position));
+    }
 
     public void clear() {
         effects.clear();
