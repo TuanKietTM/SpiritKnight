@@ -296,7 +296,7 @@ public final class  GameWorld {
             double bulletY = bullet.getPosition().getY();
 
             // Đạn xuất hiện trong tường
-            if (mapManager.isBulletCollidingWithWall(bulletX, bulletY)) {
+            if (mapManager.isBulletCollidingWithWall(bulletX, bulletY, bullet.getRadius())) {
                 bullet.deactivate();
                 continue;
             }
@@ -311,12 +311,12 @@ public final class  GameWorld {
             bulletY = bullet.getPosition().getY();
 
             // Đạn va chạm tường sau khi di chuyển
-            if (mapManager.isBulletCollidingWithWall(bulletX, bulletY)) {
+            if (mapManager.isBulletCollidingWithWall(bulletX, bulletY, bullet.getRadius())) {
                 // Đạn laser: lần đầu chạm tường thì phản lại 1 góc (1 lần duy nhất)
                 if (bullet.canReflect()) {
                     // Xác định trục phản: thử di chuyển từng trục từ vị trí an toàn
-                    boolean flipX = mapManager.isBulletCollidingWithWall(bulletX, prevY);
-                    boolean flipY = mapManager.isBulletCollidingWithWall(prevX, bulletY);
+                    boolean flipX = mapManager.isBulletCollidingWithWall(bulletX, prevY, bullet.getRadius());
+                    boolean flipY = mapManager.isBulletCollidingWithWall(prevX, bulletY, bullet.getRadius());
                     bullet.reflectOnce(new Vector2D(prevX, prevY), flipX, flipY);
                     spawnBulletExplosion(new Vector2D(bulletX, bulletY));
                     continue;

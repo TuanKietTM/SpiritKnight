@@ -587,40 +587,54 @@ public final class MapManager {
         return new Vector2D(bound.getMinX() + bound.getWidth() / 2.0, bound.getMinY() + bound.getHeight() / 2.0);
     }
 
-    public boolean isBulletCollidingWithWall(double worldX, double worldY) {
-        int tx = (int) Math.floor(worldX / tileSize);
-        int ty = (int) Math.floor(worldY / tileSize);
+    public boolean isBulletCollidingWithWall(double worldX, double worldY, double radius) {
 
-        if (tx < 0 || ty < 0 || tx >= width || ty >= height) {
-            return true;
-        }
+        int minTileX = (int) Math.floor((worldX - radius) / tileSize);
+        int maxTileX = (int) Math.floor((worldX + radius) / tileSize);
+        int minTileY = (int) Math.floor((worldY - radius) / tileSize);
+        int maxTileY = (int) Math.floor((worldY + radius) / tileSize);
+        for (int ty = minTileY; ty <= maxTileY; ty++) {
+            for (int tx = minTileX; tx <= maxTileX; tx++) {
 
-        Tile tile = tiles[ty][tx];
-        if (tile == null || !tile.isWalkable()) {
-            boolean isBottomWall = (ty > 0 && tiles[ty - 1][tx] != null && tiles[ty - 1][tx].getType() == Tile.TileType.FLOOR);
-
-            double tileTop = ty * tileSize;
-            if (isBottomWall) {
-                tileTop += (tileSize * 0.5);
-            }
-
-            return worldY >= tileTop;
-        }
-        if (tile.getType() == Tile.TileType.DOOR_OPEN) {
-            return true;
-        }
-//        Kiem tra va cham voi cua dang dong
-        if (rooms != null) {
-            for (Room room : rooms) {
-                // Kiểm tra ô (tx, ty) có chứa cửa đang đóng của phòng nào không
-                if (room.isDoorClosedAtTile(tx, ty, tileSize)) {
+                if (tx < 0 || ty < 0 || tx >= width || ty >= height) {
                     return true;
+                }
+                Tile tile = tiles[ty][tx];
+                if (tile == null || !tile.isWalkable()) {
+                    boolean isBottomWall = (ty > 0 && tiles[ty - 1][tx] != null && tiles[ty - 1][tx].getType() == Tile.TileType.FLOOR);
+
+                    double tileLeft = tx * tileSize;
+                    double tileRight = (tx + 1) * tileSize;
+                    double tileTop = ty * tileSize;
+                    double tileBottom = (ty + 1) * tileSize;
+
+                    if (isBottomWall) {
+                        tileTop += (tileSize * 0.5);
+                    }
+
+                    boolean overlapX = (worldX + radius > tileLeft) && (worldX - radius < tileRight);
+                    boolean overlapY = (worldY + radius > tileTop) && (worldY - radius < tileBottom);
+
+                    if (overlapX && overlapY) {
+                        return true;
+                    }
+                }
+                if (tile.getType() == Tile.TileType.DOOR_OPEN) {
+                    return true;
+                }
+                if (rooms != null) {
+                    for (Room room : rooms) {
+                        // Kiểm tra ô (tx, ty) có chứa cửa đang đóng của phòng nào không
+                        if (room.isDoorClosedAtTile(tx, ty, tileSize)) {
+                            return true;
+                        }
+                    }
                 }
             }
         }
-
         return false;
     }
+
     //    doi kieu title : de phuc vu viec vat can bi pha
     public void setTileType(int gridX, int gridY, Tile.TileType newType) {
         if (tiles != null && gridY >= 0 && gridY < height && gridX >= 0 && gridX < width) {
