@@ -16,14 +16,8 @@ public final class BuffVisualEffectFactory {
 
         return switch (type) {
             case SHIELD -> new ShieldOrbitEffect();
-
-            /*
-             * Sau nay mo rong:
-             *
-             * case SPEED -> new SpeedWindEffect();
-             * case DAMAGE -> new DamageAuraEffect();
-             */
-
+            case SPEED -> new SpeedWindEffect();
+            case DAMAGE -> new DamageAuraEffect();
             default -> null;
         };
     }
