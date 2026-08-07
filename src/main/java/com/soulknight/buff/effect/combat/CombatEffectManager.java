@@ -33,6 +33,12 @@ public final class CombatEffectManager {
             }
         }
     }
+    public void spawnDeathFireExplosion(Vector2D position) {
+        if (position == null) {
+            return;
+        }
+        effects.add(new DeathFireExplosionEffect(position));
+    }
 
     public void clear() {
         effects.clear();
