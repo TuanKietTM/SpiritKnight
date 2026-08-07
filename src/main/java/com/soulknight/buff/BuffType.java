@@ -35,6 +35,16 @@ public enum BuffType {
             false
     ),
 
+    CHAIN_LIGHTNING(
+            "Chain Lightning",
+            "/assets/buff/chain_lighting.png",
+            "Strikes the target and chains to up to 2 nearby enemies.",
+            15.0,
+            12.0,
+            1,
+            false
+    ),
+
     DAMAGE(
             "Power Core",
             "/assets/buff/damage.png",
@@ -53,7 +63,15 @@ public enum BuffType {
     private final int price;
     private final boolean instant;
 
-    BuffType(String displayName, String imagePath, String description, double durationSeconds, double value, int price, boolean instant) {
+    BuffType(
+            String displayName,
+            String imagePath,
+            String description,
+            double durationSeconds,
+            double value,
+            int price,
+            boolean instant
+    ) {
         this.displayName = displayName;
         this.imagePath = imagePath;
         this.description = description;
@@ -96,6 +114,7 @@ public enum BuffType {
             case SHIELD -> new ShieldBuff(this);
             case HEAL -> new HealBuff(this);
             case SPEED -> new SpeedBuff(this);
+            case CHAIN_LIGHTNING -> new ChainLightningBuff(this);
             case DAMAGE -> new DamageBuff(this);
         };
     }

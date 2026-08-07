@@ -18,6 +18,7 @@ import com.soulknight.item.ItemMagnetSystem;
 import com.soulknight.item.BuffItem;
 import com.soulknight.buff.BuffInventoryManager;
 import com.soulknight.buff.BuffType;
+import com.soulknight.buff.effect.combat.CombatEffectManager;
 import com.soulknight.level.LevelManager;
 import com.soulknight.map.MapManager;
 import com.soulknight.map.Obstacle;
@@ -90,6 +91,7 @@ public final class GameWorld {
     private final ItemMagnetSystem itemMagnetSystem = new ItemMagnetSystem();
     // Sửa tên biến từ effectManager -> particleManager
     private final ParticleManager particleManager = new ParticleManager();
+    private final CombatEffectManager combatEffectManager = new CombatEffectManager();
     private final List<Obstacle> obstacles = new ArrayList<>();
     private final List<Obstacle> readOnlyObstacles = java.util.Collections.unmodifiableList(obstacles);
     private final List<Obstacle> destroyedObstacleQueue = new ArrayList<>();
@@ -258,6 +260,7 @@ public final class GameWorld {
         updateExplosions(deltaSeconds);
         updateSlashEffects(deltaSeconds);
         updateEnemyDeaths(deltaSeconds);
+        combatEffectManager.update(deltaSeconds);
         itemMagnetSystem.update(items, player, deltaSeconds);// hut item ve player
         updateItemCollection();
         openRewardPickerOnMissionComplete();
@@ -372,7 +375,16 @@ public final class GameWorld {
                         if (bullet.isPiercing()) {
                             if (!bullet.hasAlreadyHit(enemy)) {
                                 bullet.markHit(enemy);
+                                int healthBefore = enemy.getHealth();
                                 enemy.takeDamage(bullet.getDamage());
+
+                                int realDamage = healthBefore
+                                        - enemy.getHealth();
+
+                                if (realDamage > 0 && bullet.getOwner() instanceof Player attackingPlayer) {
+
+                                    attackingPlayer.getBuffManager().notifyDamageDealt(this, enemy, realDamage);
+                                }
                                 floatingTextManager.spawnDamage(
                                         enemy.getPosition(),
                                         bullet.getDamage()
@@ -385,7 +397,14 @@ public final class GameWorld {
                             continue;
                         }
 //                        dan thuong
+                        int healthBefore = enemy.getHealth();
                         enemy.takeDamage(bullet.getDamage());
+                        int realDamage = healthBefore - enemy.getHealth();
+
+                        if (realDamage > 0 && bullet.getOwner() instanceof Player attackingPlayer) {
+
+                            attackingPlayer.getBuffManager().notifyDamageDealt(this, enemy, realDamage);
+                        }
                         floatingTextManager.spawnDamage(
                                 enemy.getPosition(),
                                 bullet.getDamage()
@@ -486,6 +505,31 @@ public final class GameWorld {
     // Tao hieu ung no tai vi tri dan va cham (tuong hoac muc tieu)
     private void spawnBulletExplosion(Vector2D position) {
         explosions.add(new ExplosionEffect(position.copy(), 18.0, 0.3, Color.ORANGERED));
+    }
+    // sinh hieu ung tia set
+    public void spawnChainLightning(Vector2D source, List<Enemy> targets) {
+        if (source == null || targets == null || targets.isEmpty()) {
+            return;
+        }
+
+        List<Vector2D> points = new ArrayList<>();
+
+        // Diem bat dau tu Player
+        points.add(source.copy());
+
+        for (Enemy enemy : targets) {
+            if (enemy == null || enemy.getPosition() == null) {
+                continue;
+            }
+
+            points.add(enemy.getPosition().copy());
+        }
+
+        if (points.size() < 2) {
+            return;
+        }
+
+        combatEffectManager.spawnPurpleChainLightning(points);
     }
 
     // Cap nhat vong doi hieu ung no, xoa cai da ket thuc
@@ -822,7 +866,11 @@ public final class GameWorld {
             bullet.render(graphicsContext, camera);
         }
         for (SlashEffect slash : slashEffects) slash.render(graphicsContext, camera);
+
         for (ExplosionEffect explosion : explosions) explosion.render(graphicsContext, camera);
+
+        combatEffectManager.render(graphicsContext, camera);
+
         if (particleManager != null) {
             particleManager.render(graphicsContext, camera);
         }
@@ -889,6 +937,7 @@ public final class GameWorld {
         this.explosions.clear();
         this.slashEffects.clear();
         this.items.clear();
+        this.combatEffectManager.clear();
         this.destroyedObstacleQueue.clear();
         this.enemySpawnTimer = 0.0;
         floatingTextManager.clear();
@@ -1472,7 +1521,7 @@ public final class GameWorld {
                 Vector2D pushEnemy = pushDirection.scale(overlap * 0.5);
                 enemy.move(this, pushEnemy.getX(), pushEnemy.getY());
 
-                // Đẩy ngược Player về phía sau 1 nửa khoảng cách lún để tạo phản lực mượt m�
+                // Đẩy ngược Player về phía sau 1 nửa khoảng cách lún để tạo phản lực mượt m�
                 player.move(this, -pushEnemy.getX(), -pushEnemy.getY());
             }
         }
@@ -1520,7 +1569,16 @@ public final class GameWorld {
                     continue;
                 }
             }
+            int healthBefore = enemy.getHealth();
+
             enemy.takeDamage(damage);
+
+            int realDamage = healthBefore - enemy.getHealth();
+
+            if (realDamage > 0 && player != null) {
+
+                player.getBuffManager().notifyDamageDealt(this, enemy, realDamage);
+            }
 //            chem enemy sing ra tia lua
             if (particleManager != null) {
                 particleManager.spawnHitImpact(enemy.getPosition());
@@ -2289,6 +2347,7 @@ public final class GameWorld {
     public interface GameStateListener {
         void onStateChanged(GameState newState);
     }
+
 }
 //NOTE : cac ham xu ly va cham
 // Player - titled (mapmanager): cua room

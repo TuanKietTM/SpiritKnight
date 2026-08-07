@@ -1,5 +1,7 @@
 package com.soulknight.buff;
 
+import com.soulknight.engine.GameWorld;
+import com.soulknight.entity.Enemy;
 import com.soulknight.entity.Player;
 import javafx.scene.canvas.GraphicsContext;
 
@@ -51,6 +53,9 @@ public abstract class Buff {
 
         onRemove(player);
         active = false;
+    }
+    public void onDamageDealt(GameWorld world, Player player, Enemy target, int damage) {
+        // Mac dinh khong lam gi
     }
 
     public void render(GraphicsContext graphicsContext, Player player) {

@@ -3,10 +3,13 @@ package com.soulknight.buff;
 import com.soulknight.buff.effect.BuffVisualEffectManager;
 import com.soulknight.engine.Camera;
 import com.soulknight.entity.Player;
+import com.soulknight.engine.GameWorld;
+import com.soulknight.entity.Enemy;
 import javafx.scene.canvas.GraphicsContext;
 
 import java.util.EnumMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -97,6 +100,29 @@ public class BuffManager {
      */
     public void notifyPlayerHit() {
         visualEffectManager.notifyPlayerHit();
+    }
+    public void notifyDamageDealt(
+            GameWorld world,
+            Enemy target,
+            int damage
+    ) {
+        if (world == null
+                || target == null
+                || damage <= 0) {
+            return;
+        }
+
+        /*
+         * Tao ban copy de Buff co the thay doi trang thai
+         * ma khong anh huong iterator.
+         */
+        for (Buff buff : List.copyOf(activeBuffs.values())) {
+            if (buff == null || buff.isFinished()) {
+                continue;
+            }
+
+            buff.onDamageDealt(world, player, target, damage);
+        }
     }
 
     public boolean isActive(BuffType type) {
