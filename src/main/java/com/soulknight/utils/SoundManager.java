@@ -96,6 +96,7 @@ public final class SoundManager {
         loadSFX("Magic_Cast","/assets/Audio/magic.mp3");
         loadSFX("attack_box","/assets/Audio/attack_box.mp3");
         loadSFX("laser_gun","/assets/Audio/laser_gun.mp3");
+        loadSFX("chain_lighting","/assets/Audio/chain_lighting.mp3");
     }
 
     public static SoundManager getInstance() {
