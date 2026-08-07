@@ -5,6 +5,8 @@ import com.soulknight.engine.Camera;
 import com.soulknight.entity.Player;
 import com.soulknight.engine.GameWorld;
 import com.soulknight.entity.Enemy;
+import com.soulknight.engine.GameWorld;
+import com.soulknight.entity.Enemy;
 import javafx.scene.canvas.GraphicsContext;
 
 import java.util.EnumMap;
@@ -101,14 +103,8 @@ public class BuffManager {
     public void notifyPlayerHit() {
         visualEffectManager.notifyPlayerHit();
     }
-    public void notifyDamageDealt(
-            GameWorld world,
-            Enemy target,
-            int damage
-    ) {
-        if (world == null
-                || target == null
-                || damage <= 0) {
+    public void notifyDamageDealt(GameWorld world, Enemy target, int damage) {
+        if (world == null || target == null || damage <= 0) {
             return;
         }
 
@@ -122,6 +118,20 @@ public class BuffManager {
             }
 
             buff.onDamageDealt(world, player, target, damage);
+        }
+    }
+   public void notifyEnemyKilled(GameWorld world,Enemy deadEnemy) {
+        if (world == null || deadEnemy == null) {
+            return;
+        }
+//tao ban sao copy de buff co the thay doi trang thai
+        for (Buff buff : List.copyOf(activeBuffs.values())) {
+
+            if (buff == null || buff.isFinished()) {
+                continue;
+            }
+
+            buff.onEnemyKilled(world, player, deadEnemy);
         }
     }
 

@@ -97,6 +97,9 @@ public final class SoundManager {
         loadSFX("attack_box","/assets/Audio/attack_box.mp3");
         loadSFX("laser_gun","/assets/Audio/laser_gun.mp3");
         loadSFX("chain_lighting","/assets/Audio/chain_lighting.mp3");
+        loadSFX("death_explosion", "/assets/Audio/explosion.mp3");
+        loadSFX("dragon_breath","/assets/Audio/dragon_breath.mp3");
+        loadSFX("dragon_explosion","/assets/Audio/dragon_explosion.mp3");
     }
 
     public static SoundManager getInstance() {

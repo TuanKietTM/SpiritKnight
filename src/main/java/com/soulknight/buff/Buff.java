@@ -57,6 +57,9 @@ public abstract class Buff {
     public void onDamageDealt(GameWorld world, Player player, Enemy target, int damage) {
         // Mac dinh khong lam gi
     }
+    public void onEnemyKilled(GameWorld world, Player player, Enemy deadEnemy) {
+        // Mac dinh buff khong xu ly khi Enemy chet
+    }
 
     public void render(GraphicsContext graphicsContext, Player player) {
     }

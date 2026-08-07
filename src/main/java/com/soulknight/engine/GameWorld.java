@@ -19,6 +19,7 @@ import com.soulknight.item.BuffItem;
 import com.soulknight.buff.BuffInventoryManager;
 import com.soulknight.buff.BuffType;
 import com.soulknight.buff.effect.combat.CombatEffectManager;
+import com.soulknight.buff.status.EnemyBurnManager;
 import com.soulknight.level.LevelManager;
 import com.soulknight.map.MapManager;
 import com.soulknight.map.Obstacle;
@@ -64,6 +65,11 @@ public final class GameWorld {
     private static final boolean DEBUG_LOGGING = false;
     private static final double ROOM_BUFF_DROP_CHANCE = 1;
     private static final double AUTO_SAVE_INTERVAL = 30.0;
+    private static final double DRAGON_BREATH_TILES = 10.0;
+    private static final double DRAGON_BREATH_HALF_ANGLE = Math.toRadians(32.0);
+    private static final int DRAGON_BREATH_DAMAGE = 5;
+    private static final int DRAGON_EXPLOSION_DAMAGE = 33;
+    private static final double DRAGON_EXPLOSION_RADIUS = 130.0;
     private final Random random = new Random();
     // phong nao da roi buff thi khong roi lan nua
     private final java.util.Set<Room> buffRewardedRooms = java.util.Collections.newSetFromMap(new IdentityHashMap<>());
@@ -91,6 +97,7 @@ public final class GameWorld {
     private final ItemMagnetSystem itemMagnetSystem = new ItemMagnetSystem();
     // Sửa tên biến từ effectManager -> particleManager
     private final ParticleManager particleManager = new ParticleManager();
+    private final EnemyBurnManager enemyBurnManager = new EnemyBurnManager();
     private final CombatEffectManager combatEffectManager = new CombatEffectManager();
     private final List<Obstacle> obstacles = new ArrayList<>();
     private final List<Obstacle> readOnlyObstacles = java.util.Collections.unmodifiableList(obstacles);
@@ -260,6 +267,7 @@ public final class GameWorld {
         updateExplosions(deltaSeconds);
         updateSlashEffects(deltaSeconds);
         updateEnemyDeaths(deltaSeconds);
+        enemyBurnManager.update(this, deltaSeconds);
         combatEffectManager.update(deltaSeconds);
         itemMagnetSystem.update(items, player, deltaSeconds);// hut item ve player
         updateItemCollection();
@@ -505,6 +513,143 @@ public final class GameWorld {
     // Tao hieu ung no tai vi tri dan va cham (tuong hoac muc tieu)
     private void spawnBulletExplosion(Vector2D position) {
         explosions.add(new ExplosionEffect(position.copy(), 18.0, 0.3, Color.ORANGERED));
+    }
+//    gay vu no
+public void triggerDeathExplosion(Vector2D center, int damage) {
+    if (center == null || damage <= 0) {
+        return;
+    }
+    final double EXPLOSION_RADIUS = 90.0;
+    for (Enemy enemy : enemies) {
+        if (enemy == null || !enemy.isAlive() || enemy.getPosition() == null) {
+            continue;
+        }
+        double distance = center.distance(enemy.getPosition());
+        if (distance > EXPLOSION_RADIUS + enemy.getRadius()) {
+            continue;
+        }
+        int healthBefore = enemy.getHealth();
+        enemy.takeDamage(damage);
+        int realDamage = healthBefore - enemy.getHealth();
+        if (realDamage <= 0) {
+            continue;
+        }
+        floatingTextManager.spawnCustom("-" + realDamage, enemy.getPosition(), Color.ORANGERED
+        );
+        // Enemy trung no bi bong
+        enemyBurnManager.applyBurn(enemy);
+    }
+    combatEffectManager.spawnDeathFireExplosion(center);
+    SoundManager.getInstance().playSFXShort("death_explosion", 0.45);
+}
+    public void triggerDragonBreath() {
+        if (player == null || !player.isAlive() || player.getPosition() == null || mapManager == null) {
+            return;
+        }
+        Vector2D origin = player.getPosition().copy();
+        double dirX = player.getLastMoveX();
+        double dirY = player.getLastMoveY();
+        double range = mapManager.getTileSize() * DRAGON_BREATH_TILES;
+        List<Enemy> hitEnemies = new ArrayList<>();
+        // Tim Enemy trong hinh non
+        for (Enemy enemy : enemies) {
+            if (enemy == null || !enemy.isAlive() || enemy.getPosition() == null || isEnemySpawning(enemy)) {
+                continue;
+            }
+
+            if (isInsideDragonBreathCone(origin, dirX, dirY, range, enemy)) {
+                hitEnemies.add(enemy);
+            }
+        }
+
+        /*
+         * Damage duoc tinh ngay lap tuc.
+         * Visual chi la animation, khong quyet dinh hit.
+         */
+        for (Enemy enemy : hitEnemies) {
+            if (enemy == null || !enemy.isAlive()) {
+                continue;
+            }
+            boolean alreadyBurning = enemyBurnManager.isBurning(enemy);
+            int healthBefore = enemy.getHealth();
+            enemy.takeDamage(DRAGON_BREATH_DAMAGE
+            );
+            int realDamage = healthBefore - enemy.getHealth();
+            if (realDamage > 0) {
+                floatingTextManager.spawnCustom("-" + realDamage, enemy.getPosition(), Color.ORANGERED);
+            }
+
+            /*
+             * Neu Enemy da bi Burn truoc khi trung Dragon Breath
+             * thi no se phat no.
+             */
+            if (alreadyBurning && enemy.isAlive()) {
+                triggerDragonBreathExplosion(enemy.getPosition().copy());
+            }
+
+            /*
+             * Enemy trung hoi tho luon bi/refresh Burn.
+             */
+            if (enemy.isAlive()) {enemyBurnManager.applyBurn(enemy);
+            }
+        }
+
+        /*
+         * Spawn animation Hoi Tho Rong.
+         */
+        combatEffectManager.spawnDragonBreath(origin, dirX, dirY, range, DRAGON_BREATH_HALF_ANGLE);
+        SoundManager.getInstance().playSFXShort("dragon_breath", 0.75);
+    }
+//Kiem tra quai nam trong pham vi hoi tho
+    private boolean isInsideDragonBreathCone(Vector2D origin, double dirX, double dirY, double range, Enemy enemy) {
+        if (origin == null || enemy == null || enemy.getPosition() == null) {
+            return false;
+        }
+        double dx = enemy.getPosition().getX() - origin.getX();
+
+        double dy = enemy.getPosition().getY() - origin.getY();
+
+        double distance = Math.hypot(dx, dy);
+
+        if (distance > range + enemy.getRadius()) {
+            return false;
+        }
+        if (distance <= 0.001) {
+            return true;
+        }
+        double targetDirX = dx / distance;
+        double targetDirY = dy / distance;
+        double dot = dirX * targetDirX + dirY * targetDirY;
+        return dot >= Math.cos(DRAGON_BREATH_HALF_ANGLE);
+    }
+    private void triggerDragonBreathExplosion(Vector2D center) {
+        if (center == null) {
+            return;
+        }
+        /*
+         * Dung snapshot de tranh loi khi Enemy chet
+         * trong luc dang xu ly.
+         */
+        List<Enemy> snapshot = new ArrayList<>(enemies);
+        for (Enemy enemy : snapshot) {
+            if (enemy == null || !enemy.isAlive() || enemy.getPosition() == null) {
+                continue;
+            }
+            double distance = center.distance(enemy.getPosition());
+            if (distance > DRAGON_EXPLOSION_RADIUS + enemy.getRadius()) {
+                continue;
+            }
+            int healthBefore = enemy.getHealth();
+            enemy.takeDamage(DRAGON_EXPLOSION_DAMAGE);
+            int realDamage = healthBefore - enemy.getHealth();
+
+            if (realDamage <= 0) {
+                continue;
+            }
+            floatingTextManager.spawnCustom("-" + realDamage, enemy.getPosition(), Color.RED);
+        }
+        combatEffectManager.spawnDragonExplosion(center);
+        SoundManager.getInstance().playSFXShort("dragon_explosion", 0.5);
     }
     // sinh hieu ung tia set
     public void spawnChainLightning(Vector2D source, List<Enemy> targets) {
@@ -903,6 +1048,7 @@ public final class GameWorld {
         } else {
             this.player.getPosition().set(spawnPoint);
         }
+        this.player.setDragonBreathAction(this::triggerDragonBreath);
         this.playerDeathEffect = null;
         this.playerDeathHandled = false;
         /*
@@ -938,6 +1084,7 @@ public final class GameWorld {
         this.slashEffects.clear();
         this.items.clear();
         this.combatEffectManager.clear();
+        this.enemyBurnManager.clear();
         this.destroyedObstacleQueue.clear();
         this.enemySpawnTimer = 0.0;
         floatingTextManager.clear();
@@ -1998,7 +2145,12 @@ public final class GameWorld {
             EnemyDeathEffect deathEffect = enemyDeathEffects.get(enemy);
 
             if (deathEffect == null) {
+
                 enemySpawnEffects.remove(enemy);
+                // Bao cho cac buff biet Enemy nay vua chet.
+                if (player != null && player.getBuffManager() != null) {
+                    player.getBuffManager().notifyEnemyKilled(this, enemy);
+                }
                 deathEffect = new EnemyDeathEffect(enemy.getPosition(), enemy.getRadius(), 0.5);
                 enemyDeathEffects.put(enemy, deathEffect);
             }
