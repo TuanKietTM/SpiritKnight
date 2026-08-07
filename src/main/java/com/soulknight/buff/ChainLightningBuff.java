@@ -3,6 +3,7 @@ package com.soulknight.buff;
 import com.soulknight.engine.GameWorld;
 import com.soulknight.entity.Enemy;
 import com.soulknight.entity.Player;
+import com.soulknight.utils.SoundManager;
 import com.soulknight.utils.Vector2D;
 
 import java.util.ArrayList;
@@ -94,6 +95,7 @@ public final class ChainLightningBuff extends Buff {
 
         // Tao effect set tim
         world.spawnChainLightning(player.getPosition(), targets);
+        SoundManager.getInstance().playSFX("chain_lighting");
 
         // Bat dau cooldown
         cooldownRemaining = COOLDOWN_SECONDS;
