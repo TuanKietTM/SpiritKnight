@@ -44,6 +44,15 @@ public enum BuffType {
             1,
             false
     ),
+    DEATH_EXPLOSION(
+            "Death Explosion",
+            "/assets/buff/burn_buff.png",
+            "Enemies have a 50% chance to explode on death, damaging and burning nearby enemies.",
+            15.0,
+            10.0,
+            1,
+            false
+    ),
 
     DAMAGE(
             "Power Core",
@@ -115,6 +124,7 @@ public enum BuffType {
             case HEAL -> new HealBuff(this);
             case SPEED -> new SpeedBuff(this);
             case CHAIN_LIGHTNING -> new ChainLightningBuff(this);
+            case DEATH_EXPLOSION -> new DeathExplosionBuff(this);
             case DAMAGE -> new DamageBuff(this);
         };
     }

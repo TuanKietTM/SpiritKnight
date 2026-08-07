@@ -19,6 +19,7 @@ import com.soulknight.item.BuffItem;
 import com.soulknight.buff.BuffInventoryManager;
 import com.soulknight.buff.BuffType;
 import com.soulknight.buff.effect.combat.CombatEffectManager;
+import com.soulknight.buff.status.EnemyBurnManager;
 import com.soulknight.level.LevelManager;
 import com.soulknight.map.MapManager;
 import com.soulknight.map.Obstacle;
@@ -91,6 +92,7 @@ public final class GameWorld {
     private final ItemMagnetSystem itemMagnetSystem = new ItemMagnetSystem();
     // Sửa tên biến từ effectManager -> particleManager
     private final ParticleManager particleManager = new ParticleManager();
+    private final EnemyBurnManager enemyBurnManager = new EnemyBurnManager();
     private final CombatEffectManager combatEffectManager = new CombatEffectManager();
     private final List<Obstacle> obstacles = new ArrayList<>();
     private final List<Obstacle> readOnlyObstacles = java.util.Collections.unmodifiableList(obstacles);
@@ -260,6 +262,7 @@ public final class GameWorld {
         updateExplosions(deltaSeconds);
         updateSlashEffects(deltaSeconds);
         updateEnemyDeaths(deltaSeconds);
+        enemyBurnManager.update(this, deltaSeconds);
         combatEffectManager.update(deltaSeconds);
         itemMagnetSystem.update(items, player, deltaSeconds);// hut item ve player
         updateItemCollection();
@@ -506,6 +509,34 @@ public final class GameWorld {
     private void spawnBulletExplosion(Vector2D position) {
         explosions.add(new ExplosionEffect(position.copy(), 18.0, 0.3, Color.ORANGERED));
     }
+//    gay vu no
+public void triggerDeathExplosion(Vector2D center, int damage) {
+    if (center == null || damage <= 0) {
+        return;
+    }
+    final double EXPLOSION_RADIUS = 90.0;
+    for (Enemy enemy : enemies) {
+        if (enemy == null || !enemy.isAlive() || enemy.getPosition() == null) {
+            continue;
+        }
+        double distance = center.distance(enemy.getPosition());
+        if (distance > EXPLOSION_RADIUS + enemy.getRadius()) {
+            continue;
+        }
+        int healthBefore = enemy.getHealth();
+        enemy.takeDamage(damage);
+        int realDamage = healthBefore - enemy.getHealth();
+        if (realDamage <= 0) {
+            continue;
+        }
+        floatingTextManager.spawnCustom("-" + realDamage, enemy.getPosition(), Color.ORANGERED
+        );
+        // Enemy trung no bi bong
+        enemyBurnManager.applyBurn(enemy);
+    }
+    combatEffectManager.spawnDeathFireExplosion(center);
+    SoundManager.getInstance().playSFXShort("death_explosion", 0.45);
+}
     // sinh hieu ung tia set
     public void spawnChainLightning(Vector2D source, List<Enemy> targets) {
         if (source == null || targets == null || targets.isEmpty()) {
@@ -938,6 +969,7 @@ public final class GameWorld {
         this.slashEffects.clear();
         this.items.clear();
         this.combatEffectManager.clear();
+        this.enemyBurnManager.clear();
         this.destroyedObstacleQueue.clear();
         this.enemySpawnTimer = 0.0;
         floatingTextManager.clear();
@@ -1998,7 +2030,12 @@ public final class GameWorld {
             EnemyDeathEffect deathEffect = enemyDeathEffects.get(enemy);
 
             if (deathEffect == null) {
+
                 enemySpawnEffects.remove(enemy);
+                // Bao cho cac buff biet Enemy nay vua chet.
+                if (player != null && player.getBuffManager() != null) {
+                    player.getBuffManager().notifyEnemyKilled(this, enemy);
+                }
                 deathEffect = new EnemyDeathEffect(enemy.getPosition(), enemy.getRadius(), 0.5);
                 enemyDeathEffects.put(enemy, deathEffect);
             }
