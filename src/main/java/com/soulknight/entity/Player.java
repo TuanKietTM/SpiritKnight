@@ -47,6 +47,7 @@ public final class Player extends Entity {
     private double buffDamageReduction = 0.0;
 
     private Runnable dragonBreathAction;
+    private Runnable holyNovaAction;
     private double lastMoveX = 1.0;
     private double lastMoveY = 0.0;
 
@@ -88,33 +89,43 @@ public final class Player extends Entity {
         if (invulnerabilityTimer > 0.0 || amount <= 0 || !isAlive()) {
             return;
         }
-        int finalDamage = (int) Math.round(amount * (1.0 - buffDamageReduction)
-        );
-
+        int finalDamage = (int) Math.round(amount * (1.0 - buffDamageReduction));
         finalDamage = Math.max(0, finalDamage);
-
         if (finalDamage <= 0) {
             return;
         }
+        /*
+         * HOLY NOVA
+         * Neu don damage nay du de giet Player,
+         * huy hoan toan damage va kich hoat Holy Nova.
+         */
+        boolean lethalDamage = finalDamage >= getHealth();
 
+        if (lethalDamage && buffManager.isActive(BuffType.HOLY_NOVA)) {
+            /*
+             * Cho mot khoang bat tu ngan de tranh
+             * nhieu bullet cung frame trigger Nova lien tuc.
+             */
+            invulnerabilityTimer = MAX_INVULNERABILITY_TIME;
+            requestHolyNova();
+            // QUAN TRONG:
+            // return truoc super.takeDamage()
+            // => lethal hit bi huy hoan toan.
+            return;
+        }
         int healthBefore = getHealth();
 
         super.takeDamage(finalDamage);
 
         int realDamage = healthBefore - getHealth();
-
         if (realDamage <= 0) {
             return;
         }
-
         invulnerabilityTimer = MAX_INVULNERABILITY_TIME;
-
-        // Khi Shield dang hoat dong, cho effect loe sang luc hap thu don danh
         if (buffManager.isActive(BuffType.SHIELD)) {
             buffManager.notifyPlayerHit();
         }
     }
-
     // Bat dau vung chem: an kiem dang cam trong suot thoi luong hieu ung chem
     public void startMeleeSwing() {
         meleeSwingTimer = SlashEffect.SWING_DURATION;
@@ -402,6 +413,14 @@ public final class Player extends Entity {
     public void requestDragonBreath() {
         if (dragonBreathAction != null) {
             dragonBreathAction.run();
+        }
+    }
+    public void setHolyNovaAction(Runnable holyNovaAction) {
+        this.holyNovaAction = holyNovaAction;
+    }
+    private void requestHolyNova() {
+        if (holyNovaAction != null) {
+            holyNovaAction.run();
         }
     }
     public double getLastMoveX() {

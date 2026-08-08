@@ -54,6 +54,16 @@ public final class CombatEffectManager {
         }
         effects.add(new DragonBreathExplosionEffect(position));
     }
+    public void spawnHolyNova(
+            Vector2D center,
+            double radius
+    ) {
+        if (center == null || radius <= 0.0) {
+            return;
+        }
+
+        effects.add(new HolyNovaEffect(center, radius));
+    }
 
     public void clear() {
         effects.clear();
