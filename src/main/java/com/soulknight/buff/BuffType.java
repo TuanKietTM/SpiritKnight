@@ -62,6 +62,15 @@ public enum BuffType {
             1,
             false
     ),
+    HOLY_NOVA(
+            "Holy Nova",
+            "/assets/buff/holy_nova.png",
+            "Blocks lethal damage, heals 50% max HP and releases a powerful holy nova.",
+            40.0,
+            200.0,
+            1,
+            false
+    ),
 
     DAMAGE(
             "Power Core",
@@ -135,6 +144,7 @@ public enum BuffType {
             case CHAIN_LIGHTNING -> new ChainLightningBuff(this);
             case DEATH_EXPLOSION -> new DeathExplosionBuff(this);
             case DRAGON_BREATH -> new DragonBreathBuff(this);
+            case HOLY_NOVA ->new HolyNovaBuff(this);
             case DAMAGE -> new DamageBuff(this);
         };
     }

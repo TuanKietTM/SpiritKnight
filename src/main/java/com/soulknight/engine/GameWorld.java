@@ -65,6 +65,8 @@ public final class GameWorld {
     private static final boolean DEBUG_LOGGING = false;
     private static final double ROOM_BUFF_DROP_CHANCE = 1;
     private static final double AUTO_SAVE_INTERVAL = 30.0;
+    private static final double HOLY_NOVA_RADIUS_TILES = 20.0;
+    private static final int HOLY_NOVA_DAMAGE = 200;
     private static final double DRAGON_BREATH_TILES = 10.0;
     private static final double DRAGON_BREATH_HALF_ANGLE = Math.toRadians(32.0);
     private static final int DRAGON_BREATH_DAMAGE = 5;
@@ -600,6 +602,77 @@ public void triggerDeathExplosion(Vector2D center, int damage) {
         combatEffectManager.spawnDragonBreath(origin, dirX, dirY, range, DRAGON_BREATH_HALF_ANGLE);
         SoundManager.getInstance().playSFXShort("dragon_breath", 0.75);
     }
+//    buff trc tan cong don chi mang
+    public void triggerHolyNova() {
+        if (player == null || !player.isAlive() || player.getPosition() == null || mapManager == null) {
+            return;
+        }
+        Vector2D center = player.getPosition().copy();
+        /*
+         * Ban kinh = 20 tile.
+         */
+        double radius = mapManager.getTileSize() * HOLY_NOVA_RADIUS_TILES;
+        /*
+         * 1. Gay 200 damage cho tat ca Enemy/Boss trong vung.
+         */
+        for (Enemy enemy : enemies) {
+            if (enemy == null || !enemy.isAlive() || enemy.getPosition() == null || isEnemySpawning(enemy)) {
+                continue;
+            }
+            double distance = center.distance(enemy.getPosition());
+            if (distance > radius + enemy.getRadius()) {
+                continue;
+            }
+            int healthBefore = enemy.getHealth();
+            enemy.takeDamage(HOLY_NOVA_DAMAGE);
+            int realDamage = healthBefore - enemy.getHealth();
+            if (realDamage <= 0) {
+                continue;
+            }
+            floatingTextManager.spawnCustom("-" + realDamage, enemy.getPosition(), Color.LIGHTYELLOW);
+        }
+        /*
+         * 2. Xoa dan cua Enemy trong vung.
+         */
+        destroyEnemyBulletsInHolyNova(center, radius);
+        /*
+         * 3. Hoi 50% MAX HP cho Player.
+         */
+        int healAmount = (int) Math.ceil(player.getMaxHealth() * 0.5);
+        player.heal(healAmount);
+        floatingTextManager.spawnCustom("+" + healAmount, player.getPosition(), Color.LIGHTGREEN);
+        /*
+         * 4. Tao visual.
+         */
+        combatEffectManager.spawnHolyNova(center, radius);
+        /*
+         * 5. Am thanh.
+         */
+        SoundManager.getInstance().playSFXShort("holy_nova", 0.9);
+    }
+
+    private void destroyEnemyBulletsInHolyNova(Vector2D center, double radius) {
+        for (Bullet bullet : bullets) {
+            if (bullet == null || !bullet.isActive() || bullet.getPosition() == null) {
+                continue;
+            }
+            /*
+             * Dan cua Player khong bi Holy Nova pha.
+             */
+            if (bullet.getOwner() instanceof Player) {
+                continue;
+            }
+            double distance = center.distance(bullet.getPosition());
+            if (distance <= radius) {
+                bullet.deactivate();
+                /*
+                 * Neu muon khi xoa dan co particle,
+                 * co the them sau.
+                 */
+            }
+        }
+    }
+
 //Kiem tra quai nam trong pham vi hoi tho
     private boolean isInsideDragonBreathCone(Vector2D origin, double dirX, double dirY, double range, Enemy enemy) {
         if (origin == null || enemy == null || enemy.getPosition() == null) {
@@ -1049,6 +1122,7 @@ public void triggerDeathExplosion(Vector2D center, int damage) {
             this.player.getPosition().set(spawnPoint);
         }
         this.player.setDragonBreathAction(this::triggerDragonBreath);
+        this.player.setHolyNovaAction(this::triggerHolyNova);
         this.playerDeathEffect = null;
         this.playerDeathHandled = false;
         /*

@@ -100,6 +100,7 @@ public final class SoundManager {
         loadSFX("death_explosion", "/assets/Audio/explosion.mp3");
         loadSFX("dragon_breath","/assets/Audio/dragon_breath.mp3");
         loadSFX("dragon_explosion","/assets/Audio/dragon_explosion.mp3");
+        loadSFX("holy_nova","/assets/Audio/holy_nova.mp3");
     }
 
     public static SoundManager getInstance() {
