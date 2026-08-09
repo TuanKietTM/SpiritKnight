@@ -7,7 +7,7 @@ public final class Camera {
     private double offsetX;
     private double offsetY;
 
-    private double zoom = 1.0;
+    private double zoom = 2.0;
 
     public void follow(Vector2D target, double viewportWidth, double viewportHeight, double worldWidth, double worldHeight) {
         if (target == null) return;
