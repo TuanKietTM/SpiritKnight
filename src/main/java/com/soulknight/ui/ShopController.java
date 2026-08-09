@@ -2,6 +2,7 @@ package com.soulknight.ui;
 
 import com.soulknight.buff.BuffInventoryManager;
 import com.soulknight.buff.BuffType;
+import com.soulknight.cache.PlayerSessionCache;
 import com.soulknight.engine.GameWorld;
 import com.soulknight.pet.PetSelectionManager;
 import com.soulknight.pet.PetType;
@@ -40,18 +41,17 @@ import java.util.concurrent.CompletableFuture;
  * du lieu hien len cac the trong shop lay tu cac class type (PetType, WeaponType, HeroType, BuffType)
  * doi voi PET,WEAPON , HERO mua va trang bi
  * doi voi buff luu so luong buffinventory va cap nhat so luong buff trong database
+ * cache du lieu shop de load nhanh hon
  */
 public class ShopController {
 
     @FXML private Button closeButton;
     @FXML private Label coinLabel;
     @FXML private Label gemLabel;
-
     @FXML private Button tabPet;
     @FXML private Button tabWeapon;
     @FXML private Button tabHero;
     @FXML private Button tabUpgrade;
-
     @FXML private FlowPane itemGrid;
     @FXML private Label selectedItemName;
     @FXML private Label selectedItemDesc;
@@ -69,12 +69,11 @@ public class ShopController {
     private static final String ITEM_TYPE_PET = "PET";
     private static final String ITEM_TYPE_WEAPON = "WEAPON";
     private static final String ITEM_TYPE_HERO = "HERO";
-
     private static final PetType STARTER_PET = PetType.CAT;
     private static final WeaponType STARTER_WEAPON = WeaponType.BLASTER;
     private static final HeroType STARTER_HERO = HeroType.KNIGHT;
-
     private final ShopDAO shopDAO = new ShopDAO();
+    private final PlayerSessionCache sessionCache = PlayerSessionCache.getInstance();
 
     private final Set<PetType> ownedPets = new HashSet<>();
     private final Set<WeaponType> ownedWeapons = new HashSet<>();
@@ -85,6 +84,10 @@ public class ShopController {
     private boolean shopLoading;
     private boolean shopDataLoaded = false;
     private int loadedUserId = -1;
+    // Chi khoa nut giao dich, khong khoa toan bo shop
+    private boolean purchaseInProgress;
+    private long lastCurrencyRefreshTime;
+    private static final long CURRENCY_REFRESH_INTERVAL_MS = 10_000L;
 
     // Luu anh da tai de khong doc lai file moi lan mo shop
     private final Map<String, Image> imageCache = new HashMap<>();
@@ -107,7 +110,6 @@ public class ShopController {
             onShowLoading.accept(message);
         }
     }
-
     private void hideLoadingOverlay() {
         if (onHideLoading != null) {
             onHideLoading.run();
@@ -121,7 +123,6 @@ public class ShopController {
         tabHero.setOnAction(e -> switchTab(tabHero, this::loadHeroShop));
         tabUpgrade.setText("BUFF");
         tabUpgrade.setOnAction(e -> switchTab(tabUpgrade, this::loadBuffShop));
-
         closeButton.setOnAction(e -> {
             SoundManager.getInstance().playSFX("button");
             stopAnimation();
@@ -141,11 +142,20 @@ public class ShopController {
 
         int currentUserId = UserSession.getCurrentUserId();
 
-        // Mo lai shop thi hien du lieu trong RAM ngay, sau do cap nhat vang ngam
+        // Uu tien cache session de mo shop ngay, khong doi database.
+        if (sessionCache.getUserId() == currentUserId && sessionCache.isShopLoaded()) {
+            applySessionCache(currentUserId);
+            setShopLoading(false);
+            showTab(tabPet, this::loadPetShop);
+            refreshCurrencies();
+            return;
+        }
+        // Cache noi bo cua controller van duoc dung neu session cache chua san sang.
         if (shopDataLoaded && loadedUserId == currentUserId) {
             setShopLoading(false);
             updateCurrencyLabels();
             showTab(tabPet, this::loadPetShop);
+            syncLocalDataToSessionCache();
             refreshCurrencies();
             return;
         }
@@ -153,6 +163,32 @@ public class ShopController {
         setShopLoading(true);
         loadShopData();
     }
+
+    // Doc du lieu tu RAM session, thao tac nay khong truy van database.
+    private void applySessionCache(int userId) {
+        ownedPets.clear();
+        ownedWeapons.clear();
+        ownedHeroes.clear();
+        ownedPets.addAll(sessionCache.getOwnedPets());
+        ownedWeapons.addAll(sessionCache.getOwnedWeapons());
+        ownedHeroes.addAll(sessionCache.getOwnedHeroes());
+        currentGold = sessionCache.getGold();
+        currentGems = sessionCache.getGems();
+        loadedUserId = userId;
+        shopDataLoaded = true;
+        updateCurrencyLabels();
+    }
+
+    // Dong bo cache noi bo cua ShopController sang cache chung cua session.
+    private void syncLocalDataToSessionCache() {
+        sessionCache.replaceOwnedPets(ownedPets);
+        sessionCache.replaceOwnedWeapons(ownedWeapons);
+        sessionCache.replaceOwnedHeroes(ownedHeroes);
+        sessionCache.setGold(currentGold);
+        sessionCache.setGems(currentGems);
+        sessionCache.setShopLoaded(true);
+    }
+
     private void loadShopData() {
         int userId = UserSession.getCurrentUserId();
 
@@ -224,6 +260,8 @@ public class ShopController {
         loadedUserId = userId;
         shopDataLoaded = true;
 
+        // Sau lan load DB thanh cong, cap nhat cache chung de cac lan mo sau hien ngay.
+        syncLocalDataToSessionCache();
         updateCurrencyLabels();
         setShopLoading(false);
         showTab(tabPet, this::loadPetShop);
@@ -249,8 +287,33 @@ public class ShopController {
         }
     }
 
+    // Tru vang trong RAM truoc de UI phan hoi ngay, DB se xac nhan o background
+    private boolean reserveGold(int price) {
+        if (price <= 0) return true;
+        if (currentGold < price) {
+            selectedItemDesc.setText("Not enough gold.");
+            return false;
+        }
+        currentGold -= price;
+        sessionCache.setGold(currentGold);
+        updateCurrencyLabels();
+        return true;
+    }
+
+    // Hoan lai vang neu giao dich DB that bai
+    private void rollbackGold(int price) {
+        if (price <= 0) return;
+        currentGold += price;
+        sessionCache.setGold(currentGold);
+        updateCurrencyLabels();
+    }
+
     // Chi tai lai tien tich luy khi mo lai shop, khong tai lai toan bo inventory
     private void refreshCurrencies() {
+        long now = System.currentTimeMillis();
+        if (now - lastCurrencyRefreshTime < CURRENCY_REFRESH_INTERVAL_MS) return;
+        lastCurrencyRefreshTime = now;
+
         int userId = UserSession.getCurrentUserId();
 
         CompletableFuture<Integer> goldFuture = CompletableFuture.supplyAsync(
@@ -268,6 +331,8 @@ public class ShopController {
                 .thenRun(() -> Platform.runLater(() -> {
                     currentGold = goldFuture.join();
                     currentGems = gemsFuture.join();
+                    sessionCache.setGold(currentGold);
+                    sessionCache.setGems(currentGems);
                     updateCurrencyLabels();
                 }))
                 .exceptionally(exception -> {
@@ -424,68 +489,66 @@ public class ShopController {
     }
 
     private void purchasePet(PetType pet) {
-        if (shopLoading || ownedPets.contains(pet)) {
-            return;
-        }
+        if (pet == null || ownedPets.contains(pet) || purchaseInProgress) return;
 
         int price = pet.getPrice();
-        setShopLoading(true);
-        showLoadingOverlay("Buying pet...");
+        if (!reserveGold(price)) return;
 
-        CompletableFuture
-                .supplyAsync(() ->
-                        shopDAO.purchaseItem(UserSession.getCurrentUserId(), UserSession.getCurrentUser().getUsername(),
-                                ITEM_TYPE_PET, pet.name(), price),DatabaseExecutor.getExecutor()
-                )
+        purchaseInProgress = true;
+        actionButton.setDisable(true);
+        actionButton.setText("BUYING...");
+        selectedItemDesc.setText("Processing purchase...");
+
+        int userId = UserSession.getCurrentUserId();
+        String username = UserSession.getCurrentUsername();
+
+        CompletableFuture.supplyAsync(() -> shopDAO.purchaseItem(userId, username, ITEM_TYPE_PET, pet.name(), price),
+                        DatabaseExecutor.getExecutor())
                 .thenAccept(result -> Platform.runLater(() -> {
-                    hideLoadingOverlay();
-                    setShopLoading(false);
+                    purchaseInProgress = false;
+                    actionButton.setDisable(false);
 
                     switch (result) {
                         case SUCCESS -> {
                             ownedPets.add(pet);
-                            currentGold = Math.max(0, currentGold - price);
-                            updateCurrencyLabels();
-
+                            sessionCache.addOwnedPet(pet);
                             selectedItemName.setText(pet.getDisplayName());
                             selectedItemDesc.setText("PURCHASE SUCCESS");
-
                             loadPetShop();
                         }
-
                         case ALREADY_OWNED -> {
                             ownedPets.add(pet);
-                            updateCurrencyLabels();
+                            sessionCache.addOwnedPet(pet);
+                            rollbackGold(price);
                             selectedItemDesc.setText("You already own this pet.");
                             loadPetShop();
                         }
-
                         case NOT_ENOUGH_GOLD -> {
-                            updateCurrencyLabels();
+                            rollbackGold(price);
                             selectedItemDesc.setText("Not enough gold.");
+                            actionButton.setText("BUY - " + price + " GOLD");
                         }
-
                         case SAVE_NOT_FOUND -> {
-                            updateCurrencyLabels();
+                            rollbackGold(price);
                             selectedItemDesc.setText("No player data found.");
+                            actionButton.setText("BUY - " + price + " GOLD");
                         }
-
                         case ERROR -> {
-                            updateCurrencyLabels();
+                            rollbackGold(price);
                             selectedItemDesc.setText("Cannot buy pet.");
+                            actionButton.setText("BUY - " + price + " GOLD");
                         }
                     }
                 }))
                 .exceptionally(exception -> {
                     exception.printStackTrace();
-
                     Platform.runLater(() -> {
-                        hideLoadingOverlay();
-                        setShopLoading(false);
-                        updateCurrencyLabels();
-                        selectedItemDesc.setText("You cannot buy a pet.");
+                        purchaseInProgress = false;
+                        rollbackGold(price);
+                        actionButton.setDisable(false);
+                        actionButton.setText("BUY - " + price + " GOLD");
+                        selectedItemDesc.setText("Cannot buy pet.");
                     });
-
                     return null;
                 });
     }
@@ -644,67 +707,66 @@ public class ShopController {
     }
 
     private void purchaseWeapon(WeaponType weapon) {
-        if (shopLoading || ownedWeapons.contains(weapon)) {
-            return;
-        }
+        if (weapon == null || ownedWeapons.contains(weapon) || purchaseInProgress) return;
 
         int price = weapon.getPrice();
-        setShopLoading(true);
-        showLoadingOverlay("Buying weapon...");
+        if (!reserveGold(price)) return;
 
-        CompletableFuture.supplyAsync(() -> shopDAO.purchaseItem(UserSession.getCurrentUserId(),
-                        UserSession.getCurrentUsername(), ITEM_TYPE_WEAPON, weapon.name(),
-                        price), DatabaseExecutor.getExecutor()
-                )
+        purchaseInProgress = true;
+        actionButton.setDisable(true);
+        actionButton.setText("BUYING...");
+        selectedItemDesc.setText("Processing purchase...");
+
+        int userId = UserSession.getCurrentUserId();
+        String username = UserSession.getCurrentUsername();
+
+        CompletableFuture.supplyAsync(() -> shopDAO.purchaseItem(userId, username, ITEM_TYPE_WEAPON, weapon.name(), price),
+                        DatabaseExecutor.getExecutor())
                 .thenAccept(result -> Platform.runLater(() -> {
-                    hideLoadingOverlay();
-                    setShopLoading(false);
+                    purchaseInProgress = false;
+                    actionButton.setDisable(false);
 
                     switch (result) {
                         case SUCCESS -> {
                             ownedWeapons.add(weapon);
-                            currentGold = Math.max(0, currentGold - price);
-                            updateCurrencyLabels();
-
+                            sessionCache.addOwnedWeapon(weapon);
                             selectedItemName.setText(weapon.getDisplayName());
                             selectedItemDesc.setText("PURCHASE SUCCESS");
-
                             loadWeaponShop();
                         }
-
                         case ALREADY_OWNED -> {
                             ownedWeapons.add(weapon);
-                            updateCurrencyLabels();
+                            sessionCache.addOwnedWeapon(weapon);
+                            rollbackGold(price);
                             selectedItemDesc.setText("You already own this weapon.");
                             loadWeaponShop();
                         }
-
                         case NOT_ENOUGH_GOLD -> {
-                            updateCurrencyLabels();
+                            rollbackGold(price);
                             selectedItemDesc.setText("Not enough gold.");
+                            actionButton.setText("BUY - " + price + " GOLD");
                         }
-
                         case SAVE_NOT_FOUND -> {
-                            updateCurrencyLabels();
+                            rollbackGold(price);
                             selectedItemDesc.setText("Khong tim thay du lieu nguoi choi.");
+                            actionButton.setText("BUY - " + price + " GOLD");
                         }
-
                         case ERROR -> {
-                            updateCurrencyLabels();
+                            rollbackGold(price);
                             selectedItemDesc.setText("Weapons cannot be purchased.");
+                            actionButton.setText("BUY - " + price + " GOLD");
                         }
                     }
                 }))
                 .exceptionally(exception -> {
                     exception.printStackTrace();
-
                     Platform.runLater(() -> {
-                        hideLoadingOverlay();
-                        setShopLoading(false);
-                        updateCurrencyLabels();
+                        purchaseInProgress = false;
+                        rollbackGold(price);
+                        actionButton.setDisable(false);
+                        actionButton.setText("BUY - " + price + " GOLD");
                         selectedItemDesc.setText("Weapons cannot be purchased.");
                     });
-
                     return null;
                 });
     }
@@ -907,7 +969,7 @@ public class ShopController {
         return image;
     }
 
-//    buff
+    //    buff
     private record ShopData(Set<String> petCodes, Set<String> weaponCodes, Set<String> heroCodes,
                             Map<String, Integer> buffQuantities, int gold, int gems) {}
 
@@ -933,6 +995,9 @@ public class ShopController {
         }
 
         BuffInventoryManager.getInstance().replaceAll(parsed);
+        // BuffInventoryManager dung cho gameplay, sessionCache dung de giu state cua tai khoan.
+        sessionCache.replaceBuffQuantities(parsed);
+        sessionCache.setBuffsLoaded(true);
     }
 
     private void loadBuffShop() {
@@ -978,7 +1043,7 @@ public class ShopController {
 
             selectedItemName.setText(buff.getDisplayName());
             selectedItemDesc.setText(buildBuffDesc(buff) + " | OWNED: x" + currentQuantity
-                            + " | PRICE: " + buff.getPrice() + " GOLD"
+                    + " | PRICE: " + buff.getPrice() + " GOLD"
             );
 
             actionButton.setVisible(true);
@@ -998,56 +1063,61 @@ public class ShopController {
     }
 
     private void purchaseBuff(BuffType buff) {
-        if (shopLoading || buff == null) {
-            return;
-        }
+        if (buff == null || purchaseInProgress) return;
 
         int price = buff.getPrice();
-        setShopLoading(true);
-        showLoadingOverlay("Buying buff...");
+        if (!reserveGold(price)) return;
 
-        CompletableFuture.supplyAsync(() -> shopDAO.purchaseBuff(UserSession.getCurrentUserId(),
-                        UserSession.getCurrentUsername(), buff.name(), price), DatabaseExecutor.getExecutor())
+        purchaseInProgress = true;
+        actionButton.setDisable(true);
+        actionButton.setText("BUYING...");
+        selectedItemDesc.setText("Processing purchase...");
+
+        int userId = UserSession.getCurrentUserId();
+        String username = UserSession.getCurrentUsername();
+
+        CompletableFuture.supplyAsync(() -> shopDAO.purchaseBuff(userId, username, buff.name(), price),
+                        DatabaseExecutor.getExecutor())
                 .thenAccept(result -> Platform.runLater(() -> {
-                    hideLoadingOverlay();
-                    setShopLoading(false);
+                    purchaseInProgress = false;
+                    actionButton.setDisable(false);
 
                     switch (result) {
                         case SUCCESS -> {
                             BuffInventoryManager.getInstance().add(buff, 1);
-                            currentGold = Math.max(0, currentGold - price);
-                            updateCurrencyLabels();
+                            sessionCache.addBuff(buff, 1);
 
                             int quantity = BuffInventoryManager.getInstance().getQuantity(buff);
                             selectedItemName.setText(buff.getDisplayName());
                             selectedItemDesc.setText("PURCHASE SUCCESS | OWNED: x" + quantity);
-
                             loadBuffShop();
                         }
                         case NOT_ENOUGH_GOLD -> {
-                            updateCurrencyLabels();
+                            rollbackGold(price);
                             selectedItemDesc.setText("Not enough gold.");
+                            actionButton.setText("BUY - " + price + " GOLD");
                         }
                         case SAVE_NOT_FOUND -> {
-                            updateCurrencyLabels();
+                            rollbackGold(price);
                             selectedItemDesc.setText("No player data found.");
+                            actionButton.setText("BUY - " + price + " GOLD");
                         }
                         case ERROR -> {
-                            updateCurrencyLabels();
+                            rollbackGold(price);
                             selectedItemDesc.setText("Cannot buy buff.");
+                            actionButton.setText("BUY - " + price + " GOLD");
                         }
                     }
                 }))
                 .exceptionally(exception -> {
                     exception.printStackTrace();
-
                     Platform.runLater(() -> {
-                        hideLoadingOverlay();
-                        setShopLoading(false);
-                        updateCurrencyLabels();
+                        purchaseInProgress = false;
+                        rollbackGold(price);
+                        actionButton.setDisable(false);
+                        actionButton.setText("BUY - " + price + " GOLD");
                         selectedItemDesc.setText("Cannot buy buff.");
                     });
-
                     return null;
                 });
     }
@@ -1170,52 +1240,65 @@ public class ShopController {
         gc.drawImage(image, 0, 0, frameWidth, frameHeight, drawX, drawY, drawSize, drawSize);
     }
     private void purchaseHero(HeroType hero) {
-        if (shopLoading || ownedHeroes.contains(hero)) {
-            return;
-        }
+        if (hero == null || ownedHeroes.contains(hero) || purchaseInProgress) return;
 
         int price = hero.getPrice();
-        setShopLoading(true);
-        showLoadingOverlay("Buying hero...");
+        if (!reserveGold(price)) return;
 
-        CompletableFuture.supplyAsync(() -> shopDAO.purchaseItem(UserSession.getCurrentUserId(),
-                        UserSession.getCurrentUsername(), ITEM_TYPE_HERO,
-                        hero.name(), price), DatabaseExecutor.getExecutor())
-                .thenAccept(result ->
-                        Platform.runLater(() -> {
-                            hideLoadingOverlay();
-                            setShopLoading(false);
+        purchaseInProgress = true;
+        actionButton.setDisable(true);
+        actionButton.setText("BUYING...");
+        selectedItemDesc.setText("Processing purchase...");
 
-                            switch (result) {
-                                case SUCCESS -> {
-                                    ownedHeroes.add(hero);
-                                    currentGold = Math.max(0, currentGold - price);
+        int userId = UserSession.getCurrentUserId();
+        String username = UserSession.getCurrentUsername();
 
-                                    updateCurrencyLabels();
-                                    selectedItemDesc.setText("PURCHASE SUCCESS");
+        CompletableFuture.supplyAsync(() -> shopDAO.purchaseItem(userId, username, ITEM_TYPE_HERO, hero.name(), price),
+                        DatabaseExecutor.getExecutor())
+                .thenAccept(result -> Platform.runLater(() -> {
+                    purchaseInProgress = false;
+                    actionButton.setDisable(false);
 
-                                    loadHeroShop();
-                                }
-
-                                case ALREADY_OWNED -> {
-                                    ownedHeroes.add(hero);
-                                    selectedItemDesc.setText("You already own this hero.");
-                                    loadHeroShop();
-                                }
-                                case NOT_ENOUGH_GOLD -> selectedItemDesc.setText("Not enough gold.");
-                                case SAVE_NOT_FOUND -> selectedItemDesc.setText("No save file found.");
-                                case ERROR -> selectedItemDesc.setText("Cannot buy heroes.");
-                            }
-                        })
-                )
-                .exceptionally(exception -> {exception.printStackTrace();
-
+                    switch (result) {
+                        case SUCCESS -> {
+                            ownedHeroes.add(hero);
+                            sessionCache.addOwnedHero(hero);
+                            selectedItemDesc.setText("PURCHASE SUCCESS");
+                            loadHeroShop();
+                        }
+                        case ALREADY_OWNED -> {
+                            ownedHeroes.add(hero);
+                            sessionCache.addOwnedHero(hero);
+                            rollbackGold(price);
+                            selectedItemDesc.setText("You already own this hero.");
+                            loadHeroShop();
+                        }
+                        case NOT_ENOUGH_GOLD -> {
+                            rollbackGold(price);
+                            selectedItemDesc.setText("Not enough gold.");
+                            actionButton.setText("BUY - " + price + " GOLD");
+                        }
+                        case SAVE_NOT_FOUND -> {
+                            rollbackGold(price);
+                            selectedItemDesc.setText("No save file found.");
+                            actionButton.setText("BUY - " + price + " GOLD");
+                        }
+                        case ERROR -> {
+                            rollbackGold(price);
+                            selectedItemDesc.setText("Cannot buy heroes.");
+                            actionButton.setText("BUY - " + price + " GOLD");
+                        }
+                    }
+                }))
+                .exceptionally(exception -> {
+                    exception.printStackTrace();
                     Platform.runLater(() -> {
-                        hideLoadingOverlay();
-                        setShopLoading(false);
+                        purchaseInProgress = false;
+                        rollbackGold(price);
+                        actionButton.setDisable(false);
+                        actionButton.setText("BUY - " + price + " GOLD");
                         selectedItemDesc.setText("Cannot buy heroes.");
                     });
-
                     return null;
                 });
     }
