@@ -28,6 +28,14 @@ public enum WeaponType {
             8, 0.09,
             true, 620.0, 0.0,1000
     ),
+    PROTOTYPE_RAILGUN(
+            "Prototype Railgun",// loai dung dac biet : theo muc nang luong : an len nong
+            // cang lau thi do con gpa cang lon
+            "/assets/WeaponImage/GunImage/PrototypeRailgun.png",
+            "railgun_fire",
+            12, 0.65,
+            true, 680.0, 0.0, 65
+    ),
 
     SHOTGUN(
             "Shotgun",
@@ -123,6 +131,12 @@ public enum WeaponType {
 
 
     public Weapon createWeapon() {
+        // Railgun co logic charge rieng, khong tao bang Gun thuong. (chu y loai vu khi dac biet nay )
+        if (this == PROTOTYPE_RAILGUN) {
+            return new PrototypeRailgun(displayName, cooldownSeconds)
+                    .withSound(soundPath)
+                    .withImage(imagePath);
+        }
         if (ranged) {
             Gun gun = new Gun(displayName, damage, cooldownSeconds, bulletSpeed, 0.0);
             // Sung laser ban dan laser xuyen quai (mot tia trung nhieu con)

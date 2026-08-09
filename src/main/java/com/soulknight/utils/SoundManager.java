@@ -47,6 +47,7 @@ public final class SoundManager {
 
             @Override
             public void handleSFX(AudioClip clip, double volume) {
+                // Không làm gì khi muted
             }
 
             @Override
@@ -101,6 +102,7 @@ public final class SoundManager {
         loadSFX("dragon_breath","/assets/Audio/dragon_breath.mp3");
         loadSFX("dragon_explosion","/assets/Audio/dragon_explosion.mp3");
         loadSFX("holy_nova","/assets/Audio/holy_nova.mp3");
+        loadSFX("railgun_fire","/assets/Audio/railgun_fire.mp3");
     }
 
     public static SoundManager getInstance() {
@@ -114,18 +116,40 @@ public final class SoundManager {
                 AudioClip clip = new AudioClip(res.toExternalForm());
                 sfxMap.put(key, clip);
             } else {
-                System.err.println(" ko thay SFX: " + resourcePath);
+                System.err.println("Không thấy SFX tại đường dẫn: " + resourcePath);
             }
         } catch (Exception e) {
-            System.err.println("Loi tai  SFX: " + resourcePath + " - " + e.getMessage());
+            System.err.println("Lỗi nạp SFX (" + resourcePath + "): " + e.getMessage());
         }
     }
 
-    /**
-     * Cập nhật hàm playSFX: Tìm theo Key trước, nếu không có thì thử phát trực tiếp từ đường dẫn Resource
-     */
     public void playSFX(String keyOrPath) {
         if (keyOrPath == null || keyOrPath.isBlank()) return;
+
+        AudioClip clip = sfxMap.get(keyOrPath);
+        if (clip == null && keyOrPath.contains("/")) {
+            try {
+                URL res = getClass().getResource(keyOrPath);
+                if (res != null) {
+                    clip = new AudioClip(res.toExternalForm());
+                    sfxMap.put(keyOrPath, clip);
+                }
+            } catch (Exception e) {
+                System.err.println("Lỗi nạp trực tiếp SFX: " + keyOrPath + " - " + e.getMessage());
+            }
+        }
+
+        if (clip != null) {
+            clip.setCycleCount(1);
+            currentState.handleSFX(clip, sfxVolume);
+        } else {
+            System.err.println("Không thể phát SFX: " + keyOrPath);
+        }
+    }
+
+    public void playSFXShort(String keyOrPath, double durationSeconds) {
+        if (keyOrPath == null || keyOrPath.isBlank() || isMuted()) return;
+
         AudioClip clip = sfxMap.get(keyOrPath);
         if (clip == null && keyOrPath.contains("/")) {
             try {
@@ -140,42 +164,15 @@ public final class SoundManager {
         if (clip != null) {
             clip.setCycleCount(1);
             currentState.handleSFX(clip, sfxVolume);
-        } else {
-            System.err.println("Loi SPX " + keyOrPath);
-        }
-    }
 
-    /**
-     * Phát âm thanh với thời gian cụ thể (cắt ngắn).
-     * @param keyOrPath Tên key hoặc đường dẫn file âm thanh
-     * @param durationSeconds Thời lượng phát (giây)
-     */
-    public void playSFXShort(String keyOrPath, double durationSeconds) {
-        if (keyOrPath == null || keyOrPath.isBlank()) return;
-        AudioClip clip = sfxMap.get(keyOrPath);
-        if (clip == null && keyOrPath.contains("/")) {
-            try {
-                URL res = getClass().getResource(keyOrPath);
-                if (res != null) {
-                    clip = new AudioClip(res.toExternalForm());
-                    sfxMap.put(keyOrPath, clip);
-                }
-            } catch (Exception ignored) {}
-        }
-
-        if (clip != null) {
-            clip.setCycleCount(1);
-            clip.play(sfxVolume);
-            // Tạo biến final để sử dụng trong lambda
             final AudioClip finalClip = clip;
-            // Dừng âm thanh sau khoảng thời gian chỉ định
             Timeline stopTimeline = new Timeline(
                     new KeyFrame(Duration.seconds(durationSeconds),
                             event -> finalClip.stop())
             );
             stopTimeline.play();
         } else {
-            System.err.println("Loi SPX " + keyOrPath);
+            System.err.println("Không thể phát SFX: " + keyOrPath);
         }
     }
 
@@ -197,7 +194,6 @@ public final class SoundManager {
     }
 
     public void stopAllSFX() {
-//        de tat moi tieng bat ki
         for (AudioClip clip : sfxMap.values()) {
             if (clip != null) {
                 clip.stop();
@@ -216,9 +212,7 @@ public final class SoundManager {
 
         if (bgmPlayer != null && bgmPlayer.getStatus() == MediaPlayer.Status.PLAYING) {
             double halfDuration = fadeDurationSeconds / 2.0;
-            fadeOutBGM(halfDuration, () -> {
-                fadeInNewBGM(resourcePath, halfDuration);
-            });
+            fadeOutBGM(halfDuration, () -> fadeInNewBGM(resourcePath, halfDuration));
         } else {
             fadeInNewBGM(resourcePath, fadeDurationSeconds);
         }
@@ -250,10 +244,10 @@ public final class SoundManager {
                 bgmPlayer.play();
                 currentBgmPath = resourcePath;
             } else {
-                System.err.println("Khong thay " + resourcePath);
+                System.err.println("Không thấy BGM: " + resourcePath);
             }
         } catch (Exception e) {
-            System.err.println("Loi " + e.getMessage());
+            System.err.println("Lỗi BGM: " + e.getMessage());
         }
     }
 

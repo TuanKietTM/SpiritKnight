@@ -6,6 +6,7 @@ import com.soulknight.engine.GameWorld;
 import com.soulknight.utils.Constants;
 import com.soulknight.utils.Vector2D;
 import com.soulknight.weapon.Gun;
+import com.soulknight.weapon.PrototypeRailgun;
 import com.soulknight.weapon.SlashEffect;
 import com.soulknight.weapon.Weapon;
 import javafx.scene.image.Image;
@@ -45,6 +46,7 @@ public final class Player extends Entity {
 
     // Phan tram giam sat thuong, vi du 0.5 = giam 50%
     private double buffDamageReduction = 0.0;
+    private boolean fireHeldLastFrame;
 
     private Runnable dragonBreathAction;
     private Runnable holyNovaAction;
@@ -236,9 +238,25 @@ public final class Player extends Entity {
         }
 
         // Xu ly tan cong
-        if (world.getInputHandler().isFireHeld() && attackTargetPos != null) {
+        boolean fireHeld = world.getInputHandler().isFireHeld();
+
+        if (weapon instanceof PrototypeRailgun railgun) {
+
+            // Giu chuot de nap nang luong.
+            if (fireHeld && attackTargetPos != null) {
+                railgun.charge(deltaSeconds, attackTargetPos);
+            }
+
+            // Chi ban khi vua nha nut tan cong.
+            if (!fireHeld && fireHeldLastFrame) {
+                railgun.release(world, this, attackTargetPos);
+            }
+
+        } else if (fireHeld && attackTargetPos != null) {
             weapon.attack(world, this, attackTargetPos);
         }
+
+        fireHeldLastFrame = fireHeld;
 
         animator.update(movementState, deltaSeconds);
     }
