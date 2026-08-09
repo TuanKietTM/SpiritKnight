@@ -1,22 +1,20 @@
 package com.soulknight.weapon;
 
-import java.util.Objects;
-import java.util.function.Consumer;
-
-/**
- * Lưu vũ khí hiện đang được trang bị (chọn từ Shop).
- */
 public final class WeaponSelectionManager {
 
     private static final WeaponSelectionManager INSTANCE =
             new WeaponSelectionManager();
 
     /*
-     * Vũ khí mặc định khi bắt đầu game.
+     * Loadout truoc khi vao game.
+     *
+     * Shop chi thay doi 2 bien nay.
      */
-    private WeaponType selectedWeapon = WeaponType.OLD_PISTOL;
+    private WeaponType slot1 =
+            WeaponType.BLASTER;
 
-    private Consumer<WeaponType> selectionListener;
+    private WeaponType slot2 =
+            WeaponType.OLD_SWORD;
 
     private WeaponSelectionManager() {
     }
@@ -25,34 +23,63 @@ public final class WeaponSelectionManager {
         return INSTANCE;
     }
 
-    public WeaponType getSelectedWeapon() {
-        return selectedWeapon;
+    public WeaponType getSlot1() {
+        return slot1;
     }
 
-    public void selectWeapon(WeaponType type) {
-        WeaponType safeType = Objects.requireNonNullElse(
-                type,
-                WeaponType.OLD_PISTOL
-        );
+    public WeaponType getSlot2() {
+        return slot2;
+    }
 
-        if (selectedWeapon == safeType) {
-            return;
+    public boolean equipSlot1(WeaponType weapon) {
+        if (weapon == null) {
+            return false;
+        }
+        if (weapon == slot2) {
+            return false;
+        }
+        slot1 = weapon;
+        System.out.println("[LOADOUT] Slot 1 = " + weapon.name());
+        return true;
+    }
+
+    public boolean equipSlot2(WeaponType weapon) {
+        if (weapon == null) {
+            return false;
+        }
+        if (weapon == slot1) {
+            return false;
         }
 
-        selectedWeapon = safeType;
+        slot2 = weapon;
+        System.out.println("[LOADOUT] Slot 2 = " + weapon.name());
+        return true;
+    }
 
-        if (selectionListener != null) {
-            selectionListener.accept(selectedWeapon);
+    public boolean isSlot1(WeaponType weapon) {
+        return weapon != null && weapon == slot1;
+    }
+
+    public boolean isSlot2(WeaponType weapon) {
+        return weapon != null && weapon == slot2;
+    }
+
+    public boolean isEquipped(WeaponType weapon) {
+        return isSlot1(weapon) || isSlot2(weapon);
+    }
+
+    public void loadLoadout(WeaponType slot1, WeaponType slot2) {
+        WeaponType safeSlot1 = slot1 != null ? slot1 : WeaponType.BLASTER;
+        WeaponType safeSlot2 = slot2 != null ? slot2 : WeaponType.OLD_SWORD;
+        if (safeSlot1 == safeSlot2) {
+            safeSlot2 = safeSlot1 != WeaponType.OLD_SWORD ? WeaponType.OLD_SWORD : WeaponType.BLASTER;
         }
-    }
 
-    public boolean isSelected(WeaponType type) {
-        return selectedWeapon == type;
+        this.slot1 = safeSlot1;
+        this.slot2 = safeSlot2;
     }
-
-    public void setSelectionListener(
-            Consumer<WeaponType> selectionListener
-    ) {
-        this.selectionListener = selectionListener;
+    public void reset() {
+        slot1 = WeaponType.BLASTER;
+        slot2 = WeaponType.OLD_SWORD;
     }
 }

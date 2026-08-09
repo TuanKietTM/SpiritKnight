@@ -117,6 +117,9 @@ public final class GameWorld {
     private MapManager mapManager;
     private Player player;
     private Pet currentPet;
+    private WeaponType runWeaponSlot1;
+    private WeaponType runWeaponSlot2;
+    private int activeRunWeaponSlot = 0;
     private String currentPlayerName = "";
     private int gold = 0;
     private int gems = 0;
@@ -1096,12 +1099,23 @@ public void triggerDeathExplosion(Vector2D center, int damage) {
     }
 
     private void startNewRun() {
+
         levelManager.startNewRun();
+
         if (pendingPlayerSave == null) {
             currentRoomNumber = 1;
         }
+
         rewardedRoomKeys.clear();
+
+        /*
+         * Moi run moi deu snapshot lai loadout
+         * da chon truoc tran.
+         */
+        initializeRunWeaponLoadout();
+
         loadCurrentLevel(true);
+
         playGameBGM();
     }
 
@@ -1146,7 +1160,10 @@ public void triggerDeathExplosion(Vector2D center, int damage) {
 
         // 5. Trang bị vũ khí cho lượt chơi mới
         if (freshRun) {
-            this.player.equipWeapon(WeaponSelectionManager.getInstance().getSelectedWeapon().createWeapon());
+
+            activeRunWeaponSlot = 0;
+
+            equipActiveRunWeapon();
         }
 
         // 6. Reset toàn bộ danh sách Thực thể & Hiệu ứng của màn cũ
@@ -1358,20 +1375,20 @@ public void triggerDeathExplosion(Vector2D center, int damage) {
             debug("Nguoi choi chon vang: +" + amount);
         } else if ("weapon".equals(choice)) {
             Weapon weapon = rewardPicker.getWeapon();
-            if (weapon != null && player != null) {
-                player.equipWeapon(weapon);
-
-                floatingTextManager.spawnCustom(
-                        "NEW WEAPON: " + weapon.getName(),
-                        player.getPosition(),
-                        Color.GOLD
+            if (weapon != null &&
+                    player != null) {
+                floatingTextManager.spawnCustom("WEAPON REWARD: " + weapon.getName(), player.getPosition(), Color.GOLD
                 );
-
-                particleManager.spawnCoinBurst(player.getPosition(), 25);
+                /*
+                 * KHONG player.equipWeapon(weapon)
+                 *
+                 * Sau nay co the:
+                 * - unlock weapon vao account
+                 * - chuyen thanh gold
+                 * - cho phep replace 1 trong 2 slot
+                 */
             }
-
             SoundManager.getInstance().playSFX("switch");
-            debug("Nguoi choi chon vu khi: " + (weapon != null ? weapon.getName() : "?"));
         }
     }
 
@@ -1390,19 +1407,29 @@ public void triggerDeathExplosion(Vector2D center, int damage) {
     }
 
     private void advanceToNextLevel() {
-        Weapon rewardWeapon = levelManager.getLevelRewardWeapon();
-        if (rewardWeapon != null) {
-            player.equipWeapon(rewardWeapon);
-        }
 
         if (levelManager.advanceLevel()) {
+
+            /*
+             * loadCurrentLevel(false):
+             * Player cu duoc giu lai.
+             * Weapon dang cam cung duoc giu.
+             */
             loadCurrentLevel(false);
+
             changeState(GameState.PLAYING);
+
             saveGameAsync();
+
         } else {
+
             saveGameAsync();
+
             syncBankRewardsAsync();
-            changeState(GameState.GAME_VICTORY);
+
+            changeState(
+                    GameState.GAME_VICTORY
+            );
         }
     }
 
@@ -1560,20 +1587,69 @@ public void triggerDeathExplosion(Vector2D center, int damage) {
     public void setPlayerEnergy(double playerEnergy) {
         this.playerEnergy = Math.max(0.0, playerEnergy);
     }
-
-    // Doi qua lai giua sung va kiem (bam nut vu khi tren HUD de test)
     public void switchPlayerWeapon() {
-        if (player == null) {
+
+        if (player == null ||
+                !player.isAlive()) {
+
             return;
         }
-        if (player.getWeapon() instanceof Melee) {
-            // Dang cam kiem -> doi sang sung
-            player.equipWeapon(WeaponType.BLASTER.createWeapon());
-        } else {
-            // Dang cam sung -> doi sang kiem (chi so lay tu WeaponType de khong lech tam danh)
-            player.equipWeapon(WeaponType.OLD_SWORD.createWeapon());
+
+        /*
+         * Khong co weapon nao.
+         */
+        if (runWeaponSlot1 == null &&
+                runWeaponSlot2 == null) {
+
+            return;
         }
+
+        /*
+         * Chi co Slot 1.
+         */
+        if (runWeaponSlot2 == null) {
+
+            activeRunWeaponSlot = 0;
+
+            equipActiveRunWeapon();
+
+            return;
+        }
+
+        /*
+         * Chi co Slot 2.
+         */
+        if (runWeaponSlot1 == null) {
+
+            activeRunWeaponSlot = 1;
+
+            equipActiveRunWeapon();
+
+            return;
+        }
+
+        /*
+         * Doi Slot 1 <-> Slot 2.
+         */
+        activeRunWeaponSlot =
+                activeRunWeaponSlot == 0
+                        ? 1
+                        : 0;
+
+        equipActiveRunWeapon();
+
+        SoundManager
+                .getInstance()
+                .playSFX("switch");
+
+        debug(
+                "Switch weapon -> Slot "
+                        + (activeRunWeaponSlot + 1)
+                        + ": "
+                        + getActiveRunWeaponType()
+        );
     }
+
 
     public Vector2D getMouseWorldPosition() {
 //        xu li ngam ban tu chuot
@@ -1944,20 +2020,7 @@ public void triggerDeathExplosion(Vector2D center, int damage) {
         return PetSelectionManager.getInstance().getSelectedPet();
     }
 
-    //    cac phuong thuc vu khi (chon tu Shop)
-    public void equipWeapon(WeaponType type) {
-        WeaponType safeType = (type != null) ? type : WeaponType.OLD_PISTOL;
 
-        // Luu lua chon
-        WeaponSelectionManager.getInstance().selectWeapon(safeType);
-
-        // Chua co player thi chi can luu lua chon
-        if (player == null) {
-            return;
-        }
-
-        player.equipWeapon(safeType.createWeapon());
-    }
 
     //    data base
     public void saveGameAsync() {
@@ -2543,25 +2606,61 @@ public void triggerDeathExplosion(Vector2D center, int damage) {
             pendingBankGems = 0;
         }
         levelManager.startNewRun();
+        initializeRunWeaponLoadout();
         loadCurrentLevel(true);
         playGameBGM();
         changeState(GameState.PLAYING);
         saveGameAsync();
     }
-
     public void continueGameFromMenu() {
-        /*
-         * Continue phai co save da load truoc.
-         * Khong goi startNewRun vi se reset ve room 1.
-         */
+
         if (pendingPlayerSave == null) {
             System.err.println("Khong co save de Continue.");
             return;
         }
 
+        /*
+         * TAM THOI:
+         * dung loadout hien tai tu Shop.
+         *
+         * Sau nay nen restore 2 slot tu PlayerSave.
+         */
+        initializeRunWeaponLoadout();
+
         loadCurrentLevel(true);
+
         playGameBGM();
+
         changeState(GameState.PLAYING);
+    }
+    private void initializeRunWeaponLoadout() {
+        WeaponSelectionManager manager = WeaponSelectionManager.getInstance();
+        runWeaponSlot1 = manager.getSlot1();
+        runWeaponSlot2 = manager.getSlot2();
+        activeRunWeaponSlot = 0;
+        if (runWeaponSlot1 == null) {
+            runWeaponSlot1 = WeaponType.BLASTER;
+        }
+        if (runWeaponSlot2 == null) {
+            runWeaponSlot2 = WeaponType.OLD_SWORD;
+        }
+    }
+    private void equipActiveRunWeapon() {
+
+        if (player == null) {
+            return;
+        }
+        WeaponType weaponType = getActiveRunWeaponType();
+        if (weaponType == null) {
+            return;
+        }
+        player.equipWeapon(weaponType.createWeapon());
+    }
+    private WeaponType getActiveRunWeaponType() {
+        if (activeRunWeaponSlot == 0) {
+            return runWeaponSlot1;
+        }
+        return runWeaponSlot2;
     }
 
     private void playGameBGM() {
@@ -2569,7 +2668,6 @@ public void triggerDeathExplosion(Vector2D center, int damage) {
         sound.stopBGM();
         sound.playBGM("/assets/Audio/StartGame.mp3");
     }
-
     public interface GameStateListener {
         void onStateChanged(GameState newState);
     }

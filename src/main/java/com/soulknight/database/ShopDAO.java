@@ -11,10 +11,14 @@ import java.util.Set;
 
 public final class ShopDAO {
 
+    public record WeaponLoadout(String slot1, String slot2) { }
     public static final String ITEM_TYPE_PET = "PET";
     public static final String ITEM_TYPE_WEAPON = "WEAPON";
     public static final String ITEM_TYPE_HERO = "HERO";
     public static final String ITEM_TYPE_BUFF = "BUFF";
+
+    private static final String DEFAULT_WEAPON_SLOT_1 = "BLASTER";
+    private static final String DEFAULT_WEAPON_SLOT_2 = "OLD_SWORD";
 
     public Set<String> getOwnedItems(int userId, String itemType) {
         String sql = """
@@ -42,8 +46,13 @@ public final class ShopDAO {
 
         return ownedItems;
     }
-
     public String getEquippedItem(int userId, String itemType) {
+        String safeItemType = normalizeItemType(itemType);
+        if (userId <= 0 || safeItemType.isBlank()) return null;
+
+        // Weapon da tach sang user_weapon_loadout, khong con dung cot equipped cu.
+        if (ITEM_TYPE_WEAPON.equals(safeItemType)) return null;
+
         String sql = """
                 SELECT item_code
                 FROM user_inventory
@@ -55,20 +64,19 @@ public final class ShopDAO {
 
         try (Connection connection = DatabaseManager.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
-
             statement.setInt(1, userId);
-            statement.setString(2, normalizeItemType(itemType));
+            statement.setString(2, safeItemType);
 
             try (ResultSet resultSet = statement.executeQuery()) {
                 if (resultSet.next()) return resultSet.getString("item_code");
             }
-
         } catch (SQLException exception) {
             throw new IllegalStateException("Khong the tai vat pham dang trang bi.", exception);
         }
 
         return null;
     }
+
 
     public void grantStarterEquipment(int userId, String starterPet, String starterWeapon, String starterHero) {
         try (Connection connection = DatabaseManager.getConnection()) {
@@ -129,9 +137,27 @@ public final class ShopDAO {
             throw new IllegalStateException("Khong the cap hero khoi dau.", exception);
         }
     }
-
     private void grantStarterItem(Connection connection, int userId, String itemType, String itemCode) throws SQLException {
-        if (itemCode == null || itemCode.isBlank()) return;
+        if (userId <= 0 || itemCode == null || itemCode.isBlank()) return;
+
+        String safeItemType = normalizeItemType(itemType);
+        String safeItemCode = itemCode.trim().toUpperCase();
+
+        // Weapon chi luu quyen so huu trong inventory, slot trang bi nam o user_weapon_loadout.
+        if (ITEM_TYPE_WEAPON.equals(safeItemType)) {
+            String sql = """
+                    INSERT IGNORE INTO user_inventory(user_id, item_type, item_code, equipped)
+                    VALUES (?, ?, ?, FALSE)
+                    """;
+
+            try (PreparedStatement statement = connection.prepareStatement(sql)) {
+                statement.setInt(1, userId);
+                statement.setString(2, safeItemType);
+                statement.setString(3, safeItemCode);
+                statement.executeUpdate();
+            }
+            return;
+        }
 
         String sql = """
                 INSERT IGNORE INTO user_inventory(user_id, item_type, item_code, equipped)
@@ -146,13 +172,14 @@ public final class ShopDAO {
 
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setInt(1, userId);
-            statement.setString(2, itemType);
-            statement.setString(3, itemCode.trim());
+            statement.setString(2, safeItemType);
+            statement.setString(3, safeItemCode);
             statement.setInt(4, userId);
-            statement.setString(5, itemType);
+            statement.setString(5, safeItemType);
             statement.executeUpdate();
         }
     }
+
 
     public PurchaseResult purchaseItem(int userId, String username, String itemType, String itemCode, int price) {
         return purchaseItem(userId, itemType, itemCode, price);
@@ -187,7 +214,7 @@ public final class ShopDAO {
                 """;
 
         String safeItemType = normalizeItemType(itemType);
-        String safeItemCode = itemCode == null ? "" : itemCode.trim();
+        String safeItemCode = itemCode == null ? "" : itemCode.trim().toUpperCase();
         int safePrice = Math.max(0, price);
 
         if (userId <= 0 || safeItemCode.isBlank()) return PurchaseResult.SAVE_NOT_FOUND;
@@ -503,8 +530,18 @@ public final class ShopDAO {
             throw new IllegalStateException("Khong the su dung buff.", exception);
         }
     }
-
     public boolean equipItem(int userId, String itemType, String itemCode) {
+        String safeItemType = normalizeItemType(itemType);
+        String safeItemCode = itemCode == null ? "" : itemCode.trim().toUpperCase();
+
+        if (userId <= 0 || safeItemType.isBlank() || safeItemCode.isBlank()) return false;
+
+        // Weapon khong duoc di qua co che equipped 1-item cu nua.
+        if (ITEM_TYPE_WEAPON.equals(safeItemType)) {
+            System.err.println("Khong dung equipItem() cho WEAPON. Hay dung saveWeaponLoadout().");
+            return false;
+        }
+
         String checkOwnedSql = """
                 SELECT 1
                 FROM user_inventory
@@ -527,11 +564,6 @@ public final class ShopDAO {
                   AND item_type = ?
                   AND item_code = ?
                 """;
-
-        String safeItemType = normalizeItemType(itemType);
-        String safeItemCode = itemCode == null ? "" : itemCode.trim();
-
-        if (userId <= 0 || safeItemCode.isBlank()) return false;
 
         try (Connection connection = DatabaseManager.getConnection()) {
             connection.setAutoCommit(false);
@@ -569,18 +601,17 @@ public final class ShopDAO {
 
                 connection.commit();
                 return true;
-
             } catch (SQLException exception) {
                 connection.rollback();
                 throw exception;
             } finally {
                 connection.setAutoCommit(true);
             }
-
         } catch (SQLException exception) {
             throw new IllegalStateException("Khong the trang bi vat pham.", exception);
         }
     }
+
 
     public int getGold(String username) {
         String sql = """
@@ -729,6 +760,169 @@ public final class ShopDAO {
     private String normalizeItemType(String itemType) {
         if (itemType == null) return "";
         return itemType.trim().toUpperCase();
+    }
+    /**
+     * Luu dong thoi 2 slot weapon.
+     * Chi cho phep luu khi user so huu ca 2 weapon va 2 slot khong trung nhau.
+     */
+    public boolean saveWeaponLoadout(int userId, String slot1, String slot2) {
+        String safeSlot1 = normalizeWeaponCode(slot1);
+        String safeSlot2 = normalizeWeaponCode(slot2);
+
+        if (userId <= 0 || safeSlot1.isBlank() || safeSlot2.isBlank() || safeSlot1.equals(safeSlot2)) return false;
+
+        String checkOwnedSql = """
+                SELECT COUNT(DISTINCT item_code)
+                FROM user_inventory
+                WHERE user_id = ?
+                  AND item_type = ?
+                  AND item_code IN (?, ?)
+                """;
+
+        String saveSql = """
+                INSERT INTO user_weapon_loadout(user_id, slot_1, slot_2)
+                VALUES (?, ?, ?)
+                ON DUPLICATE KEY UPDATE slot_1 = VALUES(slot_1), slot_2 = VALUES(slot_2)
+                """;
+
+        try (Connection connection = DatabaseManager.getConnection()) {
+            connection.setAutoCommit(false);
+
+            try {
+                // Kiem tra ownership trong cung transaction de tranh luu weapon chua mua.
+                try (PreparedStatement statement = connection.prepareStatement(checkOwnedSql)) {
+                    statement.setInt(1, userId);
+                    statement.setString(2, ITEM_TYPE_WEAPON);
+                    statement.setString(3, safeSlot1);
+                    statement.setString(4, safeSlot2);
+
+                    try (ResultSet resultSet = statement.executeQuery()) {
+                        if (!resultSet.next() || resultSet.getInt(1) != 2) {
+                            connection.rollback();
+                            return false;
+                        }
+                    }
+                }
+
+                try (PreparedStatement statement = connection.prepareStatement(saveSql)) {
+                    statement.setInt(1, userId);
+                    statement.setString(2, safeSlot1);
+                    statement.setString(3, safeSlot2);
+                    statement.executeUpdate();
+                }
+
+                connection.commit();
+                return true;
+            } catch (SQLException exception) {
+                connection.rollback();
+                throw exception;
+            } finally {
+                connection.setAutoCommit(true);
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("Khong the luu weapon loadout.", exception);
+        }
+    }
+    public WeaponLoadout getWeaponLoadout(int userId) {
+        if (userId <= 0) return null;
+
+        String sql = """
+                SELECT slot_1, slot_2
+                FROM user_weapon_loadout
+                WHERE user_id = ?
+                LIMIT 1
+                """;
+
+        try (Connection connection = DatabaseManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setInt(1, userId);
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (!resultSet.next()) return null;
+
+                String slot1 = normalizeWeaponCode(resultSet.getString("slot_1"));
+                String slot2 = normalizeWeaponCode(resultSet.getString("slot_2"));
+                if (slot1.isBlank() || slot2.isBlank() || slot1.equals(slot2)) return null;
+
+                return new WeaponLoadout(slot1, slot2);
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("Khong the tai weapon loadout.", exception);
+        }
+    }
+    /**
+     * Tao loadout mac dinh cho account cu/chua co record.
+     * Khong ghi de loadout da ton tai.
+     */
+    public boolean ensureDefaultWeaponLoadout(int userId, String slot1, String slot2) {
+        String safeSlot1 = normalizeWeaponCode(slot1);
+        String safeSlot2 = normalizeWeaponCode(slot2);
+
+        if (safeSlot1.isBlank()) safeSlot1 = DEFAULT_WEAPON_SLOT_1;
+        if (safeSlot2.isBlank() || safeSlot1.equals(safeSlot2)) safeSlot2 = DEFAULT_WEAPON_SLOT_2;
+        if (userId <= 0 || safeSlot1.equals(safeSlot2)) return false;
+
+        String sql = """
+                INSERT IGNORE INTO user_weapon_loadout(user_id, slot_1, slot_2)
+                VALUES (?, ?, ?)
+                """;
+
+        try (Connection connection = DatabaseManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setInt(1, userId);
+            statement.setString(2, safeSlot1);
+            statement.setString(3, safeSlot2);
+            statement.executeUpdate();
+            return true;
+        } catch (SQLException exception) {
+            throw new IllegalStateException("Khong the tao weapon loadout mac dinh.", exception);
+        }
+    }
+    /**
+     * Cap 2 weapon starter vao inventory.
+     * Khong danh equipped=true vi weapon dung bang loadout rieng.
+     */
+    public void grantStarterWeapons(int userId, String firstWeapon, String secondWeapon) {
+        if (userId <= 0) return;
+
+        String safeFirst = normalizeWeaponCode(firstWeapon);
+        String safeSecond = normalizeWeaponCode(secondWeapon);
+
+        if (safeFirst.isBlank()) safeFirst = DEFAULT_WEAPON_SLOT_1;
+        if (safeSecond.isBlank() || safeFirst.equals(safeSecond)) safeSecond = DEFAULT_WEAPON_SLOT_2;
+
+        try (Connection connection = DatabaseManager.getConnection()) {
+            connection.setAutoCommit(false);
+
+            try {
+                grantStarterItem(connection, userId, ITEM_TYPE_WEAPON, safeFirst);
+                grantStarterItem(connection, userId, ITEM_TYPE_WEAPON, safeSecond);
+                connection.commit();
+            } catch (SQLException exception) {
+                connection.rollback();
+                throw exception;
+            } finally {
+                connection.setAutoCommit(true);
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("Khong the cap weapon mac dinh.", exception);
+        }
+    }
+
+
+
+
+    /**
+     * Khoi tao du 2 starter weapon va loadout mac dinh cho account.
+     */
+    public void initializeWeaponLoadout(int userId) {
+        if (userId <= 0) return;
+        grantStarterWeapons(userId, DEFAULT_WEAPON_SLOT_1, DEFAULT_WEAPON_SLOT_2);
+        ensureDefaultWeaponLoadout(userId, DEFAULT_WEAPON_SLOT_1, DEFAULT_WEAPON_SLOT_2);
+    }
+
+    private String normalizeWeaponCode(String weaponCode) {
+        return weaponCode == null ? "" : weaponCode.trim().toUpperCase();
     }
 
 
