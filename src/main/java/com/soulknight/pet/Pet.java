@@ -2,6 +2,7 @@ package com.soulknight.pet;
 
 import com.soulknight.engine.Camera;
 import com.soulknight.engine.GameWorld;
+import com.soulknight.entity.Enemy;
 import com.soulknight.utils.Vector2D;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
@@ -16,6 +17,8 @@ public final class Pet {
         IDLE,
         FOLLOWING,
         CATCHING_UP,
+        CHASING,
+        ATTACKING,
         STUCK
     }
 
@@ -28,6 +31,14 @@ public final class Pet {
     private static final double TELEPORT_DISTANCE = 560.0;
     private static final double STUCK_TIME_LIMIT = 1.15;
     private static final double FORCE_TELEPORT_TIME = 2.6;
+
+    // Thong so combat co ban cua Pet, sau nay co the chuyen sang PetType
+    private static final double ATTACK_DETECT_RADIUS = 140.0;
+    private static final double ATTACK_RANGE = 50.0;
+    private static final double MAX_COMBAT_DISTANCE_FROM_PLAYER = 220.0;
+    private static final double CHASE_SPEED_MULTIPLIER = 1.15;
+    private static final double ATTACK_COOLDOWN = 1.0;
+    private static final int ATTACK_DAMAGE = 4;
 
     private final PetType type;
 
@@ -45,6 +56,8 @@ public final class Pet {
 
     private double animTimer = 0.0; // Timer dùng riêng cho Animation
     private double stuckTime;
+    private double attackCooldown;
+    private Enemy currentTarget;
 
     private boolean active = true;
     private boolean facingRight = true;
@@ -64,13 +77,14 @@ public final class Pet {
     }
 
     public void update(double deltaSeconds, double playerX, double playerY, GameWorld world) {
-        if (!active || deltaSeconds <= 0.0 || world == null || world.getMapManager() == null) {
-            return;
-        }
+        if (!active || deltaSeconds <= 0.0 || world == null || world.getMapManager() == null) return;
 
         double safeDelta = Math.min(deltaSeconds, 0.05);
         Vector2D playerPosition = new Vector2D(playerX, playerY);
 
+        if (attackCooldown > 0.0) attackCooldown = Math.max(0.0, attackCooldown - safeDelta);
+
+        // Van ghi lai duong di cua Player de Pet quay ve sau khi combat ket thuc
         recordPlayerPath(playerPosition, world);
 
         double distanceToPlayer = position.distance(playerPosition);
@@ -80,6 +94,17 @@ public final class Pet {
             return;
         }
 
+        // Khi Player khong qua xa, Pet uu tien Enemy thay vi breadcrumb cua Player
+        currentTarget = findNearestEnemy(world, playerPosition);
+
+        if (currentTarget != null) {
+            updateEnemyChase(safeDelta, playerPosition, world);
+            animTimer += safeDelta;
+            lastPetPosition.set(position);
+            return;
+        }
+
+        // Khong co Enemy hop le thi Pet quay lai co che follow Player nhu cu
         Vector2D target = chooseTarget(playerPosition);
         double distanceToTarget = position.distance(target);
 
@@ -97,11 +122,7 @@ public final class Pet {
             return;
         }
 
-        if (distanceToPlayer >= CATCH_UP_DISTANCE) {
-            state = State.CATCHING_UP;
-        } else {
-            state = State.FOLLOWING;
-        }
+        state = distanceToPlayer >= CATCH_UP_DISTANCE ? State.CATCHING_UP : State.FOLLOWING;
 
         double speedMultiplier = calculateSpeedMultiplier(distanceToPlayer);
         double moveDistance = type.getMoveSpeed() * speedMultiplier * safeDelta;
@@ -111,9 +132,101 @@ public final class Pet {
         updateStuckState(moved, safeDelta, playerPosition, world);
         updateFacingDirection();
 
-        // Cập nhật Timer phát hoạt ảnh
         animTimer += safeDelta;
         lastPetPosition.set(position);
+    }
+
+
+    // Tim Enemy gan nhat nhung khong cho Pet bi keo qua xa khoi Player
+    private Enemy findNearestEnemy(GameWorld world, Vector2D playerPosition) {
+        if (world == null || playerPosition == null || world.getEnemies() == null || world.getEnemies().isEmpty()) return null;
+
+        // Player da qua xa thi Pet bo combat va uu tien quay ve
+        if (position.distance(playerPosition) > MAX_COMBAT_DISTANCE_FROM_PLAYER) return null;
+
+        Enemy nearestEnemy = null;
+        double nearestDistance = ATTACK_DETECT_RADIUS;
+
+        for (Enemy enemy : world.getEnemies()) {
+            if (enemy == null || !enemy.isAlive() || enemy.getPosition() == null) continue;
+
+            // Khong duoi Enemy nam qua xa khoi Player de tranh Pet chay mat
+            if (enemy.getPosition().distance(playerPosition) > MAX_COMBAT_DISTANCE_FROM_PLAYER) continue;
+
+            double distance = position.distance(enemy.getPosition());
+            if (distance > nearestDistance) continue;
+
+            nearestDistance = distance;
+            nearestEnemy = enemy;
+        }
+
+        return nearestEnemy;
+    }
+
+    // Khi co muc tieu Pet se tu di theo Enemy cho den khi vao tam danh
+    private void updateEnemyChase(double deltaSeconds, Vector2D playerPosition, GameWorld world) {
+        if (currentTarget == null || !currentTarget.isAlive() || currentTarget.getPosition() == null) return;
+
+        Vector2D enemyPosition = currentTarget.getPosition();
+        double distanceToEnemy = position.distance(enemyPosition);
+
+        facingRight = enemyPosition.getX() >= position.getX();
+
+        // Da vao tam danh thi dung lai va tan cong
+        if (distanceToEnemy <= ATTACK_RANGE) {
+            state = State.ATTACKING;
+            stuckTime = 0.0;
+            updateCombat(world);
+            return;
+        }
+
+        state = State.CHASING;
+
+        double moveDistance = type.getMoveSpeed() * CHASE_SPEED_MULTIPLIER * deltaSeconds;
+        boolean moved = moveSmart(enemyPosition, moveDistance, world);
+
+        updateStuckState(moved, deltaSeconds, playerPosition, world);
+
+        // moveSmart co the thay doi huong, sau do quay lai dung ve phia Enemy
+        facingRight = enemyPosition.getX() >= position.getX();
+
+        // Neu frame nay vua vao tam danh thi cho phep danh ngay
+        updateCombat(world);
+    }
+
+    // Pet chi tan cong khi Enemy da nam trong tam danh, khong tu y duoi qua xa
+    private void updateCombat(GameWorld world) {
+        if (currentTarget == null || !currentTarget.isAlive() || currentTarget.getPosition() == null) return;
+
+        double distance = position.distance(currentTarget.getPosition());
+        if (distance > ATTACK_RANGE) return;
+
+        facingRight = currentTarget.getPosition().getX() >= position.getX();
+        if (attackCooldown > 0.0) return;
+
+        attackEnemy(currentTarget, world);
+        attackCooldown = ATTACK_COOLDOWN;
+    }
+
+    // Ban dau dung instant hit de test AI Pet, sau nay co the doi thanh projectile
+    private void attackEnemy(Enemy enemy, GameWorld world) {
+        if (enemy == null || !enemy.isAlive()) return;
+
+        int healthBefore = enemy.getHealth();
+        enemy.takeDamage(ATTACK_DAMAGE);
+        int realDamage = healthBefore - enemy.getHealth();
+
+        if (realDamage <= 0) return;
+
+        state = State.ATTACKING;
+
+        if (world.getFloatingTextManager() != null) {
+            world.getFloatingTextManager().spawnCustom(
+                    "-" + realDamage,
+                    enemy.getPosition(),
+                    javafx.scene.paint.Color.LIGHTBLUE
+            );
+        }
     }
 
     private void recordPlayerPath(Vector2D playerPosition, GameWorld world) {
@@ -273,7 +386,7 @@ public final class Pet {
         if (!active || graphicsContext == null || camera == null) return;
 
         // Xử lý chọn Sprite Sheet và tính Frame hiện tại
-        boolean isRunning = (state == State.FOLLOWING || state == State.CATCHING_UP);
+        boolean isRunning = (state == State.FOLLOWING || state == State.CATCHING_UP || state == State.CHASING);
         Image currentSheet = isRunning ? runSpriteSheet : idleSpriteSheet;
 
         if (currentSheet == null) return;
