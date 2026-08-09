@@ -14,6 +14,9 @@ import com.soulknight.weapon.WeaponType;
 import com.soulknight.database.UserDAO;
 import com.soulknight.database.UserSession;
 import com.soulknight.database.EquipmentLoader;
+import com.soulknight.cache.PlayerSessionCache;
+import com.soulknight.cache.SessionPreloader;
+import com.soulknight.cache.LeaderboardCache;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Pos;
@@ -63,8 +66,6 @@ public final class UIManager {
     // Luu trang thai Continue cua tai khoan dang dang nhap
     private boolean continueAvailable;
     private GameWorld boundWorld;
-    private boolean buffUseInProgress;
-
     public UIManager(StackPane rootNode) {
         this.rootNode = rootNode;
         initViews();
@@ -353,74 +354,135 @@ public final class UIManager {
         loginController.setOnRegisterRequested(this::showRegisterScreen);
 
         loginController.setOnLoginSuccess(() -> {
-            String username = UserSession.getCurrentUsername();
-            world.setCurrentPlayerName(username);
 
-            // Mac dinh khoa Continue trong luc dang kiem tra save
+            String username =
+                    UserSession.getCurrentUsername();
+
+            int userId =
+                    UserSession.getCurrentUserId();
+
+            world.setCurrentPlayerName(
+                    username
+            );
+
+            /*
+             * Tao session RAM moi.
+             */
+            PlayerSessionCache
+                    .getInstance()
+                    .beginSession(userId);
+
+            /*
+             * Tam khoa Continue trong luc check save ngam.
+             */
             continueAvailable = false;
-            menuController.setContinueAvailable(false);
-            showLoading("Checking save...");
 
-            CompletableFuture
-                    .supplyAsync(() -> {
-                        int userId = UserSession.getCurrentUserId();
+            menuController
+                    .setContinueAvailable(false);
 
-                        // Tai pet, weapon va hero dang trang bi cua tai khoan
-                        equipmentLoader.loadForUser(userId);
+            /*
+             * UI hien NGAY sau khi login thanh cong.
+             */
+            if (UserSession.isFirstPlay()) {
 
-                        PlayerSaveDAO saveDAO = new PlayerSaveDAO();
-                        boolean hasSave = saveDAO.findByName(username).isPresent();
+                showFirstStory(world);
 
-                        return hasSave && !UserSession.isFirstPlay();
-                    })
-                    .thenAccept(canContinue -> Platform.runLater(() -> {
-                        hideLoading();
+            } else {
 
-                        /*
-                         * Tai khoan moi di thang vao StoryIntro,
-                         * khong hien Main Menu.
-                         */
-                        if (UserSession.isFirstPlay()) {
-                            continueAvailable = false;
-                            menuController.setContinueAvailable(false);
-                            showFirstStory(world);
-                            return;
-                        }
+                showMainMenu(world);
+            }
 
-                        /*
-                         * Tai khoan cu moi vao Main Menu.
-                         */
-                        continueAvailable = canContinue;
-                        menuController.setContinueAvailable(canContinue);
-                        showMainMenu(world);
-                    }))
-                    .exceptionally(exception -> {
-                        exception.printStackTrace();
+            /*
+             * Tat ca data phu load background.
+             */
+            preloadSessionData(
+                    userId,
+                    username
+            );
 
-                        Platform.runLater(() -> {
-                            hideLoading();
-
-                            /*
-                             * Neu tai khoan moi thi van cho vao StoryIntro.
-                             * Khong de loi kiem tra save day nguoi choi vao Menu.
-                             */
-                            if (UserSession.isFirstPlay()) {
-                                continueAvailable = false;
-                                menuController.setContinueAvailable(false);
-                                showFirstStory(world);
-                                return;
-                            }
-
-                            continueAvailable = false;
-                            menuController.setContinueAvailable(false);
-                            showMainMenu(world);
-                        });
-
-                        return null;
-                    });
+            preloadContinueState(
+                    username
+            );
         });
     }
+    private void preloadSessionData(int userId, String username) {
+        SessionPreloader.preload(userId,username)
+                .exceptionally(exception -> {
+                    System.err.println("Loi preload session: " + exception.getMessage());
+                    return null;
+                });
 
+        CompletableFuture.runAsync(
+                        () -> equipmentLoader.loadForUser(userId),
+                        com.soulknight.utils.DatabaseExecutor.getExecutor())
+                .exceptionally(exception -> {
+                    System.err.println("Loi preload equipment: " + exception.getMessage());
+                    return null;
+                });
+
+        preloadLeaderboard();
+    }
+    private void preloadLeaderboard() {
+        LeaderboardCache cache = LeaderboardCache.getInstance();
+        /*
+         * Cache con moi thi khong query lai.
+         */
+        if (cache.isFresh()) {
+            return;
+        }
+        /*
+         * Neu request khac dang preload thi khong tao them request.
+         */
+        if (!cache.beginRefresh()) {
+            return;
+        }
+        CompletableFuture.supplyAsync(() -> new PlayerSaveDAO().getLeaderboard(20),
+                        com.soulknight.utils.DatabaseExecutor.getExecutor()
+                )
+                .thenAccept(entries -> {
+                    cache.set(entries);
+                    cache.endRefresh();
+                })
+                .exceptionally(exception -> {
+                    cache.endRefresh();
+                    System.err.println("Loi preload leaderboard: " + exception.getMessage());
+                    return null;
+                });
+    }
+    private void preloadContinueState(
+            String username
+    ) {
+        if (username == null
+                || username.isBlank()) {
+            return;
+        }
+
+        CompletableFuture
+                .supplyAsync(
+                        () -> {PlayerSaveDAO saveDAO = new PlayerSaveDAO();
+                            return saveDAO.findByName(username).isPresent();
+                        },
+                        com.soulknight.utils.DatabaseExecutor.getExecutor()
+                )
+                .thenAccept(hasSave ->
+                        Platform.runLater(() -> {
+                            /*
+                             * Tai khoan moi van theo Story.
+                             */
+                            if (UserSession.isFirstPlay()) {
+                                return;
+                            }
+                            continueAvailable = hasSave;
+                            if (menuController != null) {
+                                menuController.setContinueAvailable(hasSave);
+                            }
+                        })
+                )
+                .exceptionally(exception -> {
+                    System.err.println("Loi preload Continue: " + exception.getMessage());
+                    return null;
+                });
+    }
     private void bindRegisterActions() {
         if (registerController == null) {
             return;
@@ -536,44 +598,75 @@ public final class UIManager {
                 }
             });
             menuController.setOnLeaderboardRequested(() -> {
+
                 sound.playSFX("button");
 
                 menuRoot.setVisible(false);
+                menuRoot.setManaged(false);
+
                 leaderboardRoot.setVisible(true);
+                leaderboardRoot.setManaged(true);
                 leaderboardRoot.toFront();
 
-                leaderboardController.setup(
-                        () -> {
-                            leaderboardRoot.setVisible(false);
-                            menuRoot.setVisible(true);
-                            menuRoot.toFront();
+                if (leaderboardController != null) {
 
-                            menuController.setContinueAvailable(continueAvailable);
-                            menuController.startAnimation();
-                        },
-                        this::showLoading,
-                        this::hideLoading
-                );
+                    leaderboardController.setup(
+                            () -> {
+
+                                leaderboardRoot
+                                        .setVisible(false);
+
+                                leaderboardRoot
+                                        .setManaged(false);
+
+                                menuRoot.setVisible(true);
+                                menuRoot.setManaged(true);
+                                menuRoot.toFront();
+
+                                menuController
+                                        .setContinueAvailable(
+                                                continueAvailable
+                                        );
+
+                                menuController
+                                        .startAnimation();
+                            },
+
+                            this::showLoading,
+                            this::hideLoading
+                    );
+                }
             });
 
             menuController.setOnShopRequested(() -> {
+
                 sound.playSFX("button");
+
                 menuRoot.setVisible(false);
+                menuRoot.setManaged(false);
+
                 shopRoot.setVisible(true);
+                shopRoot.setManaged(true);
                 shopRoot.toFront();
 
                 if (shopController != null) {
-                    shopController.setLoadingCallbacks(this::showLoading, this::hideLoading);
+
+                    shopController.setLoadingCallbacks(
+                            this::showLoading,
+                            this::hideLoading
+                    );
+
                     shopController.setup(world, () -> {
-                        sound.playSFX("button");
-
-                        shopRoot.setVisible(false);
-                        menuRoot.setVisible(true);
-                        menuRoot.toFront();
-
-                        menuController.setContinueAvailable(continueAvailable);
-                        menuController.startAnimation();
-                    });
+                                sound.playSFX("button");
+                                shopRoot.setVisible(false);
+                                shopRoot.setManaged(false);
+                                menuRoot.setVisible(true);
+                                menuRoot.setManaged(true);
+                                menuRoot.toFront();
+                                menuController.setContinueAvailable(continueAvailable);
+                                menuController.startAnimation();
+                            }
+                    );
                 }
             });
         }
@@ -670,7 +763,7 @@ public final class UIManager {
             );
         }
     }
-//goi buff tu HUD
+    //goi buff tu HUD
     private void useBuffFromHud(GameWorld world, BuffType buffType) {
         if (world == null || buffType == null) {
             return;
@@ -711,6 +804,9 @@ public final class UIManager {
             return;
         }
 
+        // Dong bo cache ngay de HUD va Shop khong bi lech so luong buff
+        PlayerSessionCache.getInstance().consumeBuff(buffType);
+
         /*
          * Buff kich hoat ngay khi click / bam 1-4.
          */
@@ -727,7 +823,9 @@ public final class UIManager {
                      * Database khong tru duoc.
                      * Khoi phuc buff trong RAM.
                      */
-                    Platform.runLater(() -> {inventory.add(buffType, 1);
+                    Platform.runLater(() -> {
+                        inventory.add(buffType, 1);
+                        PlayerSessionCache.getInstance().addBuff(buffType, 1);
                         System.err.println("Consume buff DB that bai: " + buffType.name());
                     });
                 })
@@ -739,12 +837,18 @@ public final class UIManager {
                      */
                     Platform.runLater(() -> {
                         inventory.add(buffType, 1);
+                        PlayerSessionCache.getInstance().addBuff(buffType, 1);
                     });
                     return null;
                 });
     }
     private void handleLogout(GameWorld world) {
         BuffInventoryManager.getInstance().clear();
+
+        // Xoa cache rieng cua tai khoan, tranh tai khoan sau dung du lieu cu
+        PlayerSessionCache.getInstance().clear();
+
+        // Leaderboard la du lieu chung nen giu lai cache de mo nhanh hon
         UserSession.logout();
         continueAvailable = false;
 
@@ -898,14 +1002,9 @@ public final class UIManager {
                 menuController.setContinueAvailable(true);
             }
 
-            // Cap nhat firstPlay ngam de khong lam dung JavaFX thread
-            Thread updateThread = new Thread(
-                    () -> userDAO.setFirstPlay(userId, false),
-                    "update-first-play-thread"
-            );
-
-            updateThread.setDaemon(true);
-            updateThread.start();
+            // Cap nhat firstPlay bang executor DB dung chung, khong tao thread moi moi lan
+            CompletableFuture.runAsync(() -> userDAO.setFirstPlay(userId, false),
+                    com.soulknight.utils.DatabaseExecutor.getExecutor());
 
             storyIntroRoot.setVisible(false);
             storyIntroRoot.setManaged(false);
@@ -970,8 +1069,8 @@ public final class UIManager {
         if (gameOverRoot != null) gameOverRoot.setVisible(false);
         if (pauseRoot != null) pauseRoot.setVisible(false);
         if (settingRoot != null) settingRoot.setVisible(false);
-        if (shopRoot != null) shopRoot.setVisible(false);
-        if (leaderboardRoot != null) leaderboardRoot.setVisible(false);
+        if (shopRoot != null) { shopRoot.setVisible(false); shopRoot.setManaged(false); }
+        if (leaderboardRoot != null) { leaderboardRoot.setVisible(false); leaderboardRoot.setManaged(false); }
         if (accountRoot != null) {
             accountRoot.setVisible(false);
             accountRoot.setManaged(false);
