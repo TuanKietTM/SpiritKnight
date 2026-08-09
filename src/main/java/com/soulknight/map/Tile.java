@@ -23,7 +23,7 @@ public final class Tile {
 
     // Anh vat can
     private static final Image BOX_IMAGE = loadImage("/assets/maps/wooden.png");
-    private static final Image TREE_IMAGE = loadImage("/assets/maps/tree.png");
+    private static final Image TREE_IMAGE = loadImage("/assets/maps/tree_ex2.png");
     private static final Image FIRE_IMAGE = loadImage("/assets/maps/fire.png");
 
     public Tile(double x, double y, double size, TileType type) {

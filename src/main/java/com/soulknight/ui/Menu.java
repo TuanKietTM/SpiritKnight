@@ -7,6 +7,7 @@ import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.canvas.Canvas;
 
 public final class Menu {
 
@@ -25,6 +26,10 @@ public final class Menu {
     @FXML private ImageView settingsIcon;
     @FXML private ImageView exitIcon;
 
+    @FXML
+    private Canvas nexusCanvas;
+    private MainMenuRealityBreachBackground menuBackground;
+
     private Runnable onNewGameCallback;
     private Runnable onContinueCallback;
     private Runnable onLeaderboardCallback;
@@ -41,6 +46,14 @@ public final class Menu {
         setIcon(accountIcon, "/assets/icon/person.png");
         setIcon(settingsIcon, "/assets/icon/setting.png");
         setIcon(exitIcon, "/assets/icon/close.png");
+        if (nexusCanvas != null) {
+            menuBackground =
+                    new MainMenuRealityBreachBackground(nexusCanvas);
+
+            menuBackground.renderImmediately();
+        }
+
+
     }
 
     private void setIcon(ImageView imageView, String path) {
@@ -105,9 +118,16 @@ public final class Menu {
      * Menu khong con sprite animation.
      */
     public void startAnimation() {
+        if (menuBackground != null) {
+            menuBackground.start();
+        }
     }
 
+
     public void stopAnimation() {
+        if (menuBackground != null) {
+            menuBackground.stop();
+        }
     }
 
     @FXML
