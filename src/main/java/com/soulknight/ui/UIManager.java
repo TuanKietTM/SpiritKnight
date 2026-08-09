@@ -670,101 +670,79 @@ public final class UIManager {
             );
         }
     }
-
-    //    quy dinh an vao de su dung buff
+//goi buff tu HUD
     private void useBuffFromHud(GameWorld world, BuffType buffType) {
-        if (world == null || buffType == null || buffUseInProgress) {
+        if (world == null || buffType == null) {
             return;
         }
-
         if (world.getState() != GameState.PLAYING) {
             return;
         }
-
         Player player = world.getPlayer();
-
         if (player == null || !player.isAlive()) {
             return;
         }
 
         BuffInventoryManager inventory = BuffInventoryManager.getInstance();
-
+        /*
+         * Khong co buff trong RAM.
+         */
         if (!inventory.hasBuff(buffType)) {
             return;
         }
-
-        // Heal khong duoc dung khi da day mau
-        if (buffType == BuffType.HEAL
-                && player.getHealth() >= player.getMaxHealth()) {
+        /*
+         * Heal khong dung khi day HP.
+         */
+        if (buffType == BuffType.HEAL && player.getHealth() >= player.getMaxHealth()) {
             return;
         }
-
-        // Buff co thoi gian khong bi tru them khi van dang hoat dong
-        if (!buffType.isInstant()
-                && player.getBuffManager().isActive(buffType)) {
+        /*
+         * Buff co duration khong duoc kich hoat
+         * lai khi dang active.
+         */
+        if (!buffType.isInstant() && player.getBuffManager().isActive(buffType)) {
             return;
         }
-
         int userId = UserSession.getCurrentUserId();
-
         if (userId <= 0) {
             return;
         }
+        if (!inventory.consume(buffType)) {
+            return;
+        }
 
-        buffUseInProgress = true;
+        /*
+         * Buff kich hoat ngay khi click / bam 1-4.
+         */
+        player.getBuffManager().activate(buffType);
 
-        CompletableFuture
-                .supplyAsync(
-                        () -> shopDAO.consumeBuff(userId, buffType.name()),
-                        com.soulknight.utils.DatabaseExecutor.getExecutor()
-                )
-                .thenAccept(success -> Platform.runLater(() -> {
-                    buffUseInProgress = false;
-
-                    if (!success) {
+        SoundManager.getInstance().playSFX("button");
+        CompletableFuture.supplyAsync(() -> shopDAO.consumeBuff(userId, buffType.name()),
+                        com.soulknight.utils.DatabaseExecutor.getExecutor())
+                .thenAccept(success -> {
+                    if (success) {
                         return;
                     }
-
-                    if (!inventory.consume(buffType)) {
-                        // DB da tru nhung RAM lech, tai lai inventory de dong bo
-                        CompletableFuture
-                                .supplyAsync(
-                                        () -> shopDAO.getBuffQuantities(userId),
-                                        com.soulknight.utils.DatabaseExecutor.getExecutor()
-                                )
-                                .thenAccept(raw -> Platform.runLater(() -> {
-                                    java.util.Map<BuffType, Integer> parsed =
-                                            new java.util.EnumMap<>(BuffType.class);
-
-                                    for (java.util.Map.Entry<String, Integer> entry : raw.entrySet()) {
-                                        try {
-                                            BuffType type = BuffType.valueOf(
-                                                    entry.getKey().trim().toUpperCase()
-                                            );
-
-                                            if (entry.getValue() != null
-                                                    && entry.getValue() > 0) {
-                                                parsed.put(type, entry.getValue());
-                                            }
-                                        } catch (Exception ignored) {
-                                        }
-                                    }
-
-                                    inventory.replaceAll(parsed);
-                                }));
-                        return;
-                    }
-
-                    SoundManager.getInstance().playSFX("button");
-                    player.getBuffManager().activate(buffType);
-                }))
+                    /*
+                     * Database khong tru duoc.
+                     * Khoi phuc buff trong RAM.
+                     */
+                    Platform.runLater(() -> {inventory.add(buffType, 1);
+                        System.err.println("Consume buff DB that bai: " + buffType.name());
+                    });
+                })
                 .exceptionally(exception -> {
                     exception.printStackTrace();
-                    Platform.runLater(() -> buffUseInProgress = false);
+                    /*
+                     * Mat mang / SQL loi:
+                     * tra lai buff.
+                     */
+                    Platform.runLater(() -> {
+                        inventory.add(buffType, 1);
+                    });
                     return null;
                 });
     }
-
     private void handleLogout(GameWorld world) {
         BuffInventoryManager.getInstance().clear();
         UserSession.logout();
