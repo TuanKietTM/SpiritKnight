@@ -3,6 +3,7 @@ package com.soulknight.engine;
 import com.soulknight.utils.Constants;
 import com.soulknight.utils.Vector2D;
 import com.soulknight.weapon.Weapon;
+import com.soulknight.weapon.WeaponType;
 import javafx.geometry.VPos;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
@@ -11,9 +12,15 @@ import javafx.scene.text.FontWeight;
 import javafx.scene.text.TextAlignment;
 
 /**
- * Màn hình chọn phần thưởng sau khi hoàn thành nhiệm vụ của màn.
- * Hiển thị 2 ô lựa chọn: một ô vàng (số lượng ngẫu nhiên) và một ô vũ khí.
- * Người chơi click vào ô để nhận phần thưởng tương ứng.
+ * Man hinh chon phan thuong sau khi clear room.
+ *
+ * Buoc 1:
+ * - Chon GOLD
+ * - Chon WEAPON
+ *
+ * Buoc 2 neu chon WEAPON:
+ * - Chon thay Slot 1
+ * - Chon thay Slot 2
  */
 public final class RewardPicker {
 
@@ -29,6 +36,11 @@ public final class RewardPicker {
     private static final Color CARD_BORDER = Color.rgb(120, 120, 150);
     private static final Color CARD_HOVER_BORDER = Color.GOLD;
 
+    private enum Mode {
+        REWARD,
+        WEAPON_SLOT
+    }
+
     private final Weapon weapon;
     private final int goldAmount;
 
@@ -36,6 +48,11 @@ public final class RewardPicker {
     private final double goldCardY;
     private final double weaponCardX;
     private final double weaponCardY;
+
+    private Mode mode = Mode.REWARD;
+
+    private WeaponType slot1Weapon;
+    private WeaponType slot2Weapon;
 
     public RewardPicker(Weapon weapon, int goldAmount) {
         this.weapon = weapon;
@@ -59,53 +76,109 @@ public final class RewardPicker {
         return goldAmount;
     }
 
-    public void render(GraphicsContext graphicsContext, Vector2D mousePosition) {
-        graphicsContext.save();
-        graphicsContext.setFill(OVERLAY_COLOR);
-        graphicsContext.fillRect(0, 0, VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
-        graphicsContext.restore();
+    public boolean isChoosingWeaponSlot() {
+        return mode == Mode.WEAPON_SLOT;
+    }
 
-        graphicsContext.save();
-        graphicsContext.setFill(Color.GOLD);
-        graphicsContext.setFont(Font.font("System", FontWeight.BOLD, 34));
-        graphicsContext.setTextAlign(TextAlignment.CENTER);
-        graphicsContext.fillText("CHOOSE YOUR REWARD",
-                VIEWPORT_WIDTH / 2.0, goldCardY - 60);
-        graphicsContext.restore();
+    /**
+     * Chuyen picker sang buoc chon slot se bi thay the.
+     * Reward weapon luc nay chua duoc equip.
+     */
+    public void showWeaponSlotSelection(WeaponType slot1Weapon, WeaponType slot2Weapon) {
+        this.slot1Weapon = slot1Weapon;
+        this.slot2Weapon = slot2Weapon;
+        this.mode = Mode.WEAPON_SLOT;
+    }
 
-        graphicsContext.save();
-        graphicsContext.setFill(Color.LIGHTGRAY);
-        graphicsContext.setFont(Font.font("System", 16));
-        graphicsContext.setTextAlign(TextAlignment.CENTER);
-        graphicsContext.fillText("Click a card to claim the reward",
-                VIEWPORT_WIDTH / 2.0, goldCardY - 30);
-        graphicsContext.restore();
+    public void render(GraphicsContext gc, Vector2D mousePosition) {
+        if (gc == null) return;
+
+        renderOverlay(gc);
+
+        if (mode == Mode.WEAPON_SLOT) {
+            renderWeaponSlotSelection(gc, mousePosition);
+            return;
+        }
+
+        renderRewardSelection(gc, mousePosition);
+    }
+
+    private void renderOverlay(GraphicsContext gc) {
+        gc.save();
+        gc.setFill(OVERLAY_COLOR);
+        gc.fillRect(0, 0, VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
+        gc.restore();
+    }
+
+    /**
+     * Buoc 1: chon vang hoac weapon.
+     */
+    private void renderRewardSelection(GraphicsContext gc, Vector2D mousePosition) {
+        drawTitle(gc, "CHOOSE YOUR REWARD", "Click a card to claim the reward");
 
         boolean hoverGold = isInside(mousePosition, goldCardX, goldCardY, CARD_WIDTH, CARD_HEIGHT);
         boolean hoverWeapon = isInside(mousePosition, weaponCardX, weaponCardY, CARD_WIDTH, CARD_HEIGHT);
 
-        renderGoldCard(graphicsContext, hoverGold);
-        renderWeaponCard(graphicsContext, hoverWeapon);
+        renderGoldCard(gc, hoverGold);
+        renderWeaponCard(gc, hoverWeapon);
     }
 
+    /**
+     * Buoc 2: chon slot nao se bi weapon reward thay the.
+     */
+    private void renderWeaponSlotSelection(GraphicsContext gc, Vector2D mousePosition) {
+        String rewardName = weapon != null ? weapon.getName() : "Unknown";
+
+        drawTitle(gc, "REPLACE WEAPON SLOT", "Choose a slot for " + rewardName);
+
+        boolean hoverSlot1 = isInside(mousePosition, goldCardX, goldCardY, CARD_WIDTH, CARD_HEIGHT);
+        boolean hoverSlot2 = isInside(mousePosition, weaponCardX, weaponCardY, CARD_WIDTH, CARD_HEIGHT);
+
+        renderSlotCard(gc, goldCardX, goldCardY, 1, slot1Weapon, hoverSlot1);
+        renderSlotCard(gc, weaponCardX, weaponCardY, 2, slot2Weapon, hoverSlot2);
+    }
+
+    private void drawTitle(GraphicsContext gc, String title, String subtitle) {
+        gc.save();
+        gc.setFill(Color.GOLD);
+        gc.setFont(Font.font("System", FontWeight.BOLD, 34));
+        gc.setTextAlign(TextAlignment.CENTER);
+        gc.fillText(title, VIEWPORT_WIDTH / 2.0, goldCardY - 60);
+        gc.restore();
+
+        gc.save();
+        gc.setFill(Color.LIGHTGRAY);
+        gc.setFont(Font.font("System", 16));
+        gc.setTextAlign(TextAlignment.CENTER);
+        gc.fillText(subtitle, VIEWPORT_WIDTH / 2.0, goldCardY - 30);
+        gc.restore();
+    }
+
+    /**
+     * Tra ve:
+     * - gold
+     * - weapon
+     * - slot1
+     * - slot2
+     */
     public String handleClick(Vector2D clickPosition) {
-        if (clickPosition == null) {
+        if (clickPosition == null) return null;
+
+        if (mode == Mode.WEAPON_SLOT) {
+            if (isInside(clickPosition, goldCardX, goldCardY, CARD_WIDTH, CARD_HEIGHT)) return "slot1";
+            if (isInside(clickPosition, weaponCardX, weaponCardY, CARD_WIDTH, CARD_HEIGHT)) return "slot2";
             return null;
         }
-        if (isInside(clickPosition, goldCardX, goldCardY, CARD_WIDTH, CARD_HEIGHT)) {
-            return "gold";
-        }
-        if (isInside(clickPosition, weaponCardX, weaponCardY, CARD_WIDTH, CARD_HEIGHT)) {
-            return "weapon";
-        }
+
+        if (isInside(clickPosition, goldCardX, goldCardY, CARD_WIDTH, CARD_HEIGHT)) return "gold";
+        if (isInside(clickPosition, weaponCardX, weaponCardY, CARD_WIDTH, CARD_HEIGHT)) return "weapon";
+
         return null;
     }
 
-    private boolean isInside(Vector2D point, double rectX, double rectY,
-                             double rectWidth, double rectHeight) {
-        if (point == null) {
-            return false;
-        }
+    private boolean isInside(Vector2D point, double rectX, double rectY, double rectWidth, double rectHeight) {
+        if (point == null) return false;
+
         return point.getX() >= rectX && point.getX() <= rectX + rectWidth
                 && point.getY() >= rectY && point.getY() <= rectY + rectHeight;
     }
@@ -124,15 +197,15 @@ public final class RewardPicker {
 
         double coinCenterX = centerX;
         double coinCenterY = goldCardY + 130;
-        double coinRadius = 40;
+        double coinRadius = 40.0;
 
         gc.save();
         gc.setFill(Color.rgb(180, 130, 0));
-        gc.fillOval(coinCenterX - coinRadius - 3, coinCenterY - coinRadius - 3,
-                (coinRadius + 3) * 2, (coinRadius + 3) * 2);
+        gc.fillOval(coinCenterX - coinRadius - 3, coinCenterY - coinRadius - 3, (coinRadius + 3) * 2, (coinRadius + 3) * 2);
+
         gc.setFill(Color.GOLD);
-        gc.fillOval(coinCenterX - coinRadius, coinCenterY - coinRadius,
-                coinRadius * 2, coinRadius * 2);
+        gc.fillOval(coinCenterX - coinRadius, coinCenterY - coinRadius, coinRadius * 2, coinRadius * 2);
+
         gc.setFill(Color.rgb(120, 80, 0));
         gc.setFont(Font.font("System", FontWeight.BOLD, 40));
         gc.setTextAlign(TextAlignment.CENTER);
@@ -169,11 +242,12 @@ public final class RewardPicker {
         gc.restore();
 
         String weaponName = weapon != null ? weapon.getName() : "Unknown";
+
         gc.save();
         gc.setFill(Color.WHITE);
         gc.setFont(Font.font("System", FontWeight.BOLD, 20));
         gc.setTextAlign(TextAlignment.CENTER);
-        gc.fillText(weaponName, centerX, weaponCardY + 110);
+        gc.fillText(weaponName, centerX, weaponCardY + 105);
         gc.restore();
 
         int damage = weapon != null ? weapon.getDamage() : 0;
@@ -182,41 +256,106 @@ public final class RewardPicker {
         gc.setFill(Color.ORANGERED);
         gc.setFont(Font.font("System", FontWeight.BOLD, 20));
         gc.setTextAlign(TextAlignment.CENTER);
-        gc.fillText("DMG: " + damage, centerX, weaponCardY + 160);
+        gc.fillText("DMG: " + damage, centerX, weaponCardY + 155);
         gc.restore();
 
         gc.save();
         gc.setFill(Color.LIGHTCYAN);
         gc.setFont(Font.font("System", 16));
         gc.setTextAlign(TextAlignment.CENTER);
-        gc.fillText("Power: " + (damage >= 30 ? "High" : damage >= 18 ? "Medium" : "Low"),
-                centerX, weaponCardY + 188);
+        gc.fillText("Power: " + getWeaponPowerLabel(damage), centerX, weaponCardY + 185);
         gc.restore();
 
-        double iconCenterX = centerX;
-        double iconCenterY = weaponCardY + 240;
+        renderWeaponSymbol(gc, centerX, weaponCardY + 235);
+
         gc.save();
-        gc.setStroke(Color.SILVER);
-        gc.setLineWidth(4);
-        gc.strokeLine(iconCenterX - 22, iconCenterY + 22,
-                iconCenterX + 22, iconCenterY - 22);
-        gc.setStroke(Color.GOLD);
-        gc.setLineWidth(3);
-        gc.strokeLine(iconCenterX - 8, iconCenterY - 8,
-                iconCenterX + 8, iconCenterY + 8);
+        gc.setFill(Color.LIGHTGRAY);
+        gc.setFont(Font.font("System", 14));
+        gc.setTextAlign(TextAlignment.CENTER);
+        gc.fillText("Choose which slot", centerX, weaponCardY + 290);
+        gc.fillText("will be replaced", centerX, weaponCardY + 310);
+        gc.restore();
+    }
+
+    private void renderSlotCard(GraphicsContext gc, double x, double y, int slot, WeaponType currentWeapon, boolean hovered) {
+        drawCardBackground(gc, x, y, hovered);
+
+        double centerX = x + CARD_WIDTH / 2.0;
+        String currentName = currentWeapon != null ? currentWeapon.getDisplayName() : "EMPTY";
+        String rewardName = weapon != null ? weapon.getName() : "Unknown";
+
+        gc.save();
+        gc.setFill(slot == 1 ? Color.DEEPSKYBLUE : Color.ORANGE);
+        gc.setFont(Font.font("System", FontWeight.BOLD, 24));
+        gc.setTextAlign(TextAlignment.CENTER);
+        gc.fillText("SLOT " + slot, centerX, y + 45);
         gc.restore();
 
         gc.save();
         gc.setFill(Color.LIGHTGRAY);
         gc.setFont(Font.font("System", 14));
         gc.setTextAlign(TextAlignment.CENTER);
-        gc.fillText("Equips immediately", centerX, weaponCardY + 290);
-        gc.fillText("Replaces current weapon", centerX, weaponCardY + 310);
+        gc.fillText("CURRENT", centerX, y + 90);
         gc.restore();
+
+        gc.save();
+        gc.setFill(Color.WHITE);
+        gc.setFont(Font.font("System", FontWeight.BOLD, 20));
+        gc.setTextAlign(TextAlignment.CENTER);
+        gc.fillText(currentName, centerX, y + 120);
+        gc.restore();
+
+        gc.save();
+        gc.setStroke(Color.rgb(100, 100, 130));
+        gc.setLineWidth(2.0);
+        gc.strokeLine(x + 45, y + 155, x + CARD_WIDTH - 45, y + 155);
+        gc.restore();
+
+        gc.save();
+        gc.setFill(Color.LIGHTGRAY);
+        gc.setFont(Font.font("System", 14));
+        gc.setTextAlign(TextAlignment.CENTER);
+        gc.fillText("REPLACE WITH", centerX, y + 195);
+        gc.restore();
+
+        gc.save();
+        gc.setFill(Color.GOLD);
+        gc.setFont(Font.font("System", FontWeight.BOLD, 22));
+        gc.setTextAlign(TextAlignment.CENTER);
+        gc.fillText(rewardName, centerX, y + 230);
+        gc.restore();
+
+        renderWeaponSymbol(gc, centerX, y + 270);
+
+        gc.save();
+        gc.setFill(Color.LIGHTGRAY);
+        gc.setFont(Font.font("System", 14));
+        gc.setTextAlign(TextAlignment.CENTER);
+        gc.fillText("Click to replace Slot " + slot, centerX, y + 315);
+        gc.restore();
+    }
+
+    private void renderWeaponSymbol(GraphicsContext gc, double centerX, double centerY) {
+        gc.save();
+        gc.setStroke(Color.SILVER);
+        gc.setLineWidth(4);
+        gc.strokeLine(centerX - 22, centerY + 22, centerX + 22, centerY - 22);
+
+        gc.setStroke(Color.GOLD);
+        gc.setLineWidth(3);
+        gc.strokeLine(centerX - 8, centerY - 8, centerX + 8, centerY + 8);
+        gc.restore();
+    }
+
+    private String getWeaponPowerLabel(int damage) {
+        if (damage >= 30) return "High";
+        if (damage >= 18) return "Medium";
+        return "Low";
     }
 
     private void drawCardBackground(GraphicsContext gc, double x, double y, boolean hovered) {
         gc.save();
+
         gc.setFill(Color.rgb(0, 0, 0, 0.5));
         gc.fillRoundRect(x + 4, y + 6, CARD_WIDTH, CARD_HEIGHT, 18, 18);
 
@@ -226,6 +365,7 @@ public final class RewardPicker {
         gc.setStroke(hovered ? CARD_HOVER_BORDER : CARD_BORDER);
         gc.setLineWidth(hovered ? 3.5 : 2.0);
         gc.strokeRoundRect(x, y, CARD_WIDTH, CARD_HEIGHT, 18, 18);
+
         gc.restore();
     }
 }
