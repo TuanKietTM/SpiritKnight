@@ -34,9 +34,13 @@ public final class Bullet {
     private final Color color;
     // Dan xuyen: bay qua muc tieu va gay sat thuong nhieu con (moi con mot lan)
     private final boolean piercing;
-    // Dan phan tuong: cham tuong lan dau se doi huong 1 lan duy nhat
+    // Dan phan tuong cu van mac dinh chi nay 1 lan.
     private final boolean reflective;
-    private boolean hasReflected;
+
+    // So lan da nay va gioi han nay. Railgun co the tang maxReflections len 3.
+    private int reflectionCount;
+    private int maxReflections;
+
     private final Set<Object> hitTargets;
     private double age;
     private boolean active = true;
@@ -71,6 +75,10 @@ public final class Bullet {
         this.color = color;
         this.piercing = piercing;
         this.reflective = reflective;
+
+        // Giu nguyen logic cu: reflective=true mac dinh chi nay 1 lan.
+        this.maxReflections = reflective ? 1 : 0;
+
         this.hitTargets = piercing ? new HashSet<>() : null;
     }
 
@@ -150,32 +158,49 @@ public final class Bullet {
         return piercing;
     }
 
-    // Con co the phan tuong khong (chi phan duoc dung 1 lan)
+    // Con co the phan tuong neu chua dat gioi han so lan nay.
     public boolean canReflect() {
-        return reflective && !hasReflected;
+        return reflective && reflectionCount < maxReflections;
     }
 
-    // Phan dan 1 lan khi cham tuong: dua dan ve vi tri an toan va lat van toc theo truc va cham.
-    // flipX: cham tuong doc (chan huong ngang); flipY: cham tuong ngang (chan huong doc).
+    /**
+     * Tang gioi han so lan nay cho cac loai dan dac biet.
+     * Dan cu khong goi ham nay nen van giu nguyen gioi han 1 lan.
+     */
+    public Bullet setMaxReflections(int maxReflections) {
+        this.maxReflections = reflective ? Math.max(0, maxReflections) : 0;
+        return this;
+    }
+
+    public int getReflectionCount() {
+        return reflectionCount;
+    }
+
+    public int getMaxReflections() {
+        return maxReflections;
+    }
+
+    // Giu ten method cu de GameWorld hien tai khong can sua logic dan thuong.
+    // Moi lan cham tuong hop le se tang reflectionCount len 1.
     public void reflectOnce(Vector2D safePosition, boolean flipX, boolean flipY) {
+        if (!canReflect() || safePosition == null) return;
+
         if (!flipX && !flipY) {
-            // Cham goc/khong xac dinh duoc truc -> lat ca hai de dan quay dau
+            // Cham goc/khong xac dinh duoc truc -> lat ca hai de dan quay dau.
             flipX = true;
             flipY = true;
         }
-        if (flipX) {
-            velocity.setX(-velocity.getX());
-        }
-        if (flipY) {
-            velocity.setY(-velocity.getY());
-        }
+
+        if (flipX) velocity.setX(-velocity.getX());
+        if (flipY) velocity.setY(-velocity.getY());
+
         position.set(safePosition.getX(), safePosition.getY());
-        hasReflected = true;
-        // Tia phan la mot luot moi: cho phep gay sat thuong lai len quai da trung
-        if (hitTargets != null) {
-            hitTargets.clear();
-        }
+        reflectionCount++;
+
+        // Giu nguyen logic laser cu: sau moi lan nay co the gay sat thuong lai vao muc tieu da trung.
+        if (hitTargets != null) hitTargets.clear();
     }
+
 
     // Kiem tra muc tieu da trung tia laser nay chua (tranh cong sat thuong lien tuc)
     public boolean hasAlreadyHit(Object target) {
