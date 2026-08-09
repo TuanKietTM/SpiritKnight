@@ -25,6 +25,7 @@ import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.layout.HBox;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -56,11 +57,16 @@ public class ShopController {
     @FXML private Label selectedItemName;
     @FXML private Label selectedItemDesc;
     @FXML private Button actionButton;
+    @FXML private HBox weaponLoadoutBox;
+    @FXML private Button weaponSlot1Button;
+    @FXML private Button weaponSlot2Button;
+    @FXML private Label weaponSlotHint;
 
     private Runnable onCloseCallback;
     private GameWorld gameWorld;
     private PetType selectedPet = null;
     private WeaponType selectedWeapon = null;
+    private int selectedWeaponSlot = 1;
     private AnimationTimer shopAnimTimer;
     private double elapsedTime = 0;
     private long lastTime = 0;
@@ -70,7 +76,8 @@ public class ShopController {
     private static final String ITEM_TYPE_WEAPON = "WEAPON";
     private static final String ITEM_TYPE_HERO = "HERO";
     private static final PetType STARTER_PET = PetType.CAT;
-    private static final WeaponType STARTER_WEAPON = WeaponType.BLASTER;
+    private static final WeaponType STARTER_WEAPON_SLOT_1 = WeaponType.BLASTER;
+    private static final WeaponType STARTER_WEAPON_SLOT_2 = WeaponType.OLD_SWORD;
     private static final HeroType STARTER_HERO = HeroType.KNIGHT;
     private final ShopDAO shopDAO = new ShopDAO();
     private final PlayerSessionCache sessionCache = PlayerSessionCache.getInstance();
@@ -128,6 +135,22 @@ public class ShopController {
             stopAnimation();
             if (onCloseCallback != null) onCloseCallback.run();
         });
+        weaponSlot1Button.setOnAction(event -> {
+            SoundManager.getInstance().playSFX("button");
+            selectedWeaponSlot = 1;
+            updateWeaponLoadoutUI();
+            selectedItemDesc.setText(
+                    "Slot 1 selected. Choose an owned weapon."
+            );
+        });
+        weaponSlot2Button.setOnAction(event -> {
+            SoundManager.getInstance().playSFX("button");
+            selectedWeaponSlot = 2;
+            updateWeaponLoadoutUI();
+            selectedItemDesc.setText(
+                    "Slot 2 selected. Choose an owned weapon."
+            );
+        });
 
         setupAnimationLoop();
     }
@@ -137,7 +160,9 @@ public class ShopController {
         this.onCloseCallback = onClose;
         selectedPet = null;
         selectedWeapon = null;
+        selectedWeaponSlot = 1;
         actionButton.setVisible(false);
+        updateWeaponLoadoutUI();
         startAnimation();
 
         int currentUserId = UserSession.getCurrentUserId();
@@ -197,14 +222,22 @@ public class ShopController {
         }
         // Chi cap do khoi dau truoc, cac du lieu con lai tai song song de giam thoi gian cho
         CompletableFuture
-                .runAsync(() -> shopDAO.grantStarterItems(userId, STARTER_PET.name(), STARTER_WEAPON.name()),
-                        DatabaseExecutor.getExecutor())
+                .runAsync(() -> {
+                    // Cap pet starter nhu cu.
+                    shopDAO.grantStarterItems(userId, STARTER_PET.name(), STARTER_WEAPON_SLOT_1.name());
+
+                    // Dam bao account co du 2 weapon starter va loadout 2 slot.
+                    shopDAO.initializeWeaponLoadout(userId);
+                }, DatabaseExecutor.getExecutor())
                 .thenCompose(ignored -> {
                     CompletableFuture<Set<String>> petsFuture = CompletableFuture.supplyAsync(
                             () -> shopDAO.getOwnedItems(userId, ITEM_TYPE_PET),DatabaseExecutor.getExecutor()
                     );
                     CompletableFuture<Set<String>> weaponsFuture = CompletableFuture.supplyAsync(
                             () -> shopDAO.getOwnedItems(userId, ITEM_TYPE_WEAPON),DatabaseExecutor.getExecutor()
+                    );
+                    CompletableFuture<ShopDAO.WeaponLoadout> weaponLoadoutFuture = CompletableFuture.supplyAsync(
+                            () -> shopDAO.getWeaponLoadout(userId), DatabaseExecutor.getExecutor()
                     );
                     CompletableFuture<Integer> goldFuture = CompletableFuture.supplyAsync(
                             () -> shopDAO.getGold(userId), DatabaseExecutor.getExecutor()
@@ -219,12 +252,16 @@ public class ShopController {
                             () -> shopDAO.getBuffQuantities(userId), DatabaseExecutor.getExecutor()
                     );
 
-                    return CompletableFuture.allOf(petsFuture, weaponsFuture, heroesFuture, buffsFuture, goldFuture, gemsFuture)
+                    return CompletableFuture.allOf(
+                                    petsFuture, weaponsFuture, weaponLoadoutFuture,
+                                    heroesFuture, buffsFuture, goldFuture, gemsFuture
+                            )
                             .thenApply(value -> new ShopData(
                                     petsFuture.join(),
                                     weaponsFuture.join(),
                                     heroesFuture.join(),
                                     buffsFuture.join(),
+                                    weaponLoadoutFuture.join(),
                                     goldFuture.join(),
                                     gemsFuture.join()
                             ));
@@ -252,6 +289,7 @@ public class ShopController {
 
         addOwnedPets(data.petCodes());
         addOwnedWeapons(data.weaponCodes());
+        applyWeaponLoadout(data.weaponLoadout());
         addOwnedHeroes(data.heroCodes());
         applyBuffQuantities(data.buffQuantities());
 
@@ -265,6 +303,24 @@ public class ShopController {
         updateCurrencyLabels();
         setShopLoading(false);
         showTab(tabPet, this::loadPetShop);
+    }
+
+    private void applyWeaponLoadout(ShopDAO.WeaponLoadout data) {
+        if (data == null) return;
+
+        try {
+            WeaponType slot1 = WeaponType.valueOf(data.slot1().trim().toUpperCase());
+            WeaponType slot2 = WeaponType.valueOf(data.slot2().trim().toUpperCase());
+
+            if (slot1 == slot2) return;
+
+            // Manager la loadout truoc tran, Shop khong equip truc tiep cho Player.
+            WeaponSelectionManager.getInstance().loadLoadout(slot1, slot2);
+            updateWeaponLoadoutUI();
+
+        } catch (IllegalArgumentException exception) {
+            System.err.println("Weapon loadout trong DB khong hop le.");
+        }
     }
 
     private void addOwnedPets(Set<String> petCodes) {
@@ -385,6 +441,12 @@ public class ShopController {
         selectedPet = null;
         selectedWeapon = null;
         actionButton.setVisible(false);
+        boolean weaponTabSelected = selectedTab == tabWeapon;
+        weaponLoadoutBox.setVisible(weaponTabSelected);
+        weaponLoadoutBox.setManaged(weaponTabSelected);
+        if (weaponTabSelected) {
+            updateWeaponLoadoutUI();
+        }
         loadContent.run();
     }
 
@@ -613,94 +675,284 @@ public class ShopController {
         activeHeroRenderers.clear();
         activeRenderers.clear();
         itemGrid.getChildren().clear();
-
-        WeaponType equippedWeapon = WeaponSelectionManager.getInstance().getSelectedWeapon();
-
-        for (WeaponType weapon : WeaponType.values()) {
-            VBox card = createWeaponCard(weapon, equippedWeapon);
+        updateWeaponLoadoutUI();
+        for (WeaponType weapon :
+                WeaponType.values()) {
+            VBox card = createWeaponCard(weapon);
             itemGrid.getChildren().add(card);
         }
     }
+    private VBox createWeaponCard(WeaponType weapon) {
 
-    private VBox createWeaponCard(WeaponType weapon, WeaponType equippedWeapon) {
         VBox card = new VBox(6);
         card.setAlignment(Pos.CENTER);
         card.getStyleClass().add("item-card");
 
-        boolean isOwned = ownedWeapons.contains(weapon);
-        boolean isEquipped = (weapon == equippedWeapon);
+        WeaponSelectionManager loadout =
+                WeaponSelectionManager.getInstance();
 
-        if (isEquipped) {
+        boolean owned =
+                ownedWeapons.contains(weapon);
+
+        boolean slot1 =
+                loadout.isSlot1(weapon);
+
+        boolean slot2 =
+                loadout.isSlot2(weapon);
+
+        if (slot1 || slot2) {
             card.getStyleClass().add("item-card-equipped");
         }
 
-        if (!isOwned) {
+        if (!owned) {
             card.getStyleClass().add("item-card-locked");
         }
 
-        Canvas canvas = new Canvas(SHOP_CANVAS_SIZE, SHOP_CANVAS_SIZE);
-        Image weaponImage = loadImage(weapon.getImagePath());
-        drawWeaponIcon(canvas, weaponImage);
+        // ============================
+        // WEAPON ICON
+        // ============================
 
-        Label nameLabel = new Label(weapon.getDisplayName());
-        nameLabel.getStyleClass().add("item-card-title");
+        Canvas canvas =
+                new Canvas(
+                        SHOP_CANVAS_SIZE,
+                        SHOP_CANVAS_SIZE
+                );
 
-        card.getChildren().addAll(canvas, nameLabel);
+        Image weaponImage =
+                loadImage(weapon.getImagePath());
 
-        card.setOnMouseClicked(e -> {
-            if (shopLoading) {
+        drawWeaponIcon(
+                canvas,
+                weaponImage
+        );
+
+        // ============================
+        // NAME
+        // ============================
+
+        Label nameLabel =
+                new Label(
+                        weapon.getDisplayName()
+                );
+
+        nameLabel
+                .getStyleClass()
+                .add("item-card-title");
+
+        // ============================
+        // SLOT LABEL
+        // ============================
+
+        Label slotLabel =
+                new Label();
+
+        slotLabel
+                .getStyleClass()
+                .add("weapon-card-slot");
+
+        if (slot1) {
+
+            slotLabel.setText("SLOT 1");
+
+        } else if (slot2) {
+
+            slotLabel.setText("SLOT 2");
+
+        } else {
+
+            slotLabel.setText("");
+        }
+
+        card.getChildren().addAll(
+                canvas,
+                nameLabel,
+                slotLabel
+        );
+
+        // ============================
+        // CLICK WEAPON
+        // ============================
+
+        card.setOnMouseClicked(event -> {
+
+            if (shopLoading ||
+                    purchaseInProgress) {
                 return;
             }
 
-            playWeaponSound(weapon);
+            SoundManager
+                    .getInstance()
+                    .playSFX("button");
 
-            itemGrid.getChildren().forEach(
-                    node -> node.getStyleClass().remove("item-card-selected")
+            itemGrid
+                    .getChildren()
+                    .forEach(node ->
+                            node.getStyleClass()
+                                    .remove(
+                                            "item-card-selected"
+                                    )
+                    );
+
+            card.getStyleClass()
+                    .add("item-card-selected");
+
+            selectedWeapon = weapon;
+            selectedPet = null;
+
+            selectedItemName.setText(
+                    weapon.getDisplayName()
             );
-            card.getStyleClass().add("item-card-selected");
 
-            this.selectedWeapon = weapon;
-            this.selectedPet = null;
+            boolean currentlyOwned =
+                    ownedWeapons.contains(weapon);
 
-            selectedItemName.setText(weapon.getDisplayName());
+            WeaponSelectionManager currentLoadout =
+                    WeaponSelectionManager
+                            .getInstance();
 
-            boolean isCurrentOwned = ownedWeapons.contains(weapon);
-            boolean isCurrentEquipped =
-                    WeaponSelectionManager.getInstance().isSelected(weapon);
+            String description =
+                    buildWeaponDesc(weapon);
 
-            String description = buildWeaponDesc(weapon);
+            if (!currentlyOwned) {
 
-            if (!isCurrentOwned) {
                 description +=
-                        " | PRICE: " + weapon.getPrice() + " GOLD";
+                        " | PRICE: "
+                                + weapon.getPrice()
+                                + " GOLD";
             }
 
-            selectedItemDesc.setText(description);
+            selectedItemDesc.setText(
+                    description
+            );
+
             actionButton.setVisible(true);
 
-            if (isCurrentEquipped) {
-                actionButton.setText("EQUIPPED");
+            // ============================
+            // CHƯA MUA
+            // ============================
+
+            if (!currentlyOwned) {
+
+                actionButton.setText(
+                        "BUY - "
+                                + weapon.getPrice()
+                                + " GOLD"
+                );
+
+                actionButton.setDisable(false);
+
+                actionButton.setOnAction(evt -> {
+
+                    SoundManager
+                            .getInstance()
+                            .playSFX("button");
+
+                    purchaseWeapon(weapon);
+                });
+
+                return;
+            }
+
+            // ============================
+            // ĐÃ NẰM TRONG SLOT ĐANG CHỌN
+            // ============================
+
+            if (selectedWeaponSlot == 1 &&
+                    currentLoadout.isSlot1(weapon)) {
+
+                actionButton.setText(
+                        "EQUIPPED IN SLOT 1"
+                );
+
                 actionButton.setDisable(true);
                 actionButton.setOnAction(null);
 
-            } else if (isCurrentOwned) {
-                actionButton.setText("EQUIP WEAPON");
-                actionButton.setDisable(false);
-                actionButton.setOnAction(evt -> {
-                    playWeaponSound(weapon);
-                    equipWeapon(weapon);
-                });
-
-            } else {
-                actionButton.setText(
-                        "BUY - " + weapon.getPrice() + " GOLD"
-                );
-                actionButton.setDisable(false);
-                actionButton.setOnAction(evt -> {
-                    SoundManager.getInstance().playSFX("button");
-                    purchaseWeapon(weapon);
-                });
+                return;
             }
+
+            if (selectedWeaponSlot == 2 &&
+                    currentLoadout.isSlot2(weapon)) {
+
+                actionButton.setText(
+                        "EQUIPPED IN SLOT 2"
+                );
+
+                actionButton.setDisable(true);
+                actionButton.setOnAction(null);
+
+                return;
+            }
+
+            // ============================
+            // ĐANG Ở SLOT CÒN LẠI
+            // ============================
+
+            if (selectedWeaponSlot == 1 &&
+                    currentLoadout.isSlot2(weapon)) {
+
+                actionButton.setText(
+                        "USED IN SLOT 2"
+                );
+
+                actionButton.setDisable(true);
+                actionButton.setOnAction(null);
+
+                selectedItemDesc.setText(
+                        description
+                                + " | Already equipped in Slot 2"
+                );
+
+                return;
+            }
+
+            if (selectedWeaponSlot == 2 &&
+                    currentLoadout.isSlot1(weapon)) {
+
+                actionButton.setText(
+                        "USED IN SLOT 1"
+                );
+
+                actionButton.setDisable(true);
+                actionButton.setOnAction(null);
+
+                selectedItemDesc.setText(
+                        description
+                                + " | Already equipped in Slot 1"
+                );
+
+                return;
+            }
+
+            // ============================
+            // EQUIP BÌNH THƯỜNG
+            // ============================
+
+            actionButton.setText(
+                    "EQUIP TO SLOT "
+                            + selectedWeaponSlot
+            );
+
+            actionButton.setDisable(false);
+
+            /*
+             * QUAN TRỌNG:
+             *
+             * snapshot slot ngay lúc tạo callback,
+             * tránh selectedWeaponSlot thay đổi
+             * trước khi button được click.
+             */
+            final int targetSlot =
+                    selectedWeaponSlot;
+
+            actionButton.setOnAction(evt -> {
+
+                playWeaponSound(weapon);
+
+                equipWeaponToSlot(
+                        weapon,
+                        targetSlot
+                );
+            });
         });
 
         return card;
@@ -770,53 +1022,88 @@ public class ShopController {
                     return null;
                 });
     }
+    private void equipWeaponToSlot(WeaponType weapon, int slot) {
+        if (weapon == null || slot < 1 || slot > 2) return;
 
-    private void equipWeapon(WeaponType weapon) {
-        if (shopLoading || !ownedWeapons.contains(weapon)) {
+        if (!ownedWeapons.contains(weapon)) {
+            selectedItemDesc.setText("You don't own this weapon.");
             return;
         }
 
-        setShopLoading(true);
-        showLoadingOverlay("Equipping weapon...");
+        WeaponSelectionManager loadout = WeaponSelectionManager.getInstance();
+
+        // Khong cho cung mot weapon nam o ca hai slot.
+        if (slot == 1 && loadout.isSlot2(weapon)) {
+            selectedItemDesc.setText(weapon.getDisplayName() + " is already equipped in Slot 2.");
+            return;
+        }
+
+        if (slot == 2 && loadout.isSlot1(weapon)) {
+            selectedItemDesc.setText(weapon.getDisplayName() + " is already equipped in Slot 1.");
+            return;
+        }
+
+        // Luu state cu de rollback neu database luu that bai.
+        WeaponType oldSlot1 = loadout.getSlot1();
+        WeaponType oldSlot2 = loadout.getSlot2();
+
+        boolean equipped = slot == 1 ? loadout.equipSlot1(weapon) : loadout.equipSlot2(weapon);
+
+        if (!equipped) {
+            selectedItemDesc.setText("Cannot equip " + weapon.getDisplayName());
+            return;
+        }
+
+        WeaponType newSlot1 = loadout.getSlot1();
+        WeaponType newSlot2 = loadout.getSlot2();
+
+        if (newSlot1 == null || newSlot2 == null) {
+            loadout.loadLoadout(oldSlot1, oldSlot2);
+            selectedItemDesc.setText("Weapon loadout is invalid.");
+            return;
+        }
+
+        // Cap nhat UI truoc de thao tac co cam giac phan hoi ngay.
+        selectedItemName.setText(weapon.getDisplayName());
+        selectedItemDesc.setText("Saving loadout...");
+        updateWeaponLoadoutUI();
+        loadWeaponShop();
+
+        int userId = UserSession.getCurrentUserId();
 
         CompletableFuture
-                .supplyAsync(() -> shopDAO.equipItem(UserSession.getCurrentUserId(),
-                                ITEM_TYPE_WEAPON, weapon.name()
-                        ), DatabaseExecutor.getExecutor()
-                )
+                .supplyAsync(() -> shopDAO.saveWeaponLoadout(userId, newSlot1.name(), newSlot2.name()),
+                        DatabaseExecutor.getExecutor())
                 .thenAccept(success -> Platform.runLater(() -> {
-                    hideLoadingOverlay();
-                    setShopLoading(false);
-                    updateCurrencyLabels();
+                    if (success) {
+                        selectedItemName.setText(weapon.getDisplayName());
+                        selectedItemDesc.setText(weapon.getDisplayName() + " equipped to Slot " + slot);
 
-                    if (!success) {
-                        selectedItemDesc.setText("You don't have any weapons yet.");
+                        updateWeaponLoadoutUI();
+                        loadWeaponShop();
                         return;
                     }
 
-                    WeaponSelectionManager.getInstance().selectWeapon(weapon);
-
-                    if (gameWorld != null) {
-                        gameWorld.equipWeapon(weapon);
-                    }
-
-                    selectedItemDesc.setText("Skin equipped " + weapon.getDisplayName());
+                    // Database fail thi tra RAM ve loadout truoc do.
+                    loadout.loadLoadout(oldSlot1, oldSlot2);
+                    updateWeaponLoadoutUI();
                     loadWeaponShop();
+                    selectedItemDesc.setText("Cannot save weapon loadout.");
                 }))
                 .exceptionally(exception -> {
                     exception.printStackTrace();
 
                     Platform.runLater(() -> {
-                        hideLoadingOverlay();
-                        setShopLoading(false);
-                        updateCurrencyLabels();
-                        selectedItemDesc.setText("Cannot be equipped with weapons.");
+                        // Khong de RAM va database bi lech nhau khi co loi.
+                        loadout.loadLoadout(oldSlot1, oldSlot2);
+                        updateWeaponLoadoutUI();
+                        loadWeaponShop();
+                        selectedItemDesc.setText("Cannot save weapon loadout.");
                     });
 
                     return null;
                 });
     }
-
     private void playWeaponSound(WeaponType weapon) {
         SoundManager.getInstance().stopAllSFX();
 
@@ -971,7 +1258,7 @@ public class ShopController {
 
     //    buff
     private record ShopData(Set<String> petCodes, Set<String> weaponCodes, Set<String> heroCodes,
-                            Map<String, Integer> buffQuantities, int gold, int gems) {}
+                            Map<String, Integer> buffQuantities, ShopDAO.WeaponLoadout weaponLoadout, int gold, int gems) {}
 
     private void applyBuffQuantities(Map<String, Integer> rawQuantities) {
         Map<BuffType, Integer> parsed = new EnumMap<>(BuffType.class);
@@ -1341,6 +1628,29 @@ public class ShopController {
 
                     return null;
                 });
+    }
+    private void updateWeaponLoadoutUI() {
+        if (weaponSlot1Button == null || weaponSlot2Button == null) return;
+
+        WeaponSelectionManager loadout = WeaponSelectionManager.getInstance();
+        WeaponType slot1 = loadout.getSlot1();
+        WeaponType slot2 = loadout.getSlot2();
+
+        weaponSlot1Button.setText(slot1 != null ? slot1.getDisplayName().toUpperCase() : "EMPTY");
+        weaponSlot2Button.setText(slot2 != null ? slot2.getDisplayName().toUpperCase() : "EMPTY");
+
+        setStyleClass(weaponSlot1Button, "weapon-slot-selected", selectedWeaponSlot == 1);
+        setStyleClass(weaponSlot2Button, "weapon-slot-selected", selectedWeaponSlot == 2);
+
+        if (weaponSlotHint != null) {
+            weaponSlotHint.setText("Slot " + selectedWeaponSlot + " selected • Choose an owned weapon");
+        }
+    }
+    private void setStyleClass(javafx.scene.Node node, String styleClass, boolean enabled) {
+        if (node == null) return;
+
+        node.getStyleClass().remove(styleClass);
+        if (enabled) node.getStyleClass().add(styleClass);
     }
 
 }

@@ -167,7 +167,58 @@
                                styleClass="content-caption"/>
                     </VBox>
                 </HBox>
+                <!-- Weapon loadout: chỉ hiện khi đang ở tab WEAPON -->
+                <HBox fx:id="weaponLoadoutBox"
+                      alignment="CENTER_LEFT"
+                      spacing="14.0"
+                      visible="false"
+                      managed="false"
+                      styleClass="weapon-loadout-box">
 
+                    <VBox spacing="5.0"
+                          alignment="CENTER">
+
+                        <Label text="SLOT 1"
+                               styleClass="loadout-slot-title"/>
+
+                        <Button fx:id="weaponSlot1Button"
+                                text="BLASTER"
+                                prefWidth="180.0"
+                                prefHeight="55.0"
+                                mnemonicParsing="false"
+                                focusTraversable="false"
+                                styleClass="weapon-slot-button"/>
+                    </VBox>
+
+                    <VBox spacing="5.0"
+                          alignment="CENTER">
+
+                        <Label text="SLOT 2"
+                               styleClass="loadout-slot-title"/>
+
+                        <Button fx:id="weaponSlot2Button"
+                                text="OLD SWORD"
+                                prefWidth="180.0"
+                                prefHeight="55.0"
+                                mnemonicParsing="false"
+                                focusTraversable="false"
+                                styleClass="weapon-slot-button"/>
+                    </VBox>
+
+                    <VBox spacing="4.0"
+                          alignment="CENTER_LEFT">
+
+                        <Label text="SELECT LOADOUT SLOT"
+                               styleClass="content-caption"/>
+
+                        <Label fx:id="weaponSlotHint"
+                               text="Choose Slot 1 or Slot 2, then select a weapon."
+                               wrapText="true"
+                               maxWidth="250.0"
+                               styleClass="preview-desc"/>
+                    </VBox>
+
+                </HBox>
                 <ScrollPane fitToWidth="true"
                             fitToHeight="false"
                             pannable="true"

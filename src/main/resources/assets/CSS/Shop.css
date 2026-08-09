@@ -375,3 +375,152 @@
     -fx-font-size: 7px;
     -fx-text-fill: #687d89;
 }
+.weapon-loadout-box {
+    -fx-background-color: rgba(6, 12, 21, 0.96);
+    -fx-border-color: rgba(198, 181, 112, 0.34);
+    -fx-border-width: 1px;
+    -fx-padding: 12px 14px;
+    -fx-spacing: 14px;
+    -fx-alignment: CENTER-LEFT;
+}
+
+/* Tieu de SLOT 1 / SLOT 2 */
+.loadout-slot-title {
+    -fx-font-family: "Press Start 2P";
+    -fx-font-size: 8px;
+    -fx-text-fill: #8195a2;
+}
+
+
+/* Slot weapon mac dinh */
+.weapon-slot-button {
+    -fx-font-family: "Press Start 2P";
+    -fx-font-size: 9px;
+    -fx-text-fill: #c9d6dc;
+
+    -fx-background-color: rgba(12, 21, 33, 0.98);
+
+    -fx-border-color: #3c5362;
+    -fx-border-width: 2px;
+
+    -fx-padding: 10px 12px;
+
+    -fx-background-radius: 0;
+    -fx-border-radius: 0;
+
+    -fx-cursor: hand;
+}
+
+
+/* Hover slot */
+.weapon-slot-button:hover {
+    -fx-background-color: rgba(23, 37, 50, 0.98);
+
+    -fx-border-color: #9db8c2;
+
+    -fx-text-fill: #f0f7f8;
+}
+
+
+/* Slot dang duoc chon de thay weapon */
+.weapon-slot-selected {
+    -fx-background-color: linear-gradient(
+        to bottom,
+        rgba(105, 91, 39, 0.98),
+        rgba(57, 49, 25, 0.98)
+    );
+
+    -fx-border-color: #f0d77d;
+    -fx-border-width: 3px;
+
+    -fx-text-fill: #fff2b3;
+
+    -fx-effect: dropshadow(
+        three-pass-box,
+        rgba(224, 190, 86, 0.32),
+        10,
+        0.20,
+        0,
+        0
+    );
+}
+
+
+/* Hover cua slot dang active */
+.weapon-slot-selected:hover {
+    -fx-background-color: linear-gradient(
+        to bottom,
+        rgba(126, 106, 43, 1.0),
+        rgba(67, 56, 27, 1.0)
+    );
+
+    -fx-border-color: #fff0a1;
+    -fx-text-fill: #fff8d5;
+}
+
+
+/* Khi button bi disable */
+.weapon-slot-button:disabled {
+    -fx-opacity: 0.55;
+}
+
+
+/* =========================================================
+   LABEL SLOT TREN WEAPON CARD
+   Vi du: SLOT 1 / SLOT 2
+   ========================================================= */
+
+.weapon-card-slot {
+    -fx-font-family: "Press Start 2P";
+    -fx-font-size: 7px;
+
+    -fx-text-fill: #f0d77d;
+
+    -fx-padding: 3px 6px;
+
+    -fx-background-color: rgba(77, 65, 29, 0.75);
+
+    -fx-border-color: rgba(216, 194, 113, 0.70);
+    -fx-border-width: 1px;
+}
+
+
+/* Card weapon dang nam trong loadout */
+.item-card-equipped {
+    -fx-background-color: linear-gradient(
+        to bottom,
+        rgba(33, 48, 44, 0.98),
+        rgba(18, 31, 30, 0.98)
+    );
+
+    -fx-border-color: #d8c271;
+    -fx-border-width: 3px;
+}
+
+
+/* Hover card dang equip */
+.item-card-equipped:hover {
+    -fx-background-color: linear-gradient(
+        to bottom,
+        rgba(43, 62, 55, 0.98),
+        rgba(22, 38, 35, 0.98)
+    );
+
+    -fx-border-color: #f3dd8b;
+}
+
+
+/* Card vua duoc click van uu tien highlight */
+.item-card-equipped.item-card-selected {
+    -fx-border-color: #fff0a8;
+    -fx-border-width: 3px;
+
+    -fx-effect: dropshadow(
+        three-pass-box,
+        rgba(231, 205, 112, 0.28),
+        8,
+        0.18,
+        0,
+        0
+    );
+}
