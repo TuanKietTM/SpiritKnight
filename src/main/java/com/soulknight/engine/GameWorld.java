@@ -332,6 +332,9 @@ public final class GameWorld {
 
             // Đạn xuất hiện trong tường
             if (mapManager.isBulletCollidingWithWall(bulletX, bulletY, bullet.getRadius())) {
+                if (bullet.isSoundWave()) {
+                    spawnSoundWave(bullet.getPosition(), bullet.getDamage());
+                }
                 bullet.deactivate();
                 continue;
             }
@@ -365,7 +368,11 @@ public final class GameWorld {
                             bullet.getOwner()
                     );
                 } else {
-                    spawnBulletExplosion(impactPosition);
+                    if (bullet.isSoundWave()) {
+                        spawnSoundWave(impactPosition, bullet.getDamage());
+                    } else {
+                        spawnBulletExplosion(impactPosition);
+                    }
                 }
                 bullet.deactivate();
                 continue;
