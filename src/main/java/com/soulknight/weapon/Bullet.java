@@ -46,6 +46,8 @@ public final class Bullet {
     private final boolean piercing;
     // Dan phan tuong cu van mac dinh chi nay 1 lan.
     private final boolean reflective;
+    // Dan song am: loai dan dac biet khac
+    private final boolean soundWave; // Đánh dấu đạn là sóng âm
 
     // So lan da nay va gioi han nay. Railgun co the tang maxReflections len 3.
     private int reflectionCount;
@@ -77,6 +79,11 @@ public final class Bullet {
 
     public Bullet(Vector2D position, Vector2D velocity, int damage, double radius, Entity owner, Color color,
                   boolean piercing, boolean reflective) {
+        this(position, velocity, damage, radius, owner, color, piercing, reflective, false);
+    }
+
+    public Bullet(Vector2D position, Vector2D velocity, int damage, double radius, Entity owner, Color color,
+                  boolean piercing, boolean reflective, boolean soundWave) {
         this.position = position;
         this.velocity = velocity;
         this.damage = damage;
@@ -85,11 +92,16 @@ public final class Bullet {
         this.color = color;
         this.piercing = piercing;
         this.reflective = reflective;
+        this.soundWave = soundWave;
 
         // Giu nguyen logic cu: reflective=true mac dinh chi nay 1 lan.
         this.maxReflections = reflective ? 1 : 0;
 
         this.hitTargets = piercing ? new HashSet<>() : null;
+    }
+
+    public boolean isSoundWave() {
+        return soundWave;
     }
 
     public void update(double deltaSeconds) {

@@ -33,6 +33,7 @@ import com.soulknight.weapon.Bullet;
 import com.soulknight.weapon.ExplosionEffect;
 import com.soulknight.weapon.render.IonExplosionEffect;
 import com.soulknight.weapon.SlashEffect;
+import com.soulknight.weapon.SoundWaveEffect;
 import com.soulknight.weapon.Weapon;
 import com.soulknight.weapon.WeaponSelectionManager;
 import com.soulknight.weapon.WeaponType;
@@ -93,6 +94,8 @@ public final class GameWorld {
     private final List<Bullet> bullets = new ArrayList<>();
     // Danh sach hieu ung no khi dan va cham (tuong hoac muc tieu)
     private final List<ExplosionEffect> explosions = new ArrayList<>();
+    // Danh sach hieu ung song am lan toa
+    private final List<SoundWaveEffect> soundWaves = new ArrayList<>();
     // Danh sach hieu ung chem cua vu khi can chien (kiem)
     private final List<SlashEffect> slashEffects = new ArrayList<>();
     // Hieu ung no rieng cua Ion, khong dung chung ExplosionEffect.
@@ -273,6 +276,7 @@ public final class GameWorld {
         updateExplosions(deltaSeconds);
         updateIonExplosions(deltaSeconds);
         updateSlashEffects(deltaSeconds);
+        updateSoundWaves(deltaSeconds);
         updateEnemyDeaths(deltaSeconds);
         enemyBurnManager.update(this, deltaSeconds);
         combatEffectManager.update(deltaSeconds);
@@ -398,6 +402,9 @@ public final class GameWorld {
                 }
 
                 damageObstacle(obstacle, bullet.getDamage(), bullet.getPosition());
+                if (bullet.isSoundWave()) {
+                    spawnSoundWave(bullet.getPosition(), bullet.getDamage());
+                }
                 bullet.deactivate();
                 break;
             }
@@ -450,6 +457,9 @@ public final class GameWorld {
                             particleManager.spawnHitImpact(enemy.getPosition());
                         }
                         spawnBulletExplosion(bullet.getPosition());
+                        if (bullet.isSoundWave()) {
+                            spawnSoundWave(bullet.getPosition(), bullet.getDamage());
+                        }
                         bullet.deactivate();
                         break;
                     }
@@ -468,7 +478,13 @@ public final class GameWorld {
                     );
                 }
 
-                spawnBulletExplosion(bullet.getPosition());
+                if (bullet.isSoundWave()) {
+                    // Debug: In vị trí đạn va chạm để kiểm tra tâm hiệu ứng
+                    System.out.println("Sound wave spawn at: " + bullet.getPosition().getX() + ", " + bullet.getPosition().getY());
+                    spawnSoundWave(bullet.getPosition(), bullet.getDamage());
+                } else {
+                    spawnBulletExplosion(bullet.getPosition());
+                }
                 bullet.deactivate();
             }
         }
@@ -542,6 +558,17 @@ public final class GameWorld {
     // Tao hieu ung no tai vi tri dan va cham (tuong hoac muc tieu)
     private void spawnBulletExplosion(Vector2D position) {
         explosions.add(new ExplosionEffect(position.copy(), 18.0, 0.3, Color.ORANGERED));
+    }
+
+    private void spawnSoundWave(Vector2D position, int damage) {
+        soundWaves.add(new SoundWaveEffect(position.copy(), 35.0, 0.5, damage));
+    }
+
+    private void updateSoundWaves(double deltaSeconds) {
+        for (SoundWaveEffect soundWave : soundWaves) {
+            soundWave.update(deltaSeconds, enemies);
+        }
+        soundWaves.removeIf(soundWave -> !soundWave.isActive());
     }
 //    gay vu no
 public void triggerDeathExplosion(Vector2D center, int damage) {
@@ -1147,8 +1174,8 @@ public void triggerDeathExplosion(Vector2D center, int damage) {
             bullet.render(graphicsContext, camera);
         }
         for (SlashEffect slash : slashEffects) slash.render(graphicsContext, camera);
-
         for (ExplosionEffect explosion : explosions) explosion.render(graphicsContext, camera);
+        for (SoundWaveEffect soundWave : soundWaves) soundWave.render(graphicsContext, camera);
 
         // No Ion ve rieng.
         for (IonExplosionEffect explosion : ionExplosions) {
