@@ -5,10 +5,8 @@ import com.soulknight.buff.BuffType;
 import com.soulknight.engine.GameWorld;
 import com.soulknight.utils.Constants;
 import com.soulknight.utils.Vector2D;
-import com.soulknight.weapon.Gun;
-import com.soulknight.weapon.PrototypeRailgun;
-import com.soulknight.weapon.SlashEffect;
-import com.soulknight.weapon.Weapon;
+import com.soulknight.weapon.*;
+import com.soulknight.weapon.render.IonChargeRenderer;
 import javafx.scene.image.Image;
 import javafx.scene.input.KeyCode;
 import javafx.scene.paint.Color;
@@ -184,8 +182,15 @@ public final class Player extends Entity {
             if (touchpadDir.length() == 0.0) {
                 movement.normalize();
             }
+            double weaponSpeedMultiplier = 1.0;
 
-            movement.scale(getSpeed() * deltaSeconds);
+// Ion Gun lam cham Player theo muc charge hien tai.
+            if (weapon instanceof IonElectromagneticGun ionGun && ionGun.isCharging()) {
+                weaponSpeedMultiplier = ionGun.getMoveSpeedMultiplier();
+            }
+
+
+            movement.scale(getSpeed() * weaponSpeedMultiplier * deltaSeconds);
             this.move(world, movement.getX(), movement.getY());
         } else {
             this.movementState = PlayerAnimator.State.IDLE;
@@ -237,22 +242,31 @@ public final class Player extends Entity {
             aimAngle = Math.atan2(dy, dx);
         }
 
-        // Xu ly tan cong
+        // Xu ly tan cong.
         boolean fireHeld = world.getInputHandler().isFireHeld();
 
         if (weapon instanceof PrototypeRailgun railgun) {
 
-            // Giu chuot de nap nang luong.
             if (fireHeld && attackTargetPos != null) {
                 railgun.charge(deltaSeconds, attackTargetPos);
             }
 
-            // Chi ban khi vua nha nut tan cong.
             if (!fireHeld && fireHeldLastFrame) {
                 railgun.release(world, this, attackTargetPos);
             }
 
+        } else if (weapon instanceof IonElectromagneticGun ionGun) {
+
+            if (fireHeld && attackTargetPos != null) {
+                ionGun.charge(deltaSeconds, attackTargetPos);
+            }
+
+            if (!fireHeld && fireHeldLastFrame) {
+                ionGun.release(world, this, attackTargetPos);
+            }
+
         } else if (fireHeld && attackTargetPos != null) {
+
             weapon.attack(world, this, attackTargetPos);
         }
 
@@ -308,12 +322,15 @@ public final class Player extends Entity {
          * Ve vu khi tren tay.
          */
         renderWeapon(graphicsContext, camera);
+//        neu lan sung ion thi co them giai doan nao nang luong
+        if (weapon instanceof IonElectromagneticGun ionGun) {
+            IonChargeRenderer.render(this, ionGun, graphicsContext, camera, aimAngle);
+        }
 
         /*
          * Ve nua truoc cua quy dao Shield sau Player.
          */
-        buffManager.renderFront(graphicsContext, camera
-        );
+        buffManager.renderFront(graphicsContext, camera);
     }
     /**
      * Ve vu khi nhan vat dang cam.

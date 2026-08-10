@@ -31,7 +31,7 @@ import com.soulknight.utils.SoundManager;
 import com.soulknight.utils.Vector2D;
 import com.soulknight.weapon.Bullet;
 import com.soulknight.weapon.ExplosionEffect;
-import com.soulknight.weapon.Melee;
+import com.soulknight.weapon.render.IonExplosionEffect;
 import com.soulknight.weapon.SlashEffect;
 import com.soulknight.weapon.Weapon;
 import com.soulknight.weapon.WeaponSelectionManager;
@@ -95,15 +95,17 @@ public final class GameWorld {
     private final List<ExplosionEffect> explosions = new ArrayList<>();
     // Danh sach hieu ung chem cua vu khi can chien (kiem)
     private final List<SlashEffect> slashEffects = new ArrayList<>();
+    // Hieu ung no rieng cua Ion, khong dung chung ExplosionEffect.
+    private final List<IonExplosionEffect> ionExplosions = new ArrayList<>();
     private final List<Item> items = new ArrayList<>();
     private final ItemMagnetSystem itemMagnetSystem = new ItemMagnetSystem();
-    // Sửa tên biến từ effectManager -> particleManager
     private final ParticleManager particleManager = new ParticleManager();
     private final EnemyBurnManager enemyBurnManager = new EnemyBurnManager();
     private final CombatEffectManager combatEffectManager = new CombatEffectManager();
     private final List<Obstacle> obstacles = new ArrayList<>();
     private final List<Obstacle> readOnlyObstacles = java.util.Collections.unmodifiableList(obstacles);
     private final List<Obstacle> destroyedObstacleQueue = new ArrayList<>();
+//   chia luong hoat dong rieng cua database de tranh lam cham game
     private final ExecutorService databaseExecutor =
             Executors.newSingleThreadExecutor(runnable -> {
                 Thread thread = new Thread(runnable, "soul-knight-database-worker");
@@ -180,7 +182,7 @@ public final class GameWorld {
     }
 
     public void update(double deltaSeconds, double viewportWidth, double viewportHeight) {
-        // Nếu game đang Pause thì ngưng toàn bộ logic cập nhật
+//        game pause thi ngung toan bo logic , cap nhat
         if (state == GameState.PAUSED) {
             return;
         }
@@ -204,7 +206,6 @@ public final class GameWorld {
             case LEVEL_CLEAR -> updateLevelClear(deltaSeconds, viewportWidth, viewportHeight);
             case REWARD_PICK -> updateRewardPick();
             case GAME_OVER, GAME_VICTORY -> {
-                // Nhấp chuột hoặc bấm nút Confirm để quay lại chơi mới
                 if (inputHandler.consumeConfirmRequest()) {
                     startNewRun();
                     changeState(GameState.PLAYING);
@@ -231,7 +232,7 @@ public final class GameWorld {
             return;
         }
 
-        // 1. Cập nhật đếm giờ cho hiệu ứng Spawn của Player & Pet
+//       cap nhat hieu ung spawn cho player va pet
         if (playerSpawnEffect != null) {
             playerSpawnEffect.update(deltaSeconds);
         }
@@ -262,7 +263,7 @@ public final class GameWorld {
                 continue;
             }
             enemy.update(this, deltaSeconds);
-            // xử lý va chạm quái vs quái
+//            xu li va cham quai voi quai
             enemy.separateFromOtherEnemies(this, enemies, deltaSeconds);
         }
         resolvePlayerEnemyCollisions(deltaSeconds);
@@ -270,6 +271,7 @@ public final class GameWorld {
         updateBullets(deltaSeconds);
         processDestroyedObstacles();
         updateExplosions(deltaSeconds);
+        updateIonExplosions(deltaSeconds);
         updateSlashEffects(deltaSeconds);
         updateEnemyDeaths(deltaSeconds);
         enemyBurnManager.update(this, deltaSeconds);
@@ -310,7 +312,7 @@ public final class GameWorld {
         if (currentPet == null || player == null || player.getPosition() == null) {
             return;
         }
-        // 🔥 Truyền "this" (GameWorld) để Pet thừa hưởng toàn bộ MapManager + Vật cản (Obstacle)
+//     pet thua huong
         currentPet.update(deltaSeconds, player.getPosition().getX(), player.getPosition().getY(), this);
     }
 
@@ -350,29 +352,51 @@ public final class GameWorld {
                     spawnBulletExplosion(new Vector2D(bulletX, bulletY));
                     continue;
                 }
-                spawnBulletExplosion(bullet.getPosition());
+                Vector2D impactPosition = bullet.getPosition().copy();
+                if (bullet.explodesOnTerrain()) {
+                    triggerIonProjectileExplosion(
+                            impactPosition,
+                            bullet.getTerrainExplosionRadius(),
+                            bullet.getTerrainExplosionDamage(),
+                            bullet.getOwner()
+                    );
+                } else {
+                    spawnBulletExplosion(impactPosition);
+                }
                 bullet.deactivate();
                 continue;
             }
 
-            // Dan va cham obstacle
+            // Dan va cham obstacle.
             for (Obstacle obstacle : obstacles) {
-                if (obstacle == null || obstacle.isDestroyed()) {
-                    continue;
-                }
+                if (obstacle == null || obstacle.isDestroyed()) continue;
+                if (!obstacle.intersectsCircle(bullet.getPosition(), bullet.getRadius())) continue;
 
-                if (!obstacle.intersectsCircle(bullet.getPosition(), bullet.getRadius())) {
-                    continue;
-                }
-
-                // Dan laser xuyen obstacle: moi obstacle chi trung mot lan
-                if (bullet.isPiercing()) {
+                // Laser/piercing cu co the xuyen obstacle.
+                if (bullet.piercesObstacles()) {
                     if (!bullet.hasAlreadyHit(obstacle)) {
                         bullet.markHit(obstacle);
                         damageObstacle(obstacle, bullet.getDamage(), bullet.getPosition());
                     }
+
                     continue;
                 }
+
+                //  dan Ion xuyen Enemy nhung no khi cham obstacle.
+                if (bullet.explodesOnTerrain()) {
+                    Vector2D impactPosition = bullet.getPosition().copy();
+
+                    damageObstacle(obstacle, bullet.getDamage(), impactPosition);
+                    triggerIonProjectileExplosion(
+                            impactPosition,
+                            bullet.getTerrainExplosionRadius(),
+                            bullet.getTerrainExplosionDamage(),
+                            bullet.getOwner()
+                    );
+                    bullet.deactivate();
+                    break;
+                }
+
                 damageObstacle(obstacle, bullet.getDamage(), bullet.getPosition());
                 bullet.deactivate();
                 break;
@@ -616,7 +640,7 @@ public void triggerDeathExplosion(Vector2D center, int damage) {
          */
         double radius = mapManager.getTileSize() * HOLY_NOVA_RADIUS_TILES;
         /*
-         * 1. Gay 200 damage cho tat ca Enemy/Boss trong vung.
+         *  Gay 200 damage cho tat ca Enemy/Boss trong vung
          */
         for (Enemy enemy : enemies) {
             if (enemy == null || !enemy.isAlive() || enemy.getPosition() == null || isEnemySpawning(enemy)) {
@@ -635,21 +659,21 @@ public void triggerDeathExplosion(Vector2D center, int damage) {
             floatingTextManager.spawnCustom("-" + realDamage, enemy.getPosition(), Color.LIGHTYELLOW);
         }
         /*
-         * 2. Xoa dan cua Enemy trong vung.
+         *  Xoa dan cua Enemy trong vung.
          */
         destroyEnemyBulletsInHolyNova(center, radius);
         /*
-         * 3. Hoi 50% MAX HP cho Player.
+         *  Hoi 50% MAX HP cho Player.
          */
         int healAmount = (int) Math.ceil(player.getMaxHealth() * 0.5);
         player.heal(healAmount);
         floatingTextManager.spawnCustom("+" + healAmount, player.getPosition(), Color.LIGHTGREEN);
         /*
-         * 4. Tao visual.
+         *  Tao visual.
          */
         combatEffectManager.spawnHolyNova(center, radius);
         /*
-         * 5. Am thanh.
+         *  Am thanh.
          */
         SoundManager.getInstance().playSFXShort("holy_nova", 0.9);
     }
@@ -752,6 +776,34 @@ public void triggerDeathExplosion(Vector2D center, int damage) {
 
         combatEffectManager.spawnPurpleChainLightning(points);
     }
+    // Vu no Ion co visual rieng, damage AoE van do GameWorld xu ly.
+    private void triggerIonProjectileExplosion(Vector2D center, double radius, int damage, Entity owner) {
+        if (center == null || radius <= 0.0) return;
+
+        // Khong dung ExplosionEffect chung nua.
+        ionExplosions.add(new IonExplosionEffect(center, radius));
+
+        if (owner instanceof Player attackingPlayer) {
+            for (Enemy enemy : enemies) {
+                if (enemy == null || !enemy.isAlive() || enemy.getPosition() == null || isEnemySpawning(enemy)) continue;
+
+                double distance = center.distance(enemy.getPosition());
+                if (distance > radius + enemy.getRadius()) continue;
+
+                int healthBefore = enemy.getHealth();
+
+                enemy.takeDamage(damage);
+
+                int realDamage = healthBefore - enemy.getHealth();
+                if (realDamage <= 0) continue;
+
+                floatingTextManager.spawnCustom("-" + realDamage, enemy.getPosition(), Color.web("#76FFE9"));
+                attackingPlayer.getBuffManager().notifyDamageDealt(this, enemy, realDamage);
+            }
+        }
+
+        SoundManager.getInstance().playSFX("ion_explosion");
+    }
 
     // Cap nhat vong doi hieu ung no, xoa cai da ket thuc
     private void updateExplosions(double deltaSeconds) {
@@ -759,6 +811,14 @@ public void triggerDeathExplosion(Vector2D center, int damage) {
             explosion.update(deltaSeconds);
         }
         explosions.removeIf(explosion -> !explosion.isActive());
+    }
+    // Cap nhat hieu ung no Ion va xoa effect da ket thuc.
+    private void updateIonExplosions(double deltaSeconds) {
+        for (IonExplosionEffect explosion : ionExplosions) {
+            if (explosion != null) explosion.update(deltaSeconds);
+        }
+
+        ionExplosions.removeIf(explosion -> explosion == null || !explosion.isActive());
     }
 
     // Cap nhat vong doi hieu ung chem, xoa cai da ket thuc
@@ -838,7 +898,7 @@ public void triggerDeathExplosion(Vector2D center, int damage) {
             addEnemyWithSpawnEffect(enemy, 0.0);
         }
     }
-
+//ve 2.5D Y-position
     private void renderWorld(GraphicsContext graphicsContext, double renderWidth, double renderHeight) {
         // 0. Ve background neon trung co phia sau map
         dynamicBackground.render(graphicsContext, camera, renderWidth, renderHeight);
@@ -884,7 +944,7 @@ public void triggerDeathExplosion(Vector2D center, int damage) {
             }));
         }
 
-// B. Thêm PLAYER (Mốc Y tính ở BÀN CHÂN)
+//  Thêm PLAYER (Mốc Y tính ở BÀN CHÂN)
 //        render theo cac trang thai : binh thuong , spwan , die
         if (player != null && player.getPosition() != null) {
             double playerFootY = player.getPosition().getY() + 10.0;
@@ -1090,6 +1150,11 @@ public void triggerDeathExplosion(Vector2D center, int damage) {
 
         for (ExplosionEffect explosion : explosions) explosion.render(graphicsContext, camera);
 
+        // No Ion ve rieng.
+        for (IonExplosionEffect explosion : ionExplosions) {
+            if (explosion != null) explosion.render(graphicsContext, camera);
+        }
+
         combatEffectManager.render(graphicsContext, camera);
 
         if (particleManager != null) {
@@ -1172,6 +1237,7 @@ public void triggerDeathExplosion(Vector2D center, int damage) {
         this.enemyDeathEffects.clear();
         this.bullets.clear();
         this.explosions.clear();
+        this.ionExplosions.clear();
         this.slashEffects.clear();
         this.items.clear();
         this.combatEffectManager.clear();
@@ -2539,15 +2605,10 @@ public void triggerDeathExplosion(Vector2D center, int damage) {
          * tránh phụ thuộc hoàn toàn vào random.
          */
         double tileSize = mapManager.getTileSize();
-
         double minX = savedRoom.getBound().getMinX() + tileSize;
-
         double minY = savedRoom.getBound().getMinY() + tileSize;
-
         double maxX = savedRoom.getBound().getMaxX() - tileSize;
-
         double maxY = savedRoom.getBound().getMaxY() - tileSize;
-
         for (double y = minY; y <= maxY; y += tileSize) {
             for (double x = minX; x <= maxX; x += tileSize) {
                 Vector2D candidate = new Vector2D(x, y);
@@ -2556,7 +2617,6 @@ public void triggerDeathExplosion(Vector2D center, int damage) {
                 }
             }
         }
-
         return null;
     }
 

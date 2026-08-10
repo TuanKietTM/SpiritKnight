@@ -1,5 +1,6 @@
 package com.soulknight.weapon;
 
+import com.soulknight.weapon.render.ProjectileRenderer;
 import com.soulknight.engine.Camera;
 import com.soulknight.entity.Entity;
 import com.soulknight.utils.ResourceLoader;
@@ -13,6 +14,7 @@ import java.util.Set;
 
 public final class Bullet {
 
+    private ProjectileRenderer projectileRenderer;
     // Anh vien dan (dung chung cho moi vien), ve thay cho hinh tron to mau
     private static final String SPRITE_PATH = "/assets/effects/dan.png";
     private static final Image SPRITE = ResourceLoader.image(SPRITE_PATH);
@@ -32,6 +34,14 @@ public final class Bullet {
     private final double radius;
     private final Entity owner;
     private final Color color;
+    // Dan dac biet co the tao vu no khi cham dia hinh.\
+    private boolean explodeOnTerrain;
+    // Projectile Ion co renderer rieng, khong lien quan den sprite laser.
+
+    // Ion xuyen Enemy nhung khong bat buoc xuyen obstacle.
+    private boolean piercesObstacles = true;
+    private double terrainExplosionRadius;
+    private int terrainExplosionDamage;
     // Dan xuyen: bay qua muc tieu va gay sat thuong nhieu con (moi con mot lan)
     private final boolean piercing;
     // Dan phan tuong cu van mac dinh chi nay 1 lan.
@@ -49,12 +59,12 @@ public final class Bullet {
     private double maxDistance = 9999.0;    // Tầm bay tối đa
     private double distanceTraveled = 0.0;
 
+
     public Bullet setDecelerationAndRange(double dragFactor, double maxDistance) {
         this.dragFactor = dragFactor;
         this.maxDistance = maxDistance;
         return this;
     }
-
 
     public Bullet(Vector2D position, Vector2D velocity, int damage, double radius, Entity owner, Color color) {
         this(position, velocity, damage, radius, owner, color, false, false);
@@ -110,27 +120,32 @@ public final class Bullet {
         getPosition().add(stepX, stepY);
     }
 
-    public void render(GraphicsContext graphicsContext, Camera camera) {
-        if (!active) return;
+    public void render(GraphicsContext gc, Camera camera) {
+        if (!active || gc == null || camera == null) return;
+
+        // Projectile dac biet tu quyet dinh cach ve.
+        if (projectileRenderer != null) {
+            projectileRenderer.render(this, gc, camera);
+            return;
+        }
         double screenX = camera.worldToScreenX(position.getX());
         double screenY = camera.worldToScreenY(position.getY());
         if (piercing && LASER_SPRITE != null && LASER_SPRITE.getWidth() > 1.0) {
-            renderLaser(graphicsContext, screenX, screenY, camera.getZoom());
+            renderLaser(gc, screenX, screenY, camera.getZoom());
             return;
         }
-        // Ve to hon ban kinh va cham mot chut de vien dan nhin ro tren man hinh
         double drawSize = radius * 3.0 * camera.getZoom();
+
         if (SPRITE != null && SPRITE.getWidth() > 1.0) {
-            graphicsContext.save();
-            graphicsContext.setImageSmoothing(false);
-            graphicsContext.drawImage(SPRITE,
-                    screenX - drawSize / 2.0, screenY - drawSize / 2.0, drawSize, drawSize);
-            graphicsContext.restore();
-        } else {
-            // Du phong khi anh chua tai duoc: ve hinh tron nhu cu
-            graphicsContext.setFill(color);
-            graphicsContext.fillOval(screenX - radius, screenY - radius, radius * 2.0, radius * 2.0);
+            gc.save();
+            gc.setImageSmoothing(false);
+            gc.drawImage(SPRITE, screenX - drawSize / 2.0, screenY - drawSize / 2.0, drawSize, drawSize);
+            gc.restore();
+            return;
         }
+
+        gc.setFill(color);
+        gc.fillOval(screenX - radius, screenY - radius, radius * 2.0, radius * 2.0);
     }
 
     // Ve tia laser: khung hinh dong, xoay theo huong bay cua dan
@@ -156,6 +171,14 @@ public final class Bullet {
 
     public boolean isPiercing() {
         return piercing;
+    }
+    public Bullet setPiercesObstacles(boolean value) {
+        this.piercesObstacles = value;
+        return this;
+    }
+
+    public boolean piercesObstacles() {
+        return piercing && piercesObstacles;
     }
 
     // Con co the phan tuong neu chua dat gioi han so lan nay.
@@ -202,6 +225,41 @@ public final class Bullet {
     }
 
 
+    public Bullet withTerrainExplosion(double radius, int damage) {
+        this.explodeOnTerrain = true;
+        this.terrainExplosionRadius = Math.max(0.0, radius);
+        this.terrainExplosionDamage = Math.max(0, damage);
+
+        return this;
+    }
+
+    public boolean explodesOnTerrain() {
+        return explodeOnTerrain;
+    }
+
+    public double getTerrainExplosionRadius() {
+        return terrainExplosionRadius;
+    }
+
+    public int getTerrainExplosionDamage() {
+        return terrainExplosionDamage;
+    }
+    public Vector2D getVelocity() {
+        return velocity;
+    }
+
+    public double getAge() {
+        return age;
+    }
+
+    public Color getColor() {
+        return color;
+    }
+
+
+    
+
+
     // Kiem tra muc tieu da trung tia laser nay chua (tranh cong sat thuong lien tuc)
     public boolean hasAlreadyHit(Object target) {
         return hitTargets != null && hitTargets.contains(target);
@@ -235,5 +293,9 @@ public final class Bullet {
 
     public void deactivate() {
         active = false;
+    }
+    public Bullet withRenderer(ProjectileRenderer renderer) {
+        this.projectileRenderer = renderer;
+        return this;
     }
 }

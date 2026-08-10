@@ -103,7 +103,9 @@ public final class SoundManager {
         loadSFX("dragon_explosion","/assets/Audio/dragon_explosion.mp3");
         loadSFX("holy_nova","/assets/Audio/holy_nova.mp3");
         loadSFX("railgun_fire","/assets/Audio/railgun_fire.mp3");
-    }
+        loadSFX("ion_gun","/assets/Audio/blaster.mp3");
+        loadSFX("ion_explosion","/assets/Audio/ion_explosion.mp3");
+  }
 
     public static SoundManager getInstance() {
         return instance;
