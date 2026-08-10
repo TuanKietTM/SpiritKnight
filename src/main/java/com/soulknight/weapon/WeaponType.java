@@ -28,7 +28,7 @@ public enum WeaponType {
             8, 0.09,
             true, 620.0, 0.0,1000
     ),
-    RAILGUN(
+    PROTOTYPE_RAILGUN(
             "Prototype Railgun",// loai dung dac biet : theo muc nang luong : an len nong
             // cang lau thi do con gpa cang lon
             "/assets/WeaponImage/GunImage/PrototypeRailgun.png",
@@ -37,10 +37,9 @@ public enum WeaponType {
             true, 680.0, 0.0, 65
     ),
 
-    ION_GUN(
-            "Ion Electromagnetic Gun",// sung dac biet tuong tu railgun phai nap nang luong
-//            nhung co che ban khac nap cang lau se tao ra 1 qua cau ion cang to
-//            dan ion xuyen qua quai nhung no khi game wall hoac vat can (logic trong gameworld)
+    ION_ELECTROMAGNETIC_GUN(
+            "Ion Electromagnetic Gun",
+            // sung dac biet tich nang luon groi ban ra qua cau ion co hieu ung no rieng
             "/assets/WeaponImage/GunImage/ion.png",
             "ion_gun",
             18, 0.70,
@@ -143,13 +142,13 @@ public enum WeaponType {
     public Weapon createWeapon() {
 
         // Ion Gun co co che charge va projectile rieng.
-        if (this == ION_GUN) {
+        if (this == ION_ELECTROMAGNETIC_GUN) {
             return new IonElectromagneticGun(displayName, cooldownSeconds)
                     .withSound(soundPath)
                     .withImage(imagePath);
         }
         // Railgun co logic charge rieng, khong tao bang Gun thuong. (chu y loai vu khi dac biet nay )
-        if (this ==RAILGUN) {
+        if (this == PROTOTYPE_RAILGUN) {
             return new PrototypeRailgun(displayName, cooldownSeconds)
                     .withSound(soundPath)
                     .withImage(imagePath);
