@@ -52,8 +52,11 @@ public final class Gun extends Weapon {
         Vector2D spawn = owner.getPosition().copy()
                 .add(Math.cos(angle) * MUZZLE_DISTANCE, Math.sin(angle) * MUZZLE_DISTANCE);
 
-        world.addBullet(new Bullet(spawn, velocity, getDamage(), 4.0, owner,
-                piercingBullets ? Color.DEEPSKYBLUE : Color.GOLD, piercingBullets, piercingBullets));
+        // Kiểm tra tên vũ khí để xác định là súng sóng âm (phương án tạm thời)
+        boolean isSoundWaveGun = getName().equals("Sound Wave Gun");
+        world.addBullet(new Bullet(spawn, velocity, getDamage(), 6.0, owner,
+                isSoundWaveGun ? Color.PURPLE : (piercingBullets ? Color.DEEPSKYBLUE : Color.GOLD),
+                piercingBullets, piercingBullets, isSoundWaveGun));
         resetCooldown();
     }
 }

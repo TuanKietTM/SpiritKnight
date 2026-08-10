@@ -70,6 +70,14 @@ public enum WeaponType {
             true, 780.0, 0.0,1
     ),
 
+    SOUND_WAVE_GUN(
+            "Sound Wave Gun",
+            "/assets/WeaponImage/GunImage/sungsam.png",
+            "holy_nova",
+            35, 0.8,
+            true, 450.0, 0.0,4000
+    ),
+
     OLD_SWORD(
             "Old Sword",
             "/assets/WeaponImage/MeleeImage/Sprite_Old_Sword_of_Royal_Guard.png",
