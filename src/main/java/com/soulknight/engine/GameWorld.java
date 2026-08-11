@@ -108,7 +108,7 @@ public final class GameWorld {
     private final List<Obstacle> obstacles = new ArrayList<>();
     private final List<Obstacle> readOnlyObstacles = java.util.Collections.unmodifiableList(obstacles);
     private final List<Obstacle> destroyedObstacleQueue = new ArrayList<>();
-//   chia luong hoat dong rieng cua database de tranh lam cham game
+    //   chia luong hoat dong rieng cua database de tranh lam cham game
     private final ExecutorService databaseExecutor =
             Executors.newSingleThreadExecutor(runnable -> {
                 Thread thread = new Thread(runnable, "soul-knight-database-worker");
@@ -173,14 +173,32 @@ public final class GameWorld {
     public void changeState(GameState newState) {
         if (newState == null || this.state == newState) return;
 
+        GameState oldState = this.state;
         this.state = newState;
 
         if (inputHandler != null) {
             inputHandler.clearState();
         }
-
+        handleBGMStateChange(oldState, newState);
         if (stateListener != null) {
             stateListener.onStateChanged(newState);
+        }
+    }
+    // Quan ly nhac nen khi thay doi GameState.
+    private void handleBGMStateChange(GameState oldState, GameState newState) {
+        SoundManager sound = SoundManager.getInstance();
+        if (newState == GameState.PLAYING) {
+            // Luon khoi dong lai BGM gameplay khi quay vao game.
+            playGameBGM();
+            return;
+        }
+        if (newState == GameState.PAUSED) {
+            // Pause chi dung logic game, khong dung BGM.
+            return;
+        }
+        if (newState == GameState.MAIN_MENU) {
+            // Neu menu co BGM rieng thi class menu co the play sau do.
+            sound.stopBGM();
         }
     }
 
@@ -577,34 +595,34 @@ public final class GameWorld {
         }
         soundWaves.removeIf(soundWave -> !soundWave.isActive());
     }
-//    gay vu no
-public void triggerDeathExplosion(Vector2D center, int damage) {
-    if (center == null || damage <= 0) {
-        return;
+    //    gay vu no
+    public void triggerDeathExplosion(Vector2D center, int damage) {
+        if (center == null || damage <= 0) {
+            return;
+        }
+        final double EXPLOSION_RADIUS = 90.0;
+        for (Enemy enemy : enemies) {
+            if (enemy == null || !enemy.isAlive() || enemy.getPosition() == null) {
+                continue;
+            }
+            double distance = center.distance(enemy.getPosition());
+            if (distance > EXPLOSION_RADIUS + enemy.getRadius()) {
+                continue;
+            }
+            int healthBefore = enemy.getHealth();
+            enemy.takeDamage(damage);
+            int realDamage = healthBefore - enemy.getHealth();
+            if (realDamage <= 0) {
+                continue;
+            }
+            floatingTextManager.spawnCustom("-" + realDamage, enemy.getPosition(), Color.ORANGERED
+            );
+            // Enemy trung no bi bong
+            enemyBurnManager.applyBurn(enemy);
+        }
+        combatEffectManager.spawnDeathFireExplosion(center);
+        SoundManager.getInstance().playSFXShort("death_explosion", 0.45);
     }
-    final double EXPLOSION_RADIUS = 90.0;
-    for (Enemy enemy : enemies) {
-        if (enemy == null || !enemy.isAlive() || enemy.getPosition() == null) {
-            continue;
-        }
-        double distance = center.distance(enemy.getPosition());
-        if (distance > EXPLOSION_RADIUS + enemy.getRadius()) {
-            continue;
-        }
-        int healthBefore = enemy.getHealth();
-        enemy.takeDamage(damage);
-        int realDamage = healthBefore - enemy.getHealth();
-        if (realDamage <= 0) {
-            continue;
-        }
-        floatingTextManager.spawnCustom("-" + realDamage, enemy.getPosition(), Color.ORANGERED
-        );
-        // Enemy trung no bi bong
-        enemyBurnManager.applyBurn(enemy);
-    }
-    combatEffectManager.spawnDeathFireExplosion(center);
-    SoundManager.getInstance().playSFXShort("death_explosion", 0.45);
-}
     public void triggerDragonBreath() {
         if (player == null || !player.isAlive() || player.getPosition() == null || mapManager == null) {
             return;
@@ -663,7 +681,7 @@ public void triggerDeathExplosion(Vector2D center, int damage) {
         combatEffectManager.spawnDragonBreath(origin, dirX, dirY, range, DRAGON_BREATH_HALF_ANGLE);
         SoundManager.getInstance().playSFXShort("dragon_breath", 0.75);
     }
-//    buff trc tan cong don chi mang
+    //    buff trc tan cong don chi mang
     public void triggerHolyNova() {
         if (player == null || !player.isAlive() || player.getPosition() == null || mapManager == null) {
             return;
@@ -734,7 +752,7 @@ public void triggerDeathExplosion(Vector2D center, int damage) {
         }
     }
 
-//Kiem tra quai nam trong pham vi hoi tho
+    //Kiem tra quai nam trong pham vi hoi tho
     private boolean isInsideDragonBreathCone(Vector2D origin, double dirX, double dirY, double range, Enemy enemy) {
         if (origin == null || enemy == null || enemy.getPosition() == null) {
             return false;
@@ -896,9 +914,17 @@ public void triggerDeathExplosion(Vector2D center, int damage) {
                         player.getPosition(), Color.LIMEGREEN);
 
                 saveCollectedBuff(type);
+            } else if (item instanceof EnergyCrystal energyCrystal){
+                double amount = energyCrystal.getAmount();
+                double before = player.getMana();
+                player.restoreMana(amount);
+                double restored = player.getMana() - before;
+                if (restored > 0) {
+                    floatingTextManager.spawnCustom("+" + (int) restored + " MANA",
+                            player.getPosition(), Color.AQUA);
+                }
             }
-
-            item.collect();
+                item.collect();
         }
 
         items.removeIf(Item::isCollected);
@@ -932,7 +958,7 @@ public void triggerDeathExplosion(Vector2D center, int damage) {
             addEnemyWithSpawnEffect(enemy, 0.0);
         }
     }
-//ve 2.5D Y-position
+    //ve 2.5D Y-position
     private void renderWorld(GraphicsContext graphicsContext, double renderWidth, double renderHeight) {
         // 0. Ve background neon trung co phia sau map
         dynamicBackground.render(graphicsContext, camera, renderWidth, renderHeight);
@@ -1289,43 +1315,11 @@ public void triggerDeathExplosion(Vector2D center, int damage) {
         this.rewardPicker = null;
         this.lastRewardRoom = null;
 
-        // 8. Sinh các vật phẩm đặc thù theo Level
-        if (this.levelManager != null && this.levelManager.getCurrentLevel().number() == 2) {
-            spawnEnergyCrystals(3);
-        }
-
         // 9. Sinh Boss nếu đây là Màn Boss
         if (this.levelManager != null
                 && this.levelManager.getCurrentLevel().bossLevel()
                 && this.mapManager.getBossSpawnPoint() != null) {
             this.enemies.add(this.enemyFactory.createGrandKnight(this.mapManager.getBossSpawnPoint()));
-        }
-    }
-
-    private void refreshCurrentRoomReference() {
-        currentRoom = null;
-
-        if (player == null || player.getPosition() == null || mapManager == null || mapManager.getRooms() == null) {
-            return;
-        }
-
-        double playerX = player.getPosition().getX();
-        double playerY = player.getPosition().getY();
-
-        List<Room> rooms = mapManager.getRooms();
-
-        for (int i = 0; i < rooms.size(); i++) {
-            Room room = rooms.get(i);
-
-            if (room == null || room.getBound() == null) {
-                continue;
-            }
-
-            if (room.getBound().contains(playerX, playerY)) {
-                currentRoom = room;
-                currentRoomNumber = i + 1;
-                return;
-            }
         }
     }
 
@@ -1366,16 +1360,6 @@ public void triggerDeathExplosion(Vector2D center, int damage) {
 
         rebuildObstacleCache();
     }
-
-    private void spawnEnergyCrystals(int count) {
-        for (int i = 0; i < count; i++) {
-            Vector2D position = mapManager.findRandomWalkablePosition(random, 20.0);
-            if (position != null) {
-                items.add(new EnergyCrystal(position, missionManager));
-            }
-        }
-    }
-
     /**
      * Mở bảng chọn phần thưởng (vàng / vũ khí) khi hoàn thành một phòng chiến đấu.
      * Mỗi phòng (trừ START room) khi dọn sạch sẽ mở hộp 1 lần.
@@ -2447,26 +2431,33 @@ public void triggerDeathExplosion(Vector2D center, int damage) {
         if (enemy == null || enemy.getPosition() == null) {
             return;
         }
-
         int scoreReward = 100;
+        // Gold: luon roi
         int goldReward = random.nextInt(6) + 5;
+        // Gem: hiem
         double gemDropChance = 0.15;
-
+        // Energy: kha thuong xuyen vi weapon can energy de hoat dong
+        double energyDropChance = 0.35;
         addScore(scoreReward);
         floatingTextManager.spawnCustom("+" + scoreReward + " SCORE", enemy.getPosition(), Color.LIGHTYELLOW);
-
         Vector2D enemyPosition = enemy.getPosition().copy();
         Vector2D goldPosition = enemyPosition.copy().add(-8.0, 0.0);
         items.add(new GoldItem(goldPosition, goldReward, null));
-
         boolean droppedGem = random.nextDouble() < gemDropChance;
         if (droppedGem) {
             Vector2D gemPosition = enemyPosition.copy().add(8.0, 0.0);
             items.add(new GemItem(gemPosition, 1, null));
         }
-
-        debug("Đã tiêu diệt quái | +" + scoreReward + " điểm");
-        debug("Quái rơi " + goldReward + " vàng" + (droppedGem ? " và 1 kim cương." : "."));
+        boolean droppedEnergy = random.nextDouble() < energyDropChance;
+        if (droppedEnergy) {
+            // Moi crystal hoi ngau nhien 8 -> 15 mana
+            double manaAmount = 8 + random.nextInt(8);
+            Vector2D energyPosition =
+                    enemyPosition.copy().add(0.0, -10.0);
+            items.add(new EnergyCrystal(energyPosition, manaAmount));
+        }
+        debug("Quai roi " + goldReward + " gold" + (droppedGem ? " + gem" : "") + (droppedEnergy ? " + energy" : "")
+        );
     }
 
     //    ham dong bo thoi gian thuc moi 30s

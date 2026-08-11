@@ -24,6 +24,7 @@ public final class Melee extends Weapon {
         if (!isReady()) {
             return;
         }
+        if (!consumeMana(owner)) return;
         String sound = getSoundPath();
         if (sound != null && !sound.isBlank()) {
             SoundManager.getInstance().playSFX(sound);

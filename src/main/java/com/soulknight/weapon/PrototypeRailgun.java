@@ -35,6 +35,8 @@ public final class PrototypeRailgun extends Weapon {
     private static final double MIN_CRIT_CHANCE = 0.05;
     private static final double MAX_CRIT_CHANCE = 0.35;
 
+    private static final double MAX_MANA_COST = 20.0;
+
     private static final double MAX_SPREAD = Math.toRadians(34.0);
 
     private final Random random = new Random();
@@ -71,6 +73,11 @@ public final class PrototypeRailgun extends Weapon {
 
     private void fireChargedShot(GameWorld world, Entity owner, Vector2D targetPosition) {
         double charge = getChargeRatio();
+
+        double manaCost = lerp(getManaCost(), MAX_MANA_COST, charge);
+        if (!consumeMana(owner, manaCost)) {
+            return;
+        }
 
         int projectileCount = getProjectileCount(charge);
         int damage = getChargedDamage(charge);
