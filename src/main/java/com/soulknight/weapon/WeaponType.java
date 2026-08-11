@@ -75,7 +75,7 @@ public enum WeaponType {
             "/assets/WeaponImage/GunImage/sungsam.png",
             "holy_nova",
             35, 0.8,
-            true, 450.0, 0.0,4000
+            true, 450.0, 0.0,40
     ),
 
     OLD_SWORD(
