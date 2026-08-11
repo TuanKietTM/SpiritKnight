@@ -33,6 +33,8 @@ public final class Gun extends Weapon {
         if (!isReady()) {
             return;
         }
+        // Chi tru mana khi sung san sang ban.
+        if (!consumeMana(owner)) return;
 
         String sound = getSoundPath();
         if (sound != null && !sound.isBlank()) {

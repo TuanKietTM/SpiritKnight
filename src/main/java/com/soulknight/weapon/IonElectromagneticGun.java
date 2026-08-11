@@ -38,6 +38,8 @@ public final class IonElectromagneticGun extends Weapon {
     private static final double MIN_EXPLOSION_RADIUS = 38.0;
     private static final double MAX_EXPLOSION_RADIUS = 82.0;
 
+    private static final double MAX_MANA_COST = 24.0;
+
     // Full charge thi Player con 45% toc do di chuyen.
     private static final double MIN_MOVE_SPEED_MULTIPLIER = 0.45;
 
@@ -84,6 +86,13 @@ public final class IonElectromagneticGun extends Weapon {
      */
     private void fireIonOrb(GameWorld world, Entity owner, Vector2D targetPosition) {
         double charge = getChargeRatio();
+
+        // getManaCost() = mana co ban tu WeaponType, Ion full charge ton toi 24.
+        double manaCost = lerp(getManaCost(), MAX_MANA_COST, charge);
+
+        if (!consumeMana(owner, manaCost)) {
+            return;
+        }
 
         int damage = getChargedDamage(charge);
         double critChance = lerp(MIN_CRIT_CHANCE, MAX_CRIT_CHANCE, charge);

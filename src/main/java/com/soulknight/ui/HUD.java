@@ -239,8 +239,8 @@ public final class HUD {
          * Shield va mana hien tai van dang dung gia tri HUD co dinh
          * de giu nguyen logic cu cua project.
          */
-        updateShieldUI();
-        updateManaUI();
+        updateShieldUI(player);
+        updateManaUI(player);
         updateWeaponUI(player);
         updateBuffUI(player);
     }
@@ -262,36 +262,36 @@ public final class HUD {
         }
     }
 
-    private void updateShieldUI() {
+    private void updateShieldUI(Player player) {
+        if (shieldLabel == null || shieldBar == null) return;
 
-        if (shieldLabel == null || shieldBar == null) {
+        if (player == null) {
+            shieldLabel.setText("0/0");
+            shieldBar.setProgress(0.0);
             return;
         }
 
-        int currentShield = 6;
-        int maxShield = 6;
+        int current = player.getShield();
+        int max = player.getMaxShield();
 
-        shieldLabel.setText(
-                currentShield + "/" + maxShield
-        );
-
-        shieldBar.setProgress(
-                maxShield > 0
-                        ? (double) currentShield / maxShield
-                        : 0.0
-        );
+        shieldLabel.setText(current + "/" + max);
+        shieldBar.setProgress(max > 0 ? (double) current / max : 0.0);
     }
 
-    private void updateManaUI() {
+    private void updateManaUI(Player player) {
+        if (manaLabel == null || manaBar == null) return;
 
-        if (manaLabel == null || manaBar == null) {
+        if (player == null) {
+            manaLabel.setText("0/0");
+            manaBar.setProgress(0.0);
             return;
         }
-        int currentMana = 200;
-        int maxMana = 200;
-        manaLabel.setText(currentMana + "/" + maxMana);
-        manaBar.setProgress(
-                maxMana > 0 ? (double) currentMana / maxMana : 0.0);
+
+        int current = (int) Math.round(player.getMana());
+        int max = (int) Math.round(player.getMaxMana());
+
+        manaLabel.setText(current + "/" + max);
+        manaBar.setProgress(max > 0 ? (double) current / max : 0.0);
     }
 
     private void updateWorldUI(GameWorld world, int enemyCount) {
@@ -513,7 +513,9 @@ public final class HUD {
         }
 
         if (weaponLabel != null) {
-            weaponLabel.setText(currentName.toUpperCase());
+            weaponLabel.setText("");
+            weaponLabel.setVisible(false);
+            weaponLabel.setManaged(false);
         }
 
         if (weaponIcon == null) {

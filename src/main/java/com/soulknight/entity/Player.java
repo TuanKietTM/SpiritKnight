@@ -44,6 +44,22 @@ public final class Player extends Entity {
 
     // Phan tram giam sat thuong, vi du 0.5 = giam 50%
     private double buffDamageReduction = 0.0;
+
+    // Mana dung cho cac weapon dac biet.
+    private double mana = 200.0;
+    private double maxMana = 200.0;
+
+    // Shield hap thu damage truoc HP.
+    private int shield = 6;
+    private int maxShield = 6;
+
+    // Shield chi bat dau hoi sau mot khoang thoi gian khong trung don.
+    private static final double SHIELD_REGEN_DELAY = 4.0;
+    private static final double SHIELD_REGEN_INTERVAL = 1.0;
+
+    private double shieldRegenDelay;
+    private double shieldRegenTimer;
+
     private boolean fireHeldLastFrame;
 
     private Runnable dragonBreathAction;
@@ -99,23 +115,43 @@ public final class Player extends Entity {
          * Neu don damage nay du de giet Player,
          * huy hoan toan damage va kich hoat Holy Nova.
          */
-        boolean lethalDamage = finalDamage >= getHealth();
+        // Moi lan trung damage thi reset thoi gian hoi Shield.
+        shieldRegenDelay = SHIELD_REGEN_DELAY;
+        shieldRegenTimer = 0.0;
 
-        if (lethalDamage && buffManager.isActive(BuffType.HOLY_NOVA)) {
-            /*
-             * Cho mot khoang bat tu ngan de tranh
-             * nhieu bullet cung frame trigger Nova lien tuc.
-             */
+        int remainingDamage = finalDamage;
+
+// Shield hap thu damage truoc HP.
+        if (shield > 0) {
+            int absorbedDamage = Math.min(shield, remainingDamage);
+
+            shield -= absorbedDamage;
+            remainingDamage -= absorbedDamage;
+        }
+
+// Shield da chan het damage thi van kich hoat invulnerability ngan.
+        if (remainingDamage <= 0) {
             invulnerabilityTimer = MAX_INVULNERABILITY_TIME;
-            requestHolyNova();
-            // QUAN TRONG:
-            // return truoc super.takeDamage()
-            // => lethal hit bi huy hoan toan.
+
+            if (buffManager.isActive(BuffType.SHIELD)) {
+                buffManager.notifyPlayerHit();
+            }
+
             return;
         }
+
+// Holy Nova chi can kiem tra phan damage that su vao HP.
+        boolean lethalDamage = remainingDamage >= getHealth();
+
+        if (lethalDamage && buffManager.isActive(BuffType.HOLY_NOVA)) {
+            invulnerabilityTimer = MAX_INVULNERABILITY_TIME;
+            requestHolyNova();
+            return;
+        }
+
         int healthBefore = getHealth();
 
-        super.takeDamage(finalDamage);
+        super.takeDamage(remainingDamage);
 
         int realDamage = healthBefore - getHealth();
         if (realDamage <= 0) {
@@ -139,6 +175,7 @@ public final class Player extends Entity {
         if (meleeSwingTimer > 0.0) {
             meleeSwingTimer = Math.max(0.0, meleeSwingTimer - deltaSeconds);
         }
+        updateShield(deltaSeconds);
         weapon.tick(deltaSeconds);
         buffManager.tick(deltaSeconds);
 
@@ -413,35 +450,16 @@ public final class Player extends Entity {
     public void setBuffSpeedMultiplier(double multiplier) {
         buffSpeedMultiplier = Math.max(0.1, multiplier);
     }
-
-    public double getBuffSpeedMultiplier() {
-        return buffSpeedMultiplier;
-    }
-
     public void setBuffDamageMultiplier(double multiplier) {
         buffDamageMultiplier = Math.max(0.0, multiplier);
     }
-
-    public double getBuffDamageMultiplier() {
-        return buffDamageMultiplier;
-    }
-
-    public int calculateBuffedDamage(int baseDamage) {
-        return Math.max(0, (int) Math.round(baseDamage * buffDamageMultiplier));
-    }
-
     public void setBuffDamageReduction(double reduction) {
         buffDamageReduction = Math.max(0.0, Math.min(0.9, reduction));
-    }
-
-    public double getBuffDamageReduction() {
-        return buffDamageReduction;
     }
 
     public double getSpeed() {
         return Constants.PLAYER_SPEED * buffSpeedMultiplier;
     }
-
     public void setDragonBreathAction(Runnable dragonBreathAction) {
         this.dragonBreathAction = dragonBreathAction;
     }
@@ -465,11 +483,54 @@ public final class Player extends Entity {
     public double getLastMoveY() {
         return lastMoveY;
     }
+    // Shield hoi tung diem sau khi Player khong bi danh mot khoang thoi gian.
+    private void updateShield(double deltaSeconds) {
+        if (shield >= maxShield) return;
 
-    public void clearBuffs() {
-        buffManager.clear();
-        buffSpeedMultiplier = 1.0;
-        buffDamageMultiplier = 1.0;
-        buffDamageReduction = 0.0;
+        if (shieldRegenDelay > 0.0) {
+            shieldRegenDelay = Math.max(0.0, shieldRegenDelay - deltaSeconds);
+            return;
+        }
+
+        shieldRegenTimer += Math.max(0.0, deltaSeconds);
+
+        if (shieldRegenTimer >= SHIELD_REGEN_INTERVAL) {
+            shieldRegenTimer -= SHIELD_REGEN_INTERVAL;
+            shield = Math.min(maxShield, shield + 1);
+        }
+    }
+
+    public double getMana() {
+        return mana;
+    }
+
+    public double getMaxMana() {
+        return maxMana;
+    }
+
+    // Tru mana, false neu khong du.
+    public boolean consumeMana(double amount) {
+        double cost = Math.max(0.0, amount);
+
+        if (cost <= 0.0) return true;
+        if (mana < cost) return false;
+
+        mana -= cost;
+        return true;
+    }
+
+    // Hoi mana nhung khong vuot max.
+    public void restoreMana(double amount) {
+        if (amount <= 0.0) return;
+
+        mana = Math.min(maxMana, mana + amount);
+    }
+
+    public int getShield() {
+        return shield;
+    }
+
+    public int getMaxShield() {
+        return maxShield;
     }
 }
