@@ -525,12 +525,24 @@ public final class Player extends Entity {
 
         mana = Math.min(maxMana, mana + amount);
     }
+    // Hoi HP nhung khong vuot qua max health.
+    public void restoreHealth(int amount) {
+        if (amount <= 0 || !isAlive()) return;
 
+        int newHealth = Math.min(getMaxHealth(), getHealth() + amount);
+        setHealth(newHealth);
+    }
     public int getShield() {
         return shield;
     }
 
     public int getMaxShield() {
         return maxShield;
+    }
+    // Hoi Shield nhung khong vuot qua max.
+    public void restoreShield(int amount) {
+        if (amount <= 0) return;
+
+        shield = Math.min(maxShield, shield + amount);
     }
 }

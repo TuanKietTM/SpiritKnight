@@ -35,8 +35,10 @@ public class Room {
     private final List<Obstacle> obstacles = new ArrayList<>();
 
 
+
     private final PetRoomEntryController petEntryController = new PetRoomEntryController();
     private final RoomDoorController doorController = new RoomDoorController();
+    private RestRoomController restRoomController;
     private RoomState state = RoomState.NOT_STARTED;
     private boolean obstaclesLoaded = false;
     private int currentWave;
@@ -59,6 +61,7 @@ public class Room {
             this.state = RoomState.CLEARED;
             this.doorController.setClosed(false);
             this.maxWaves = 0;
+            this.restRoomController = new RestRoomController(this);
         } else if (name != null && name.toLowerCase().contains("boss")) {
             this.type = RoomType.BOSS;
             this.maxWaves = 1;
@@ -73,9 +76,19 @@ public class Room {
      */
     public void update(GameWorld gameWorld, Player player, List<Enemy> globalEnemies, double deltaSeconds) {
         doorController.update(deltaSeconds);
+        doorController.update(deltaSeconds);
+// Rest Room khong combat nhung van cap nhat Shrine.
+        if (type == RoomType.REST) {
+            doorController.setClosed(false);
 
-        if (type == RoomType.START || type == RoomType.REST || state == RoomState.CLEARED) {
-            this.doorController.setClosed(false);
+            if (restRoomController != null) {
+                restRoomController.update(gameWorld, player, deltaSeconds);
+            }
+            return;
+        }
+
+        if (type == RoomType.START || state == RoomState.CLEARED) {
+            doorController.setClosed(false);
             return;
         }
 
@@ -312,7 +325,7 @@ public class Room {
         return doorController.getDoors();
     }
 
-    public boolean isDoorsClosed() {
-        return doorController.isClosed();
-    }
+    public RestRoomController getRestRoomController() {return restRoomController;}
+
+    public boolean isDoorsClosed() {return doorController.isClosed();}
 }
