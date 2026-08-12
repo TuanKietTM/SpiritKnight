@@ -4,7 +4,6 @@ import com.soulknight.engine.Camera;
 import com.soulknight.engine.GameWorld;
 import com.soulknight.event.GameEventListener;
 import com.soulknight.map.Obstacle;
-import com.soulknight.utils.Constants;
 import com.soulknight.utils.Vector2D;
 import com.soulknight.weapon.Bullet;
 import com.soulknight.weapon.Weapon;
@@ -20,43 +19,29 @@ public class Enemy extends Entity {
     private final int contactDamage;
     private final Weapon rangedWeapon;
     private final GameEventListener eventListener;
+    private final EnemyAnimator animator;
+    private final double detectionRadius = 120.0; // Bán kính phát hiện Player (nếu vào tầm)
     private double attackCooldown;
     private boolean defeatNotified;
-    private double patrolStuckTimer = 0.0; // Bo dem thoi gian chong ket khi di tuan
-
-    private final EnemyAnimator animator;
     private boolean isFacingLeft = false;
-    // State cho meleeAI
-    public enum State { PATROL, CHASE }
-    public enum RangedState {
-        PATROL,
-        AIMING,
-        REPOSITION
-    }
     private State currentState = State.PATROL;
-
     // Biến cho logic Patrol (Đi tuần)
-    private Vector2D spawnPoint;        // Điểm xuất phát ban đầu để quanh quẩn
+    private final Vector2D spawnPoint;        // Điểm xuất phát ban đầu để quanh quẩn
     private Vector2D patrolTarget;     // Điểm ngẫu nhiên đang hướng tới
     private double patrolWaitTimer = 0; // Thời gian dừng nghỉ giữa các điểm tuần
-    private final double detectionRadius = 120.0; // Bán kính phát hiện Player (nếu vào tầm)
     private Vector2D lastKnownPlayerPos = null; // Vị trí cuối cùng nhìn thấy Player
-
     // Các biến xử lí cho lỗi kẹt tường khi Chase
     private Vector2D lastPosition = new Vector2D(0, 0); // Lưu vị trí ở frame trước để so sánh
     private double stuckTimer = 0.0;                   // Thời gian đã bị kẹt tường
-
     // Các biến cho quái bắn xa
     private RangedState rangedState = RangedState.PATROL;
-    private double attackRange = 150.0;
-    private double bulletSpeed = 250.0;
-    private int bulletDamage = 10;
-    private double bulletRadius = 7.5;
+    private final double attackRange = 150.0;
+    private final double bulletSpeed = 250.0;
+    private final int bulletDamage = 10;
+    private final double bulletRadius = 7.5;
     private double rangedAttackCooldown = 1.5;
     private double aimTimer = 0.0;
     private Vector2D repositionTarget = null;
-
-
     public Enemy(EnemyArchetype archetype, Vector2D spawnPoint, double radius, int health, double moveSpeed,
                  int contactDamage, Weapon rangedWeapon, GameEventListener eventListener) {
         super(spawnPoint, radius, health, colorFor(archetype));
@@ -71,6 +56,15 @@ public class Enemy extends Entity {
         this.patrolTarget = spawnPoint.copy(); // Đặt tạm bằng spawnPoint
         this.currentState = State.PATROL;     // Mặc định ban đầu đi tuần
         this.patrolWaitTimer = 0.5;           // Sau 0.5s chạy update() nó sẽ tự tìm điểm tuần chuẩn có world
+    }
+
+    protected static Color colorFor(EnemyArchetype archetype) {
+        return switch (archetype) {
+            case MELEE_NORMAL -> Color.BLUE;
+            case RANGED_NORMAL -> Color.GRAY;
+            case RANGED_ELITE -> Color.GREEN;
+            default -> Color.RED;
+        };
     }
 
     @Override
@@ -95,7 +89,7 @@ public class Enemy extends Entity {
 //        Chia tung loai quai
         switch (archetype) {
             case MELEE_NORMAL -> meleeAI(world, playerPos, distanceToPlayer, deltaSeconds);
-            case RANGED_NORMAL, RANGED_ELITE-> rangedAI(world, playerPos, deltaSeconds);
+            case RANGED_NORMAL, RANGED_ELITE -> rangedAI(world, playerPos, deltaSeconds);
 
         }
 
@@ -143,8 +137,6 @@ public class Enemy extends Entity {
         );
     }
 
-
-
     public void separateFromOtherEnemies(GameWorld world, List<Enemy> allEnemies, double deltaSeconds) {
         for (Enemy other : allEnemies) {
             if (other == this || !other.isAlive()) continue;
@@ -179,74 +171,6 @@ public class Enemy extends Entity {
                     getPosition().add(pushDir.getX() * pushDistance, pushDir.getY() * pushDistance);
                 }
             }
-        }
-    }
-
-    private void guardianAI(GameWorld world, Vector2D playerPos, double distance, double deltaSeconds) {
-        Vector2D toPlayer = playerPos.copy().subtract(getPosition());
-
-        if (distance < 120.0) {
-            Vector2D escapeDirection = toPlayer.copy().scale(-1.0);
-            escapeDirection.add(new Vector2D(-toPlayer.getY(), toPlayer.getX()).scale(0.5));
-
-            if (escapeDirection.length() > 0.0) {
-                escapeDirection.normalize().scale(moveSpeed * 1.2 * deltaSeconds);
-                move(world, escapeDirection.getX(), escapeDirection.getY());
-            }
-
-            if (distance <= 35.0 && attackCooldown <= 0.0) {
-                world.getPlayer().takeDamage(contactDamage + 2);
-                this.attackCooldown = 1.2;
-            }
-        } else {
-            List<Obstacle> obstacles = world.getObstacles();
-            if (obstacles != null && !obstacles.isEmpty() && distance < 280.0) {
-                coverAI(world, playerPos, deltaSeconds);
-            } else if (distance > 250.0) {
-                Vector2D walkDir = toPlayer.copy();
-                if (walkDir.length() > 0.0) {
-                    walkDir.normalize().scale(moveSpeed * deltaSeconds);
-                    move(world, walkDir.getX(), walkDir.getY());
-                }
-            }
-
-//            Chi ban khi duong ngam ban ro rang khong co
-            if (rangedWeapon != null && world.getPlayer().isAlive()) {
-                boolean canSeePlayer = world.hasClearLineOfSight(getPosition(), playerPos);
-
-                if (canSeePlayer) {
-                    rangedWeapon.attack(world, this, playerPos);
-                }
-            }
-        }
-    }
-
-    private void wildBoarAI(GameWorld world, Vector2D playerPos, double distance, double deltaSeconds) {
-        Vector2D direction = playerPos.copy().subtract(getPosition());
-        double currentSpeed = this.moveSpeed;
-
-        double minAllowedDistance = world.getPlayer().getRadius() + this.getRadius() + 4.0;
-
-        if (distance <= 180.0) {
-            currentSpeed = this.moveSpeed * 2.2;
-        }
-
-        if (distance > minAllowedDistance) {
-            if (direction.length() > 0.0) {
-                direction.normalize().scale(currentSpeed * deltaSeconds);
-                move(world, direction.getX(), direction.getY());
-            }
-        } else {
-            Vector2D pushOut = getPosition().copy().subtract(playerPos);
-            if (pushOut.length() > 0.0) {
-                pushOut.normalize().scale(currentSpeed * 0.8 * deltaSeconds);
-                move(world, pushOut.getX(), pushOut.getY());
-            }
-        }
-
-        if (distance <= minAllowedDistance + 3.0 && attackCooldown <= 0.0) {
-            world.getPlayer().takeDamage(contactDamage);
-            this.attackCooldown = 1.0;
         }
     }
 
@@ -310,8 +234,7 @@ public class Enemy extends Entity {
                     }
                 }
             }
-        }
-        else {
+        } else {
             // Logic cho trạng thái Chase
             Vector2D targetPos = canSeePlayer ? playerPos : lastKnownPlayerPos;
 
@@ -457,46 +380,6 @@ public class Enemy extends Entity {
         world.addBullet(bullet);
     }
 
-    public void coverAI(GameWorld world, Vector2D playerPos, double deltaSeconds) {
-        List<Obstacle> obstacles = world.getObstacles();
-        double distanceToPlayer = getPosition().distance(playerPos);
-
-        if (obstacles == null || obstacles.isEmpty()) {
-            meleeAI(world, playerPos, distanceToPlayer, deltaSeconds);
-            return;
-        }
-
-        Obstacle closestObs = null;
-        double minDistance = Double.MAX_VALUE;
-        for (Obstacle obs : obstacles) {
-            double dist = getPosition().distance(obs.getCenter());
-            if (dist < minDistance) {
-                minDistance = dist;
-                closestObs = obs;
-            }
-        }
-
-        if (closestObs != null) {
-            Vector2D obsCenter = closestObs.getCenter();
-            Vector2D awayFromPlayer = obsCenter.copy().subtract(playerPos).normalize();
-
-            double obsRadius = Math.max(closestObs.getWidth(), closestObs.getHeight()) / 2.0;
-            double safeHideDistance = obsRadius + getRadius() + 15.0;
-
-            Vector2D coverPoint = obsCenter.copy().add(
-                    awayFromPlayer.getX() * safeHideDistance,
-                    awayFromPlayer.getY() * safeHideDistance
-            );
-
-            double distToCover = getPosition().distance(coverPoint);
-            if (distToCover > 10.0 && world.canMoveTo(coverPoint, getRadius())) {
-                Vector2D moveDir = coverPoint.copy().subtract(getPosition()).normalize();
-                double moveStep = getSpeed() * deltaSeconds;
-                this.move(world, moveDir.getX() * moveStep, moveDir.getY() * moveStep);
-            }
-        }
-    }
-
     @Override
     public void takeDamage(int amount) {
         super.takeDamage(amount);
@@ -555,7 +438,7 @@ public class Enemy extends Entity {
 
         // 2. Neu huong chinh bi vuong tuong -> Quet cac goc lach 30, 60, 90 do sang 2 ben
         double baseAngle = Math.atan2(dir.getY(), dir.getX());
-        double[] offsets = { Math.PI / 6, -Math.PI / 6, Math.PI / 3, -Math.PI / 3, Math.PI / 2, -Math.PI / 2 };
+        double[] offsets = {Math.PI / 6, -Math.PI / 6, Math.PI / 3, -Math.PI / 3, Math.PI / 2, -Math.PI / 2};
 
         for (double offset : offsets) {
             double testAngle = baseAngle + offset;
@@ -637,12 +520,12 @@ public class Enemy extends Entity {
         return moveSpeed;
     }
 
-    protected static Color colorFor(EnemyArchetype archetype) {
-        return switch (archetype) {
-            case MELEE_NORMAL -> Color.BLUE;
-            case RANGED_NORMAL -> Color.GRAY;
-            case RANGED_ELITE -> Color.GREEN;
-            default -> Color.RED;
-        };
+    // State cho meleeAI
+    public enum State {PATROL, CHASE}
+
+    public enum RangedState {
+        PATROL,
+        AIMING,
+        REPOSITION
     }
 }

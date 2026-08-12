@@ -17,61 +17,13 @@ import java.util.Map;
  */
 public final class SoundManager {
     private static final SoundManager instance = new SoundManager();
-
-    public enum AudioState {
-        UNMUTED {
-            @Override
-            public AudioState nextState() {
-                return MUTED;
-            }
-
-            @Override
-            public void handleSFX(AudioClip clip, double volume) {
-                if (clip != null) {
-                    clip.play(volume);
-                }
-            }
-
-            @Override
-            public void applyBGMState(MediaPlayer player) {
-                if (player != null) {
-                    player.setMute(false);
-                }
-            }
-        },
-        MUTED {
-            @Override
-            public AudioState nextState() {
-                return UNMUTED;
-            }
-
-            @Override
-            public void handleSFX(AudioClip clip, double volume) {
-                // Không làm gì khi muted
-            }
-
-            @Override
-            public void applyBGMState(MediaPlayer player) {
-                if (player != null) {
-                    player.setMute(true);
-                }
-            }
-        };
-
-        public abstract AudioState nextState();
-        public abstract void handleSFX(AudioClip clip, double volume);
-        public abstract void applyBGMState(MediaPlayer player);
-    }
-
     private final Map<String, AudioClip> sfxMap = new HashMap<>();
     private MediaPlayer bgmPlayer;
     private String currentBgmPath = "";
     private double sfxVolume = 0.3;
     private double bgmVolume = 0.2;
-
     private Timeline bgmFadeTimeline;
     private AudioState currentState = AudioState.UNMUTED;
-
     private SoundManager() {
         // Tải các SFX sử dụng trong game
         loadSFX("Bullet", "/assets/Audio/Bullet.mp3");
@@ -91,23 +43,23 @@ public final class SoundManager {
         loadSFX("SMG_Fire", "/assets/Audio/smg.mp3");
         loadSFX("Sword_Swing", "/assets/Audio/sword_1.mp3");
         loadSFX("Fish_Slap", "/assets/Audio/fish.mp3");
-        loadSFX("Blaster_Fire","/assets/Audio/blaster.mp3");
-        loadSFX("Shotgun_Fire","/assets/Audio/short_gun.mp3");
-        loadSFX("Sniper_Fire","/assets/Audio/sniper.mp3");
-        loadSFX("Magic_Cast","/assets/Audio/magic.mp3");
-        loadSFX("attack_box","/assets/Audio/attack_box.mp3");
-        loadSFX("laser_gun","/assets/Audio/laser_gun.mp3");
-        loadSFX("chain_lighting","/assets/Audio/chain_lighting.mp3");
+        loadSFX("Blaster_Fire", "/assets/Audio/blaster.mp3");
+        loadSFX("Shotgun_Fire", "/assets/Audio/short_gun.mp3");
+        loadSFX("Sniper_Fire", "/assets/Audio/sniper.mp3");
+        loadSFX("Magic_Cast", "/assets/Audio/magic.mp3");
+        loadSFX("attack_box", "/assets/Audio/attack_box.mp3");
+        loadSFX("laser_gun", "/assets/Audio/laser_gun.mp3");
+        loadSFX("chain_lighting", "/assets/Audio/chain_lighting.mp3");
         loadSFX("death_explosion", "/assets/Audio/explosion.mp3");
-        loadSFX("dragon_breath","/assets/Audio/dragon_breath.mp3");
-        loadSFX("dragon_explosion","/assets/Audio/dragon_explosion.mp3");
-        loadSFX("holy_nova","/assets/Audio/holy_nova.mp3");
-        loadSFX("railgun_fire","/assets/Audio/railgun_fire.mp3");
-        loadSFX("ion_gun","/assets/Audio/blaster.mp3");
-        loadSFX("ion_explosion","/assets/Audio/ion_explosion.mp3");
-        loadSFX("portal_open","/assets/Audio/portal_open.mp3");
-        loadSFX("heal","/assets/Audio/heal.mp3");
-  }
+        loadSFX("dragon_breath", "/assets/Audio/dragon_breath.mp3");
+        loadSFX("dragon_explosion", "/assets/Audio/dragon_explosion.mp3");
+        loadSFX("holy_nova", "/assets/Audio/holy_nova.mp3");
+        loadSFX("railgun_fire", "/assets/Audio/railgun_fire.mp3");
+        loadSFX("ion_gun", "/assets/Audio/blaster.mp3");
+        loadSFX("ion_explosion", "/assets/Audio/ion_explosion.mp3");
+        loadSFX("portal_open", "/assets/Audio/portal_open.mp3");
+        loadSFX("heal", "/assets/Audio/heal.mp3");
+    }
 
     public static SoundManager getInstance() {
         return instance;
@@ -162,7 +114,8 @@ public final class SoundManager {
                     clip = new AudioClip(res.toExternalForm());
                     sfxMap.put(keyOrPath, clip);
                 }
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
         }
 
         if (clip != null) {
@@ -352,5 +305,52 @@ public final class SoundManager {
 
     public double getSfxVolume() {
         return this.sfxVolume;
+    }
+
+    public enum AudioState {
+        UNMUTED {
+            @Override
+            public AudioState nextState() {
+                return MUTED;
+            }
+
+            @Override
+            public void handleSFX(AudioClip clip, double volume) {
+                if (clip != null) {
+                    clip.play(volume);
+                }
+            }
+
+            @Override
+            public void applyBGMState(MediaPlayer player) {
+                if (player != null) {
+                    player.setMute(false);
+                }
+            }
+        },
+        MUTED {
+            @Override
+            public AudioState nextState() {
+                return UNMUTED;
+            }
+
+            @Override
+            public void handleSFX(AudioClip clip, double volume) {
+                // Không làm gì khi muted
+            }
+
+            @Override
+            public void applyBGMState(MediaPlayer player) {
+                if (player != null) {
+                    player.setMute(true);
+                }
+            }
+        };
+
+        public abstract AudioState nextState();
+
+        public abstract void handleSFX(AudioClip clip, double volume);
+
+        public abstract void applyBGMState(MediaPlayer player);
     }
 }
