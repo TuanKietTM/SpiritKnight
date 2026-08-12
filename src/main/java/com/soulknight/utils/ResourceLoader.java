@@ -14,9 +14,6 @@ public final class ResourceLoader {
     private static final Map<String, Image> IMAGE_CACHE = new ConcurrentHashMap<>();
     private static final Image PLACEHOLDER_IMAGE = createPlaceholderImage();
 
-    private ResourceLoader() {
-    }
-
     public static Image image(String resourcePath) {
         return IMAGE_CACHE.computeIfAbsent(resourcePath, ResourceLoader::loadImage);
     }

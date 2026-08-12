@@ -17,6 +17,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 public final class MapManager {
 
+    private final List<Room> rooms = new ArrayList<>();
+    // Quan ly rieng fog, particle, hologram va tru dien.
+    private final NeonEnvironmentManager neonEnvironmentManager = new NeonEnvironmentManager();
     private Tile[][] tiles;
     private int width;
     private int height;
@@ -25,22 +28,9 @@ public final class MapManager {
     private boolean exitPortalOpen;
     private Vector2D spawnPoint;
     private Vector2D bossSpawnPoint;
-    private final List<Vector2D> enemySpawnPoints = new ArrayList<>();
     private int[][] tileMatrix;
-    private final List<Room> rooms = new ArrayList<>();
-
-    // Quan ly rieng fog, particle, hologram va tru dien.
-    private final NeonEnvironmentManager neonEnvironmentManager = new NeonEnvironmentManager();
-
     private double playerSpawnX, playerSpawnY;
 
-    public MapManager(int width, int height, int tileSize, Random random) {
-        this.width = width;
-        this.height = height;
-        this.tileSize = tileSize;
-        this.tiles = new DungeonGenerator().generate(width, height, random);
-        neonEnvironmentManager.initializeDynamicEnvironment(tiles, tileMatrix, width, height, tileSize);
-    }
     public MapManager(String JsonPath) {
         loadMapFromJson(JsonPath);
         generateWorldTiles();
@@ -424,11 +414,9 @@ public final class MapManager {
                 }
                 if (tileId >= 1 && tileId <= 6) {
                     this.tiles[y][x] = new Tile(pixelX, pixelY, tileSize, Tile.TileType.WALL);
-                }
-                else if (tileId >= 7 && tileId <= 10) {
+                } else if (tileId >= 7 && tileId <= 10) {
                     this.tiles[y][x] = new Tile(pixelX, pixelY, tileSize, Tile.TileType.DOOR_OPEN);
-                }
-                else if (tileId >= 11 && tileId <= 14) {
+                } else if (tileId >= 11 && tileId <= 14) {
                     Image floorTexture = Tile.getFloorImageByCoordinate(x, y);
 
                     this.tiles[y][x] = new Tile(
@@ -438,14 +426,11 @@ public final class MapManager {
                             Tile.TileType.FLOOR,
                             floorTexture
                     );
-                }
-                else if (tileId >= 15 && tileId <= 29) {
+                } else if (tileId >= 15 && tileId <= 29) {
                     this.tiles[y][x] = new Tile(pixelX, pixelY, tileSize, Tile.TileType.OBSTACLE, Tile.getBoxImage());
-                }
-                else if (tileId >= 30 && tileId <= 44) {
+                } else if (tileId >= 30 && tileId <= 44) {
                     this.tiles[y][x] = new Tile(pixelX, pixelY, tileSize, Tile.TileType.OBSTACLE, Tile.getTreeImage());
-                }
-                else if (tileId >= 45) {
+                } else if (tileId >= 45) {
                     /*
                      * Cac ID tru cong cu van la FLOOR de co the di qua,
                      * nhung duoc render thanh tru den dien o layer moi truong.
@@ -457,8 +442,7 @@ public final class MapManager {
                             Tile.TileType.FLOOR,
                             Tile.getFloorImageByCoordinate(x, y)
                     );
-                }
-                else {
+                } else {
                     this.tiles[y][x] = new Tile(pixelX, pixelY, tileSize, Tile.TileType.BACK);
                 }
             }
@@ -486,22 +470,6 @@ public final class MapManager {
         }
     }
 
-    public void updateRoomLogic(Vector2D playerPos, int aliveEnemiesInCurrentRoom) {
-        for (Room room : rooms) {
-            if (room.getType() == Room.RoomType.START || room.getType() == Room.RoomType.REST) {
-                continue;
-            }
-
-            if (room.getState() == Room.RoomState.NOT_STARTED) {
-                if (room.getBound().contains(playerPos.getX(), playerPos.getY())) {
-                    room.startBattle();
-                }
-            } else if (room.isDoorsClosed() && aliveEnemiesInCurrentRoom <= 0) {
-                room.clearRoom();
-            }
-        }
-    }
-
     public Vector2D getSpawnPoint() {
         if (this.spawnPoint != null) {
             return this.spawnPoint;
@@ -518,27 +486,16 @@ public final class MapManager {
         }
     }
 
-    public void openExitPortal(Vector2D position) {
-        this.exitPortalPosition = position;
-        this.exitPortalOpen = true;
-    }
-
     public void closeExitPortal() {
         this.exitPortalOpen = false;
         this.exitPortalPosition = null;
     }
 
-    public boolean isExitPortalOpen() {
-        return exitPortalOpen;
-    }
 
     public boolean isPlayerInsideExitPortal(Vector2D position) {
         return exitPortalOpen && exitPortalPosition != null && position.distance(exitPortalPosition) <= Constants.PORTAL_RADIUS;
     }
 
-    public Vector2D getExitPortalPosition() {
-        return exitPortalPosition;
-    }
 
     public Vector2D findRandomWalkablePosition(Random random, double margin) {
         for (int attempt = 0; attempt < 200; attempt++) {
@@ -652,20 +609,8 @@ public final class MapManager {
         return tileSize;
     }
 
-    public List<Vector2D> getEnemySpawnPoints() {
-        return this.enemySpawnPoints;
-    }
-
     public Tile[][] getTiles() {
         return tiles;
-    }
-
-    public double getPlayerSpawnX() {
-        return playerSpawnX;
-    }
-
-    public double getPlayerSpawnY() {
-        return playerSpawnY;
     }
 
     public List<Room> getRooms() {
@@ -679,16 +624,12 @@ public final class MapManager {
     public List<javafx.geometry.BoundingBox> getCorridors() {
         List<javafx.geometry.BoundingBox> corridors = new ArrayList<>();
         if (tiles == null) return corridors;
-
-        // Quét toàn bộ ma trận tile, lấy các ô sàn / cửa
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
                 Tile tile = tiles[y][x];
                 if (tile != null && (tile.getType() == Tile.TileType.FLOOR || tile.getType() == Tile.TileType.DOOR_OPEN)) {
                     double worldX = x * tileSize;
                     double worldY = y * tileSize;
-
-                    // Kiểm tra xem ô này có nằm TRONG phòng nào không
                     boolean insideRoom = false;
                     for (Room room : rooms) {
                         if (room.getBound() != null && room.getBound().contains(worldX + tileSize / 2.0, worldY + tileSize / 2.0)) {
@@ -696,8 +637,6 @@ public final class MapManager {
                             break;
                         }
                     }
-
-                    // Nếu ô FLOOR/DOOR_OPEN nằm NGOÀI các phòng -> Nó chính là HÀNH LÀNG!
                     if (!insideRoom) {
                         corridors.add(new javafx.geometry.BoundingBox(worldX, worldY, tileSize, tileSize));
                     }

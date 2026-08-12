@@ -15,48 +15,40 @@ import java.util.List;
 
 public final class Player extends Entity {
 
-    private Weapon weapon = new Gun("Blaster", 12, 0.18, 580.0, 0.0)
-            .withImage("/assets/WeaponImage/GunImage/OldPistol.png");
-
-    private final HeroType heroType;
-    private final PlayerAnimator animator;
-    private boolean isFacingLeft = false;
-    // Goc ngam ban hien tai (radian), 0 = huong sang phai
-    private double aimAngle = 0.0;
     // Vi tri nong sung theo chieu cao anh (0 = dinh anh, 1 = day anh).
     // Dieu chinh gia tri nay de dau nong nam dung tren duong ngam (noi dan bay ra).
     // 0.5 = giua anh; tang len neu dan bay cao hon nong, giam neu dan bay thap hon.
     private static final double BARREL_HEIGHT_FRACTION = 0.5;
-    private PlayerAnimator.State movementState = PlayerAnimator.State.IDLE;
-    private double invulnerabilityTimer = 0.0;
-    // Thời gian bất tử khi trúng đòn
-    private final double MAX_INVULNERABILITY_TIME = 0.3;
-    // Dem nguoc thoi gian vung chem: khi > 0 thi an vu khi dang cam,
-    // vi SlashEffect da ve san thanh kiem trong sprite sheet
-    private double meleeSwingTimer = 0.0;
-
-    // Quan ly cac buff dang hoat dong tren Player
-    private final BuffManager buffManager;
-
-    // He so buff, 1.0 = giu nguyen chi so goc
-    private double buffSpeedMultiplier = 1.0;
-    private double buffDamageMultiplier = 1.0;
-
-    // Phan tram giam sat thuong, vi du 0.5 = giam 50%
-    private double buffDamageReduction = 0.0;
-
-    // Mana dung cho cac weapon dac biet.
-    private double mana = 200.0;
-    private double maxMana = 200.0;
-
-    // Shield hap thu damage truoc HP.
-    private int shield = 6;
-    private int maxShield = 6;
-
     // Shield chi bat dau hoi sau mot khoang thoi gian khong trung don.
     private static final double SHIELD_REGEN_DELAY = 4.0;
     private static final double SHIELD_REGEN_INTERVAL = 1.0;
-
+    private final HeroType heroType;
+    private final PlayerAnimator animator;
+    // Thời gian bất tử khi trúng đòn
+    private final double MAX_INVULNERABILITY_TIME = 0.3;
+    // Quan ly cac buff dang hoat dong tren Player
+    private final BuffManager buffManager;
+    private Weapon weapon = new Gun("Blaster", 12, 0.18, 580.0, 0.0)
+            .withImage("/assets/WeaponImage/GunImage/OldPistol.png");
+    private boolean isFacingLeft = false;
+    // Goc ngam ban hien tai (radian), 0 = huong sang phai
+    private double aimAngle = 0.0;
+    private PlayerAnimator.State movementState = PlayerAnimator.State.IDLE;
+    private double invulnerabilityTimer = 0.0;
+    // Dem nguoc thoi gian vung chem: khi > 0 thi an vu khi dang cam,
+    // vi SlashEffect da ve san thanh kiem trong sprite sheet
+    private double meleeSwingTimer = 0.0;
+    // He so buff, 1.0 = giu nguyen chi so goc
+    private double buffSpeedMultiplier = 1.0;
+    private double buffDamageMultiplier = 1.0;
+    // Phan tram giam sat thuong, vi du 0.5 = giam 50%
+    private double buffDamageReduction = 0.0;
+    // Mana dung cho cac weapon dac biet.
+    private double mana = 200.0;
+    private final double maxMana = 200.0;
+    // Shield hap thu damage truoc HP.
+    private int shield = 6;
+    private final int maxShield = 6;
     private double shieldRegenDelay;
     private double shieldRegenTimer;
 
@@ -162,6 +154,7 @@ public final class Player extends Entity {
             buffManager.notifyPlayerHit();
         }
     }
+
     // Bat dau vung chem: an kiem dang cam trong suot thoi luong hieu ung chem
     public void startMeleeSwing() {
         meleeSwingTimer = SlashEffect.SWING_DURATION;
@@ -225,7 +218,6 @@ public final class Player extends Entity {
             if (weapon instanceof IonElectromagneticGun ionGun && ionGun.isCharging()) {
                 weaponSpeedMultiplier = ionGun.getMoveSpeedMultiplier();
             }
-
 
             movement.scale(getSpeed() * weaponSpeedMultiplier * deltaSeconds);
             this.move(world, movement.getX(), movement.getY());
@@ -369,6 +361,7 @@ public final class Player extends Entity {
          */
         buffManager.renderFront(graphicsContext, camera);
     }
+
     /**
      * Ve vu khi nhan vat dang cam.
      * Sung duoc xoay quanh vi tri tay theo goc aimAngle,
@@ -443,6 +436,7 @@ public final class Player extends Entity {
 
         gc.restore();
     }
+
     public BuffManager getBuffManager() {
         return buffManager;
     }
@@ -450,9 +444,11 @@ public final class Player extends Entity {
     public void setBuffSpeedMultiplier(double multiplier) {
         buffSpeedMultiplier = Math.max(0.1, multiplier);
     }
+
     public void setBuffDamageMultiplier(double multiplier) {
         buffDamageMultiplier = Math.max(0.0, multiplier);
     }
+
     public void setBuffDamageReduction(double reduction) {
         buffDamageReduction = Math.max(0.0, Math.min(0.9, reduction));
     }
@@ -460,22 +456,27 @@ public final class Player extends Entity {
     public double getSpeed() {
         return Constants.PLAYER_SPEED * buffSpeedMultiplier;
     }
+
     public void setDragonBreathAction(Runnable dragonBreathAction) {
         this.dragonBreathAction = dragonBreathAction;
     }
+
     public void requestDragonBreath() {
         if (dragonBreathAction != null) {
             dragonBreathAction.run();
         }
     }
+
     public void setHolyNovaAction(Runnable holyNovaAction) {
         this.holyNovaAction = holyNovaAction;
     }
+
     private void requestHolyNova() {
         if (holyNovaAction != null) {
             holyNovaAction.run();
         }
     }
+
     public double getLastMoveX() {
         return lastMoveX;
     }
@@ -483,6 +484,7 @@ public final class Player extends Entity {
     public double getLastMoveY() {
         return lastMoveY;
     }
+
     // Shield hoi tung diem sau khi Player khong bi danh mot khoang thoi gian.
     private void updateShield(double deltaSeconds) {
         if (shield >= maxShield) return;
@@ -525,6 +527,7 @@ public final class Player extends Entity {
 
         mana = Math.min(maxMana, mana + amount);
     }
+
     // Hoi HP nhung khong vuot qua max health.
     public void restoreHealth(int amount) {
         if (amount <= 0 || !isAlive()) return;
@@ -532,6 +535,7 @@ public final class Player extends Entity {
         int newHealth = Math.min(getMaxHealth(), getHealth() + amount);
         setHealth(newHealth);
     }
+
     public int getShield() {
         return shield;
     }
@@ -539,6 +543,7 @@ public final class Player extends Entity {
     public int getMaxShield() {
         return maxShield;
     }
+
     // Hoi Shield nhung khong vuot qua max.
     public void restoreShield(int amount) {
         if (amount <= 0) return;

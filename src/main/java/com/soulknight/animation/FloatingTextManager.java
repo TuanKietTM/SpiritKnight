@@ -15,7 +15,8 @@ public final class FloatingTextManager {
 
     private final List<FloatingText> floatingTexts = new ArrayList<>();
     private final Random random = new Random();
-//taext khi gay sat thuong cho quai
+
+    //taext khi gay sat thuong cho quai
     public void spawnDamage(Vector2D position, int damage) {
         Vector2D spawnPosition = randomOffset(position, 7.0, 4.0);
 
