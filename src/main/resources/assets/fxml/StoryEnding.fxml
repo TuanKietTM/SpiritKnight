@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.shape.Rectangle?>
+
+<StackPane fx:id="rootPane"
+           prefWidth="1000.0"
+           prefHeight="600.0"
+           stylesheets="@../CSS/story.css"
+           xmlns="http://javafx.com/javafx"
+           xmlns:fx="http://javafx.com/fxml"
+           fx:controller="com.soulknight.ui.StoryEndingController"
+           styleClass="ending-root">
+    <Pane prefWidth="1000"
+          prefHeight="600"
+          styleClass="ending-background"/>
+    <StackPane fx:id="visualNovelScene"
+               visible="true"
+               managed="true"
+               prefWidth="1000"
+               prefHeight="600"
+               minWidth="1000"
+               minHeight="600"
+               maxWidth="1000"
+               maxHeight="600">
+        <ImageView fx:id="storyImage"
+                   fitWidth="1000"
+                   fitHeight="600"
+                   preserveRatio="false"
+                   smooth="false"/>
+        <Pane prefWidth="1000"
+              prefHeight="600"
+              mouseTransparent="true"
+              styleClass="ending-vignette"/>
+        <Pane prefWidth="1000"
+              prefHeight="600"
+              mouseTransparent="true"
+              styleClass="ending-story-shadow"/>
+        <Rectangle fx:id="storyBlackFade"
+                   width="1000"
+                   height="600"
+                   fill="BLACK"
+                   opacity="0"
+                   mouseTransparent="true"/>
+
+        <VBox fx:id="dialoguePanel"
+              alignment="TOP_LEFT"
+              spacing="11"
+              prefWidth="920"
+              maxWidth="920"
+              prefHeight="184"
+              minHeight="184"
+              maxHeight="200"
+              StackPane.alignment="BOTTOM_CENTER"
+              styleClass="ending-dialogue-panel">
+
+            <StackPane.margin>
+                <Insets right="40" bottom="27" left="40"/>
+            </StackPane.margin>
+
+            <HBox alignment="CENTER_LEFT"
+                  spacing="12">
+
+                <Label text="◆"
+                       styleClass="ending-rune"/>
+
+                <Label fx:id="storyTitle"
+                       maxWidth="820"
+                       wrapText="true"
+                       styleClass="ending-title"/>
+            </HBox>
+
+            <Pane prefHeight="2"
+                  maxHeight="2"
+                  styleClass="ending-divider"/>
+
+
+            <Label fx:id="storyText"
+                   maxWidth="860"
+                   minHeight="78"
+                   prefHeight="78"
+                   wrapText="true"
+                   styleClass="ending-text"/>
+
+
+            <!-- Footer -->
+            <HBox alignment="CENTER"
+                  prefWidth="860"
+                  spacing="10">
+
+                <Label text="✦"
+                       styleClass="ending-footer-rune"/>
+
+                <Label fx:id="storyProgress"
+                       text="01 / 03"
+                       styleClass="ending-progress"/>
+
+                <Pane HBox.hgrow="ALWAYS"/>
+
+                <Button fx:id="continueButton"
+                        text="TURN THE PAGE  ▶"
+                        onAction="#continueStory"
+                        visible="false"
+                        managed="false"
+                        styleClass="ending-continue-button"/>
+            </HBox>
+
+        </VBox>
+
+    </StackPane>
+    <StackPane fx:id="chronicleOverlay"
+               prefWidth="1000"
+               prefHeight="600"
+               visible="false"
+               managed="false"
+               opacity="0"
+               mouseTransparent="true"
+               styleClass="chronicle-overlay">
+
+        <VBox alignment="CENTER"
+              spacing="18"
+              maxWidth="850">
+
+            <Label text="✦"
+                   styleClass="chronicle-symbol"/>
+
+            <Label fx:id="endingChronicleLabel"
+                   text="CHRONICLE I"
+                   styleClass="chronicle-small-title"/>
+
+            <Label text="THE FIRST SEAL IS BROKEN"
+                   styleClass="chronicle-main-title"/>
+
+            <Pane prefWidth="420"
+                  maxWidth="420"
+                  prefHeight="2"
+                  maxHeight="2"
+                  styleClass="chronicle-divider"/>
+
+            <Label text="Yet the darkness endureth."
+                   styleClass="chronicle-subtitle"/>
+
+        </VBox>
+
+    </StackPane>
+    <Rectangle fx:id="endingFade"
+               width="1000"
+               height="600"
+               fill="BLACK"
+               opacity="0"
+               visible="false"
+               managed="false"
+               mouseTransparent="true"/>
+
+
+    <!-- Skip tach khoi dialogue de giong Intro -->
+    <Button text="SKIP  »"
+            onAction="#skipEnding"
+            StackPane.alignment="TOP_RIGHT"
+            styleClass="ending-skip-button">
+
+        <StackPane.margin>
+            <Insets top="18" right="20"/>
+        </StackPane.margin>
+
+    </Button>
+
+</StackPane>

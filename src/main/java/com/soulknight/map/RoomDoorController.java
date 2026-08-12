@@ -20,7 +20,7 @@ public class RoomDoorController {
     private boolean isClosed = false;
     private float doorProgress = 0.0f;
     /**
-     * Cập nhật tiến trình animation trượt cửa theo thời gian.
+     * Update qua trinh truot cua theo thoi gian
      */
     public void update(double deltaSeconds) {
         if (isClosed) {
@@ -37,7 +37,7 @@ public class RoomDoorController {
     }
 
     /**
-     * Vẽ duy nhất 1 ô cửa (BoundingBox) phục vụ cho hệ thống Y-Sorting 2.5D.
+     * Ve duy nhat o cua
      */
     public void renderSingleDoor(GraphicsContext graphicsContext, Camera camera, BoundingBox door, double tileSize) {
         if (graphicsContext == null || camera == null || tileSize <= 0.0 || door == null) {
@@ -63,7 +63,7 @@ public class RoomDoorController {
                 double screenX = camera.worldToScreenX(worldX);
                 double screenY = camera.worldToScreenY(worldY);
 
-                // 1. VẼ BÓNG TƯỜNG CHE CỬA (khi cửa trượt xuống lòng đất)
+                // Ve bong cua tuong che cua
                 boolean shouldDrawWallShadow = isHorizontalDoor && (tileY == 0);
                 if (shouldDrawWallShadow && wallShadowImage != null && doorProgress < 0.99f) {
                     graphicsContext.setGlobalAlpha(1.0 - doorProgress);
@@ -71,16 +71,14 @@ public class RoomDoorController {
                     graphicsContext.setGlobalAlpha(1.0);
                 }
 
-                // 2. VẼ BÓNG ĐỔ NỀN 2.5D (Hắt xuống sàn phía dưới cọc cửa)
+                // Ve bong do nen 2.5D
                 if (doorProgress > 0.05f) {
-                    // Tăng chiều cao bóng để dễ nhìn thấy trên nền tối (khoảng 20-25% kích thước tile)
                     double shadowHeight = renderTileSize * 0.25 * doorProgress;
-                    double shadowAlpha = 0.45 * doorProgress; // Tăng độ đậm của bóng
+                    double shadowAlpha = 0.45 * doorProgress;
 
                     graphicsContext.setGlobalAlpha(shadowAlpha);
                     graphicsContext.setFill(Color.BLACK);
 
-                    // Đặt bóng trôi ngay bên dưới chân tile cửa để không bị sprite cửa che mất
                     graphicsContext.fillRect(
                             screenX,
                             screenY + renderTileSize - (shadowHeight * 0.5),
@@ -90,7 +88,7 @@ public class RoomDoorController {
                     graphicsContext.setGlobalAlpha(1.0);
                 }
 
-                // 3. VẼ CỌC CỬA TRƯỢT TỪ DƯỚI LÊN
+                // Ve coc cua tu duoi len
                 if (closedDoorTexture != null && doorProgress > 0.01f) {
                     double doorRenderY = screenY + currentOffsetY;
 
@@ -99,10 +97,8 @@ public class RoomDoorController {
                     graphicsContext.rect(screenX, screenY, renderTileSize, renderTileSize);
                     graphicsContext.clip();
 
-                    // Vẽ sprite cửa
                     graphicsContext.drawImage(closedDoorTexture, screenX, doorRenderY, renderTileSize, renderTileSize);
 
-                    // (Tùy chọn) Phủ một lớp bóng tối nhẹ lên chính mặt cửa khi cửa chìm dưới đất
                     if (doorProgress < 0.95f) {
                         graphicsContext.setFill(Color.rgb(0, 0, 0, (1.0 - doorProgress) * 0.5));
                         graphicsContext.fillRect(screenX, screenY, renderTileSize, renderTileSize);
@@ -114,7 +110,7 @@ public class RoomDoorController {
         }
     }
     /**
-     * Thêm vị trí cửa (tránh trùng lặp).
+     * Thêm vị trí cửa
      */
     public void addDoorCoordinate(double x, double y, double width, double height) {
         for (BoundingBox door : doors) {
@@ -131,7 +127,7 @@ public class RoomDoorController {
     }
 
     /**
-     * Kiểm tra vị trí cửa có thuộc khu vực vùng đệm của phòng không.
+     * Kiểm tra vị trí cửa có thuoc phong khac khong
      */
     public boolean isDoorBelongsToRoom(BoundingBox roomBound, double doorX, double doorY, double doorWidth, double doorHeight) {
         BoundingBox doorBox = new BoundingBox(doorX, doorY, doorWidth, doorHeight);
@@ -145,7 +141,7 @@ public class RoomDoorController {
     }
 
     /**
-     * Kiểm tra va chạm vật lý với cửa khi đang đóng.
+     * Kiem tra va cham vat li voi cua dang dong
      */
     public boolean isHitClosedDoor(double worldX, double worldY, double radius) {
         if (!isClosed) {
@@ -164,7 +160,7 @@ public class RoomDoorController {
     }
 
     /**
-     * Kiểm tra xem tile cụ thể có cửa đang đóng hay không (dùng cho pathfinding A*).
+     * Kiểm tra xem tile cụ thể có cửa đang đóng hay không
      */
     public boolean isDoorClosedAtTile(int tileX, int tileY, double tileSize) {
         if (this.doorProgress <= 0.05f) {
@@ -187,8 +183,6 @@ public class RoomDoorController {
         }
         return false;
     }
-
-    // --- GETTERS & SETTERS ---
 
     public boolean isClosed() {
         return isClosed;

@@ -322,3 +322,283 @@
 .white-flash {
     -fx-background-color: white;
 }
+/* =========================================================
+   ENDING STORY
+   Dark Medieval Cinematic
+   ========================================================= */
+
+.ending-root {
+    -fx-font-family: "Press Start 2P";
+    -fx-background-color: #020405;
+}
+
+
+/* Nen du phong truong hop frame dang fade */
+.ending-background {
+    -fx-background-color:
+        radial-gradient(
+            center 50% 42%,
+            radius 85%,
+            #172421 0%,
+            #080d0e 55%,
+            #020303 100%
+        );
+}
+
+
+/* Vignette bao quanh anh, tao cam giac cinematic */
+.ending-vignette {
+    -fx-background-color:
+        radial-gradient(
+            center 50% 43%,
+            radius 74%,
+            transparent 0%,
+            rgba(0, 0, 0, 0.04) 47%,
+            rgba(0, 0, 0, 0.50) 82%,
+            rgba(0, 0, 0, 0.88) 100%
+        );
+}
+
+
+/* Lam toi phan duoi thay cho overlay hop thoai qua nang */
+.ending-story-shadow {
+    -fx-background-color:
+        linear-gradient(
+            to bottom,
+            rgba(0, 0, 0, 0.00) 0%,
+            rgba(0, 0, 0, 0.00) 47%,
+            rgba(2, 6, 7, 0.14) 58%,
+            rgba(2, 6, 7, 0.64) 76%,
+            rgba(1, 3, 4, 0.96) 100%
+        );
+}
+
+
+/* Dong chu tren cung nhu ten mot chuong su thi */
+.ending-chronicle {
+    -fx-font-family: "Press Start 2P";
+    -fx-text-fill: rgba(222, 195, 117, 0.72);
+    -fx-font-size: 8px;
+    -fx-letter-spacing: 1px;
+
+    -fx-effect:
+        dropshadow(
+            gaussian,
+            rgba(0, 0, 0, 0.92),
+            6,
+            0.45,
+            0,
+            2
+        );
+}
+
+
+/* Khung story: cung ho Press Start 2P cua Intro,
+   nhung chuyen sang antique gold + emerald */
+.ending-dialogue-panel {
+    -fx-background-color:
+        linear-gradient(
+            to bottom,
+            rgba(13, 22, 22, 0.82) 0%,
+            rgba(5, 11, 12, 0.94) 100%
+        );
+
+    -fx-background-radius: 10;
+
+    -fx-border-color:
+        linear-gradient(
+            to right,
+            rgba(104, 143, 120, 0.75),
+            rgba(223, 188, 90, 0.98),
+            rgba(104, 143, 120, 0.75)
+        );
+
+    -fx-border-width: 2;
+    -fx-border-radius: 10;
+
+    -fx-padding: 16 23 14 23;
+
+    -fx-effect:
+        dropshadow(
+            gaussian,
+            rgba(0, 0, 0, 0.72),
+            18,
+            0.20,
+            0,
+            5
+        );
+}
+
+
+/* Bieu tuong nho dau tieu de */
+.ending-rune {
+    -fx-font-family: "Press Start 2P";
+    -fx-text-fill: #6ee5c5;
+    -fx-font-size: 10px;
+
+    -fx-effect:
+        dropshadow(
+            gaussian,
+            rgba(41, 222, 184, 0.52),
+            8,
+            0.28,
+            0,
+            0
+        );
+}
+
+
+/* Tieu de frame */
+.ending-title {
+    -fx-font-family: "Press Start 2P";
+    -fx-text-fill: #f1d27a;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+
+    -fx-effect:
+        dropshadow(
+            gaussian,
+            rgba(0, 0, 0, 0.95),
+            5,
+            0.55,
+            0,
+            2
+        );
+}
+
+
+/* Duong phan tach vang co */
+.ending-divider {
+    -fx-background-color:
+        linear-gradient(
+            to right,
+            transparent 0%,
+            rgba(90, 195, 164, 0.28) 8%,
+            rgba(225, 187, 87, 0.94) 46%,
+            rgba(225, 187, 87, 0.94) 54%,
+            rgba(90, 195, 164, 0.28) 92%,
+            transparent 100%
+        );
+}
+
+
+/* Noi dung medieval */
+.ending-text {
+    -fx-font-family: "Press Start 2P";
+    -fx-text-fill: #edf3eb;
+    -fx-font-size: 11px;
+    -fx-line-spacing: 8px;
+
+    -fx-effect:
+        dropshadow(
+            gaussian,
+            rgba(0, 0, 0, 0.95),
+            5,
+            0.55,
+            0,
+            1
+        );
+}
+
+.ending-progress {
+    -fx-font-family: "Press Start 2P";
+    -fx-text-fill: rgba(192, 208, 194, 0.78);
+    -fx-font-size: 8px;
+}
+
+.ending-footer-rune {
+    -fx-font-family: "Press Start 2P";
+    -fx-text-fill: #59d9bd;
+    -fx-font-size: 8px;
+
+    -fx-effect:
+        dropshadow(
+            gaussian,
+            rgba(50, 210, 177, 0.45),
+            6,
+            0.30,
+            0,
+            0
+        );
+}
+
+.ending-continue-button {
+    -fx-font-family: "Press Start 2P";
+
+    -fx-background-color:
+        linear-gradient(
+            to bottom,
+            rgba(29, 103, 87, 0.96),
+            rgba(16, 62, 55, 0.98)
+        );
+
+    -fx-background-radius: 7;
+
+    -fx-border-color: rgba(109, 226, 194, 0.92);
+    -fx-border-width: 1.2;
+    -fx-border-radius: 7;
+
+    -fx-text-fill: #f5e6b4;
+    -fx-font-size: 9px;
+    -fx-font-weight: bold;
+
+    -fx-padding: 10 15 10 15;
+    -fx-cursor: hand;
+
+    -fx-effect:
+        dropshadow(
+            gaussian,
+            rgba(54, 219, 177, 0.28),
+            9,
+            0.20,
+            0,
+            0
+        );
+}
+.ending-continue-button:hover {
+    -fx-background-color:
+        linear-gradient(
+            to bottom,
+            rgba(41, 136, 111, 0.98),
+            rgba(22, 79, 67, 0.98)
+        );
+
+    -fx-border-color: #9af1d8;
+
+    -fx-effect:
+        dropshadow(
+            gaussian,
+            rgba(74, 235, 194, 0.55),
+            13,
+            0.28,
+            0,
+            0
+        );
+}
+
+
+.ending-continue-button:pressed {
+    -fx-background-color: #103d35;
+    -fx-translate-y: 1;
+}
+.ending-skip-button {
+    -fx-font-family: "Press Start 2P";
+
+    -fx-background-color: rgba(3, 9, 10, 0.58);
+    -fx-background-radius: 7;
+
+    -fx-border-color: rgba(200, 174, 100, 0.42);
+    -fx-border-width: 1;
+    -fx-border-radius: 7;
+
+    -fx-text-fill: rgba(231, 220, 184, 0.76);
+    -fx-font-size: 8px;
+
+    -fx-padding: 8 11 8 11;
+    -fx-cursor: hand;
+}
+.ending-skip-button:hover {
+    -fx-background-color: rgba(48, 39, 20, 0.68);
+    -fx-border-color: #e0bd63;
+    -fx-text-fill: #fff1bf;
+}

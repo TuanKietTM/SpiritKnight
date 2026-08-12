@@ -8,6 +8,7 @@ public enum GameState {
     REWARD_PICK,
     GAME_OVER,
     GAME_VICTORY,
-    INTRO
+    INTRO,
+    ENDING_STORY
 
 }
