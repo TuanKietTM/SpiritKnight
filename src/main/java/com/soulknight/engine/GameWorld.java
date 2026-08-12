@@ -51,6 +51,8 @@ import com.soulknight.animation.FloatingTextManager;
 import com.soulknight.map.RestRoomController;
 import com.soulknight.map.RestShrine;
 import com.soulknight.animation.RestHealEffect;
+import com.soulknight.entity.HeroSelectionManager;
+import com.soulknight.entity.HeroType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -2918,6 +2920,85 @@ public final class GameWorld {
         restHealEffects.removeIf(
                 effect -> effect == null || effect.isFinished()
         );
+    }
+    // Cap nhat trang bi tu Shop khi Continue vao run dang ton tai.
+    public void refreshEquipmentFromShop() {
+        if (player == null || !player.isAlive()) return;
+        refreshHeroFromShop();
+        refreshPetFromShop();
+        refreshRunWeaponsFromShop();
+    }
+    private void refreshRunWeaponsFromShop() {
+        WeaponSelectionManager manager = WeaponSelectionManager.getInstance();
+        WeaponType newSlot1 = manager.getSlot1();
+        WeaponType newSlot2 = manager.getSlot2();
+        if (newSlot1 == null) newSlot1 = WeaponType.BLASTER;
+        if (newSlot2 == null) newSlot2 = WeaponType.OLD_SWORD;
+        if (newSlot1 == newSlot2) return;
+        runWeaponSlot1 = newSlot1;
+        runWeaponSlot2 = newSlot2;
+        // Giu nguyen slot dang active nhung tao lai weapon theo loadout moi.
+        activeRunWeaponSlot = Math.max(0, Math.min(1, activeRunWeaponSlot));
+        equipActiveRunWeapon();
+    }
+    // Tao lai Pet theo lua chon moi nhat trong Shop.
+    private void refreshPetFromShop() {
+        PetType selectedPet = PetSelectionManager.getInstance().getSelectedPet();
+        equipPet(selectedPet);
+    }
+    // Tao lai Player neu Hero trong Shop da thay doi.
+    private void refreshHeroFromShop() {
+        if (player == null || player.getPosition() == null) return;
+        HeroType selectedHero = HeroSelectionManager.getInstance().getSelectedHero();
+        if (selectedHero == null) {
+            selectedHero = HeroType.KNIGHT;
+        }
+
+        // Hero khong thay doi thi khong can tao Player moi.
+        if (player.getHeroType() == selectedHero) {
+            return;
+        }
+
+        Vector2D oldPosition = player.getPosition().copy();
+
+        int oldHealth = player.getHealth();
+        int oldMaxHealth = player.getMaxHealth();
+
+        double oldMana = player.getMana();
+        double oldMaxMana = player.getMaxMana();
+
+        int oldShield = player.getShield();
+        int oldMaxShield = player.getMaxShield();
+
+        /*
+         * Tao Player moi theo HeroSelectionManager.
+         * Constructor Player se lay Hero moi.
+         */
+        Player newPlayer = new Player(oldPosition, selectedHero);
+        /*
+         * Giu ty le HP thay vi giu gia tri tuyet doi,
+         * vi Hero moi co the co Max HP khac Hero cu.
+         */
+        double healthRatio = oldMaxHealth > 0 ? (double) oldHealth / oldMaxHealth : 1.0;
+
+        int restoredHealth = Math.max(1, (int) Math.round(newPlayer.getMaxHealth() * healthRatio));
+        newPlayer.setHealth(Math.min(newPlayer.getMaxHealth(), restoredHealth));
+        /*
+         * Mana giu theo ty le tuong tu.
+         */
+        double manaRatio = oldMaxMana > 0.0 ? oldMana / oldMaxMana : 1.0;
+        newPlayer.setMana(newPlayer.getMaxMana() * manaRatio);
+        /*
+         * Shield giu theo ty le.
+         */
+        double shieldRatio = oldMaxShield > 0 ? (double) oldShield / oldMaxShield : 1.0;
+        newPlayer.setShield((int) Math.round(newPlayer.getMaxShield() * shieldRatio));
+
+        // Gan lai cac callback gameplay.
+        newPlayer.setDragonBreathAction(this::triggerDragonBreath);
+        newPlayer.setHolyNovaAction(this::triggerHolyNova);
+
+        this.player = newPlayer;
     }
 
     private void playGameBGM() {
