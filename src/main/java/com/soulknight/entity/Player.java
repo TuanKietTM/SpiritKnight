@@ -550,4 +550,17 @@ public final class Player extends Entity {
 
         shield = Math.min(maxShield, shield + amount);
     }
+    public void setMana(double mana) {
+        this.mana = Math.max(
+                0.0,
+                Math.min(maxMana, mana)
+        );
+    }
+
+    public void setShield(int shield) {
+        this.shield = Math.max(
+                0,
+                Math.min(maxShield, shield)
+        );
+    }
 }

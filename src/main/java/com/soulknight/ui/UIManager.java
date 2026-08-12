@@ -562,6 +562,7 @@ public final class UIManager {
 
                 sound.playSFX("button");
                 if (world.getPlayer() != null && world.getPlayer().isAlive()) {
+                    world.refreshEquipmentFromShop();
                     world.changeState(GameState.PLAYING);
                 } else {
                     loadSaveAndContinue(world);
