@@ -30,8 +30,7 @@ public final class MapManager {
     private final List<Room> rooms = new ArrayList<>();
 
     // Quan ly rieng fog, particle, hologram va tru dien.
-    private final NeonEnvironmentManager neonEnvironmentManager =
-            new NeonEnvironmentManager();
+    private final NeonEnvironmentManager neonEnvironmentManager = new NeonEnvironmentManager();
 
     private double playerSpawnX, playerSpawnY;
 
@@ -40,13 +39,7 @@ public final class MapManager {
         this.height = height;
         this.tileSize = tileSize;
         this.tiles = new DungeonGenerator().generate(width, height, random);
-        neonEnvironmentManager.initializeDynamicEnvironment(
-                tiles,
-                tileMatrix,
-                width,
-                height,
-                tileSize
-        );
+        neonEnvironmentManager.initializeDynamicEnvironment(tiles, tileMatrix, width, height, tileSize);
     }
     public MapManager(String JsonPath) {
         loadMapFromJson(JsonPath);

@@ -14,7 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Đại diện cho một phòng trong bản đồ.
+ * Dai dien cho mot phong trong ban do
  */
 public class Room {
 
@@ -69,7 +69,7 @@ public class Room {
     }
 
     /**
-     * Cập nhật trạng thái phòng theo từng frame.
+     * Cap nhat trang thai phong theo thoi gian
      */
     public void update(GameWorld gameWorld, Player player, List<Enemy> globalEnemies, double deltaSeconds) {
         doorController.update(deltaSeconds);
@@ -85,12 +85,12 @@ public class Room {
 
         Vector2D playerPosition = player.getPosition();
 
-        // 1. Kiểm tra khi người chơi bước vào phòng
+        // Kiem tra nguoi choi buoc vao phong
         if (state == RoomState.NOT_STARTED && !petEntryController.isPending() && bound.contains(playerPosition.getX(), playerPosition.getY())) {
             beginRoomActivation(player);
         }
 
-        // 2. Chờ Pet đi vào phòng
+        // Cho pet di vao phong
         if (petEntryController.isPending()) {
             PetRoomEntryController.EntryResult result = petEntryController.update(gameWorld, this, player, deltaSeconds);
 
@@ -111,7 +111,7 @@ public class Room {
             return;
         }
 
-        // 3. Quản lý các Wave quái
+        // Quan lí cac wave quai
         updateWaves(gameWorld, deltaSeconds);
         checkRoomClear(globalEnemies);
     }
@@ -176,13 +176,8 @@ public class Room {
         clearRoom();
     }
 
-    // --- QUẢN LÝ VẬT CẢN CỐ ĐỊNH TỪ TILEMAP ---
-
     /**
-     * Nạp các vật cản (Obstacle) nằm trong phạm vi của phòng từ ma trận tiles của World Map.
-     * Chỉ nạp 1 lần duy nhất để tránh tạo trùng lặp.
-     *
-     * @param tiles Ma trận Tile 2D của bản đồ
+     *Nap cac vat can tu map
      */
     public void loadObstaclesFromTiles(Tile[][] tiles) {
         if (tiles == null || obstaclesLoaded) return;
@@ -205,11 +200,9 @@ public class Room {
                         Image tileSprite = tile.getTexture();
                         boolean isBox = (tileSprite == Tile.getBoxImage());
 
-                        // 2. Thiết lập độ bền và khả năng phá hủy
-                        boolean destructible = isBox; // Chỉ Hòm gỗ mới phá hủy được
-                        int hp = isBox ? 30 : 9999;  // Hòm gỗ có 30 máu, vật cản khác không thể phá
-
-                        // 3. Khởi tạo Obstacle
+//                    do ben
+                        boolean destructible = isBox; // chi hom go moi pha duoc
+                        int hp = isBox ? 30 : 9999;  // 30 mau
                         obstacles.add(new Obstacle(pos, tileSize, tileSize, hp, destructible, tileSprite));
                     }
                 }
@@ -238,7 +231,7 @@ public class Room {
         position.add(pushX, pushY);
     }
 
-    // --- DELEGATE PHƯƠNG THỨC CHO DOOR CONTROLLER ---
+//uy quen cac phuong thuc dỏo chop door controller
 
     public boolean isDoorBelongsToRoom(double doorX, double doorY, double doorWidth, double doorHeight) {
         return doorController.isDoorBelongsToRoom(bound, doorX, doorY, doorWidth, doorHeight);
@@ -295,8 +288,6 @@ public class Room {
         doorController.renderSingleDoor(graphicsContext, camera, door, tileSize);
     }
 
-    // --- GETTERS ---
-
     public String getName() {
         return name;
     }
@@ -323,13 +314,5 @@ public class Room {
 
     public boolean isDoorsClosed() {
         return doorController.isClosed();
-    }
-
-    public boolean isDoorClosed() {
-        return doorController.isClosed();
-    }
-
-    public RoomDoorController getDoorController() {
-        return doorController;
     }
 }

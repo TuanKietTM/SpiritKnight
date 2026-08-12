@@ -105,6 +105,7 @@ public final class SoundManager {
         loadSFX("railgun_fire","/assets/Audio/railgun_fire.mp3");
         loadSFX("ion_gun","/assets/Audio/blaster.mp3");
         loadSFX("ion_explosion","/assets/Audio/ion_explosion.mp3");
+        loadSFX("portal_open","/assets/Audio/portal_open.mp3");
   }
 
     public static SoundManager getInstance() {

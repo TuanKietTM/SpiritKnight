@@ -37,6 +37,7 @@ import com.soulknight.weapon.SoundWaveEffect;
 import com.soulknight.weapon.Weapon;
 import com.soulknight.weapon.WeaponSelectionManager;
 import com.soulknight.weapon.WeaponType;
+import com.soulknight.animation.EndingPortal;
 import com.soulknight.pet.Pet;
 import com.soulknight.pet.PetFactory;
 import com.soulknight.pet.PetSelectionManager;
@@ -134,6 +135,8 @@ public final class GameWorld {
     private int score = 0;
     private int currentRoomNumber = 1;
     private Room currentRoom;
+    private EndingPortal endingPortal;
+    private boolean endingStoryTriggered;
     private double autoSaveTimer = 0.0;
     private double playerEnergy = 100.0;
     private PlayerSave pendingPlayerSave;
@@ -226,6 +229,8 @@ public final class GameWorld {
             case PLAYING -> updatePlaying(deltaSeconds, viewportWidth, viewportHeight, false);
             case LEVEL_CLEAR -> updateLevelClear(deltaSeconds, viewportWidth, viewportHeight);
             case REWARD_PICK -> updateRewardPick();
+            case ENDING_STORY -> {
+            }
             case GAME_OVER, GAME_VICTORY -> {
                 if (inputHandler.consumeConfirmRequest()) {
                     startNewRun();
@@ -276,6 +281,8 @@ public final class GameWorld {
         }
         Room.RoomState previousState = previousRoomStates.get(currentRoom);
         handleRoomBuffReward(currentRoom, previousState);
+        handleBossRoomCleared(currentRoom, previousState);
+
         previousRoomStates.put(currentRoom, currentRoom.getState());
 
 
@@ -300,6 +307,7 @@ public final class GameWorld {
         combatEffectManager.update(deltaSeconds);
         itemMagnetSystem.update(items, player, deltaSeconds);// hut item ve player
         updateItemCollection();
+        updateEndingPortal(deltaSeconds);
         openRewardPickerOnMissionComplete();
         updateAutoSave(deltaSeconds);
 
@@ -960,9 +968,9 @@ public final class GameWorld {
     }
     //ve 2.5D Y-position
     private void renderWorld(GraphicsContext graphicsContext, double renderWidth, double renderHeight) {
-        // 0. Ve background neon trung co phia sau map
+        //  Ve background neon trung co phia sau map
         dynamicBackground.render(graphicsContext, camera, renderWidth, renderHeight);
-        // 1. Vẽ sàn nhà bẹt dưới cùng trước
+        // Vẽ sàn nhà bẹt dưới cùng trước
         mapManager.renderFloor(graphicsContext, camera, renderWidth, renderHeight);
         // Vẽ bóng của obstacle dưới các sprite. Obstacle đã được load một lần khi load map.
         for (Obstacle obstacle : obstacles) {
@@ -976,7 +984,7 @@ public final class GameWorld {
             obstacle.renderShadow(graphicsContext, camera);
         }
 
-        // 2. Danh sách Y-Sorting
+        // Danh sách Y-Sorting
         class SortableObject {
             final double depthY;
             final Runnable renderAction;
@@ -990,12 +998,12 @@ public final class GameWorld {
         List<SortableObject> renderList = new ArrayList<>();
         double tileSize = mapManager.getTileSize();
 
-// A. Thêm các ô TƯỜNG vào Y-Sorting (Mốc Y tính ở ĐÁY ô Tile Tường)
+//  Thêm các wall  vào Y-Sorting moc tinh o day
         for (Tile wall : mapManager.getWallTiles()) {
             if (wall == null || !isVisibleInCamera(wall.getX(), wall.getY(), tileSize, tileSize, renderWidth, renderHeight)) {
                 continue;
             }
-            double wallBottomY = wall.getY() + tileSize; // ĐÁY Ô TƯỜNG
+            double wallBottomY = wall.getY() + tileSize; // day o tuong
             renderList.add(new SortableObject(wallBottomY, () -> {
                 double screenX = camera.worldToScreenX(wall.getX());
                 double screenY = camera.worldToScreenY(wall.getY());
@@ -1004,7 +1012,7 @@ public final class GameWorld {
             }));
         }
 
-//  Thêm PLAYER (Mốc Y tính ở BÀN CHÂN)
+//  Thêm player moc tinh o ban chan
 //        render theo cac trang thai : binh thuong , spwan , die
         if (player != null && player.getPosition() != null) {
             double playerFootY = player.getPosition().getY() + 10.0;
@@ -1064,7 +1072,7 @@ public final class GameWorld {
             }));
         }
 
-        // C. Thêm PET
+        // them pet
         if (currentPet != null && currentPet.getPosition() != null) {
             double petFootY = currentPet.getPosition().getY() + 8.0;
             renderList.add(new SortableObject(petFootY, () -> {
@@ -1092,7 +1100,21 @@ public final class GameWorld {
                 }
             }));
         }
-        // D. Thêm ENEMIES
+
+        // Them Ending Portal vao Y-Sorting.
+        if (endingPortal != null && endingPortal.getPosition() != null) {
+            Vector2D portalPosition = endingPortal.getPosition();
+
+            // Position cua portal la diem chan portal tren mat dat.
+            double portalDepthY = portalPosition.getY();
+
+            renderList.add(new SortableObject(
+                    portalDepthY,
+                    () -> endingPortal.render(graphicsContext, camera)
+            ));
+        }
+
+        // them quai
         for (Enemy enemy : enemies) {
             if (enemy == null || enemy.getPosition() == null) continue;
             double enemyDiameter = enemy.getRadius() * 2.0;
@@ -1151,7 +1173,7 @@ public final class GameWorld {
 
         }
 
-        // E. Thêm thân/sprite OBSTACLE vào Y-Sorting. Bóng đã được vẽ trên sàn ở phía trên.
+        // them than vat can
         for (Obstacle obstacle : obstacles) {
             if (obstacle == null || obstacle.isDestroyed() || obstacle.getPosition() == null) {
                 continue;
@@ -1166,7 +1188,7 @@ public final class GameWorld {
             renderList.add(new SortableObject(obstacleBottomY,
                     () -> obstacle.render(graphicsContext, camera)));
         }
-        // E. Thêm các ô CỬA (DOORS) vào Y-Sorting (Mốc Y tính ở ĐÁY BoundingBox Cửa)
+        // them cac o cua
         for (Room room : mapManager.getRooms()) {
             for (BoundingBox door : room.getDoors()) {
                 if (door == null) continue;
@@ -1175,7 +1197,7 @@ public final class GameWorld {
                     continue;
                 }
 
-                // ĐÁY CỦA Ô CỬA LÀM MỐC XẾP LỚP 2.5D
+                // day cac o cua lam moc
                 double doorBottomY = door.getMaxY();
 
                 renderList.add(new SortableObject(doorBottomY, () -> {
@@ -1186,13 +1208,12 @@ public final class GameWorld {
 
 
         renderList.sort((a, b) -> Double.compare(a.depthY, b.depthY));
-
         // Thực thi render theo thứ tự sâu/nông
         for (SortableObject obj : renderList) {
             obj.renderAction.run();
         }
 
-        // 3. Hiệu ứng đạn, chém, nổ vẽ lên trên cùng
+        //  Hiệu ứng đạn, chém, nổ vẽ lên trên cùng
         for (Item item : items) item.render(graphicsContext, camera);
         for (Bullet bullet : bullets) {
             if (bullet == null || bullet.getPosition() == null || !bullet.isActive()) {
@@ -1224,6 +1245,8 @@ public final class GameWorld {
     }
 
     private void startNewRun() {
+        endingPortal = null;
+        endingStoryTriggered = false;
 
         levelManager.startNewRun();
 
@@ -1376,7 +1399,8 @@ public final class GameWorld {
         if (currentRoom.getState() != Room.RoomState.CLEARED) {
             return;
         }
-        if (currentRoom.getType() == Room.RoomType.START || currentRoom.getType() == Room.RoomType.REST) {
+        if (currentRoom.getType() == Room.RoomType.START || currentRoom.getType() == Room.RoomType.REST
+        || currentRoom.getType() == Room.RoomType.BOSS) {
             return;
         }
         if (!currentRoom.hasSpawnedEnemies()) {
@@ -2786,6 +2810,64 @@ public final class GameWorld {
             return runWeaponSlot1;
         }
         return runWeaponSlot2;
+    }
+
+    // Tao portal ket thuc khi Boss Room vua duoc clear.
+    private void handleBossRoomCleared(Room room, Room.RoomState previousState) {
+        if (room == null || endingPortal != null || endingStoryTriggered) return;
+        if (room.getType() != Room.RoomType.BOSS) return;
+
+        boolean justCleared =
+                previousState != Room.RoomState.CLEARED
+                        && room.getState() == Room.RoomState.CLEARED;
+
+        if (!justCleared || !room.hasSpawnedEnemies()) return;
+
+        spawnEndingPortal(room);
+    }
+    private void spawnEndingPortal(Room room) {
+        if (room == null || room.getBound() == null) return;
+
+        BoundingBox bound = room.getBound();
+
+        double x = bound.getMinX() + bound.getWidth() * 0.5;
+        double y = bound.getMinY() + bound.getHeight() * 0.5;
+
+        endingPortal = new EndingPortal(new Vector2D(x, y));
+
+        SoundManager.getInstance().playSFX("portal_open");
+
+        debug("Ending portal spawned.");
+    }
+    private void updateEndingPortal(double deltaSeconds) {
+        if (endingPortal == null || endingStoryTriggered || player == null) return;
+
+        endingPortal.update(deltaSeconds);
+
+        if (!endingPortal.intersects(player)) return;
+
+        endingStoryTriggered = true;
+
+        SoundManager.getInstance().stopBGM();
+        changeState(GameState.ENDING_STORY);
+    }
+    // Ket thuc run sau cinematic Boss.
+    public void finishEndingRun() {
+        SoundManager.getInstance().stopBGM();
+
+        endingPortal = null;
+        endingStoryTriggered = false;
+
+        rewardPicker = null;
+        rewardPickerShown = false;
+
+        currentRoom = null;
+        currentRoomNumber = 1;
+
+        /*
+         * Khong load map tai day.
+         * New Game se tu start run moi tu Spawn Room.
+         */
     }
 
     private void playGameBGM() {

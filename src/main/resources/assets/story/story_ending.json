@@ -1,0 +1,28 @@
+{
+  "frames": [
+    {
+      "imagePath": "/assets/story/end1.png",
+      "title": "THE FALLEN WARDEN",
+      "text": "The Warden hath fallen.\n\nBy thy hand, this forsaken hall is freed from the shadow that bound it.",
+      "delay": 0,
+      "bgmPath": "/assets/Audio/ending.mp3",
+      "bgmFadeTime": 0.8
+    },
+    {
+      "imagePath": "/assets/story/end2.png",
+      "title": "THE LAST STONE",
+      "text": "Yet rejoice not too soon, O Knight.\n\nThou hast broken but one chain. Beyond these walls, the corruption yet endureth.",
+      "delay": 0,
+      "bgmPath": "/assets/Audio/ending.mp3",
+      "bgmFadeTime": 0.8
+    },
+    {
+      "imagePath": "/assets/story/end3.png",
+      "title": "THE CALL HOME",
+      "text": "Return now unto thy world and gather thy strength.\n\nWhen the gate is opened once more... the realm shall call for thee again.",
+      "delay": 0,
+      "bgmPath": "/assets/Audio/ending.mp3",
+      "bgmFadeTime": 1.0
+    }
+  ]
+}

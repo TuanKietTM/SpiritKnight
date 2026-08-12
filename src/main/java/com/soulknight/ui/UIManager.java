@@ -36,6 +36,7 @@ public final class UIManager {
     private final PortalOverlay portalOverlay = new PortalOverlay();
     private IntroController introController;
     private StoryIntroController storyIntroController;
+    private StoryEndingController storyEndingController;
     private HUD hudController;
     private Menu menuController;
     private LevelClearScreen levelClearController;
@@ -50,6 +51,7 @@ public final class UIManager {
     private AccountController accountController;
     private Parent introRoot;
     private Parent storyIntroRoot;
+    private Parent storyEndingRoot;
     private Parent hudRoot;
     private Parent menuRoot;
     private Parent levelClearRoot;
@@ -83,6 +85,11 @@ public final class UIManager {
             storyIntroRoot = storyIntroLoader.load();
             storyIntroController = storyIntroLoader.getController();
             configFullRegion(storyIntroRoot);
+            // Tai cinematic ket thuc sau Boss.
+            FXMLLoader storyEndingLoader = new FXMLLoader(com.soulknight.Main.class.getResource("/assets/fxml/StoryEnding.fxml"));
+            storyEndingRoot = storyEndingLoader.load();
+            storyEndingController = storyEndingLoader.getController();
+            configFullRegion(storyEndingRoot);
 //            Tai FXML login , register
             FXMLLoader loginLoader = new FXMLLoader(com.soulknight.Main.class.getResource("/assets/fxml/Login.fxml"));
             loginRoot = loginLoader.load();
@@ -167,11 +174,12 @@ public final class UIManager {
             victoryRoot.setPickOnBounds(false);
             gameOverRoot.setPickOnBounds(false);
 
-            rootNode.getChildren().addAll(introRoot, loginRoot, registerRoot, storyIntroRoot, menuRoot, hudRoot, levelClearRoot, victoryRoot,
+            rootNode.getChildren().addAll(introRoot, loginRoot, registerRoot, storyIntroRoot, storyEndingRoot, menuRoot, hudRoot, levelClearRoot, victoryRoot,
                     gameOverRoot, pauseRoot, settingRoot, shopRoot, leaderboardRoot, accountRoot, portalOverlay, loadingOverlay);
 
             StackPane.setAlignment(introRoot, Pos.CENTER);
             StackPane.setAlignment(storyIntroRoot, Pos.CENTER);
+            StackPane.setAlignment(storyEndingRoot, Pos.CENTER);
             StackPane.setAlignment(menuRoot, Pos.CENTER);
             StackPane.setAlignment(hudRoot, Pos.BOTTOM_CENTER);
             StackPane.setAlignment(levelClearRoot, Pos.CENTER);
@@ -255,6 +263,29 @@ public final class UIManager {
                     hideAllScreens();
                     gameOverRoot.setVisible(true);
                     gameOverRoot.toFront();
+                }
+                case ENDING_STORY -> {
+                    hideAllScreens();
+
+                    if (storyEndingRoot == null || storyEndingController == null || boundWorld == null) {
+                        if (boundWorld != null) {
+                            finishEndingStory(boundWorld);
+                        }
+                        return;
+                    }
+
+                    storyEndingRoot.setOpacity(1.0);
+                    storyEndingRoot.setVisible(true);
+                    storyEndingRoot.setManaged(true);
+                    storyEndingRoot.toFront();
+
+                    storyEndingController.setOnEndingFinished(
+                            () -> Platform.runLater(
+                                    () -> finishEndingStory(boundWorld)
+                            )
+                    );
+
+                    storyEndingController.startEnding();
                 }
                 case PAUSED -> {
                     hideAllScreens();
@@ -1054,7 +1085,27 @@ public final class UIManager {
             hudController.useBuffByIndex(index);
         }
     }
+    private void finishEndingStory(GameWorld world) {
+        if (world == null) return;
 
+        if (storyEndingRoot != null) {
+            storyEndingRoot.setVisible(false);
+            storyEndingRoot.setManaged(false);
+        }
+        /*
+         * Run da hoan thanh.
+         * Continue cua run Boss khong con hop le.
+         */
+        continueAvailable = false;
+
+        if (menuController != null) {
+            menuController.setContinueAvailable(false);
+        }
+
+        world.finishEndingRun();
+
+        showMainMenu(world);
+    }
     private void hideAllScreens() {
         if (loginController != null) loginController.stopBackground();
         if (registerController != null) registerController.stopBackground();
@@ -1062,6 +1113,10 @@ public final class UIManager {
         if (loginRoot != null) loginRoot.setVisible(false);
         if (registerRoot != null) registerRoot.setVisible(false);
         if (storyIntroRoot != null) storyIntroRoot.setVisible(false);
+        if (storyEndingRoot != null) {
+            storyEndingRoot.setVisible(false);
+            storyEndingRoot.setManaged(false);
+        }
         if (menuRoot != null) menuRoot.setVisible(false);
         if (hudRoot != null) hudRoot.setVisible(false);
         if (levelClearRoot != null) levelClearRoot.setVisible(false);

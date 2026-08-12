@@ -50,24 +50,18 @@ public class Obstacle {
     }
 
     /**
-     * Dùng cho Y-Sorting (Sắp xếp độ sâu):
-     * Trả về chân của vật cản trên mặt đất để so sánh vị trí Y với Player/Enemy.
+     * Dung y-sorting
      */
     public double getRenderY() {
         return position.getY() + height;
     }
 
-    /**
-     * Vẽ Tile/Image của vật cản dựa trên tọa độ Camera
-     */
     public void render(GraphicsContext gc, Camera camera) {
         if (sprite == null) return;
 
         double screenX = camera.worldToScreenX(position.getX());
         double screenY = camera.worldToScreenY(position.getY());
         double zoom = camera.getZoom();
-
-        // Chỉ vẽ hình ảnh Sprite của vật cản (Không vẽ thanh máu nữa)
         gc.drawImage(sprite, screenX, screenY, width * zoom, height * zoom);
     }
     /**

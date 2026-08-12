@@ -10,6 +10,5 @@ public class TiledMapData {
         public int width;
         public int height;
         public int tilewidth;
-        public int tileHeight;
         public List<LayerData> layers;
 }
