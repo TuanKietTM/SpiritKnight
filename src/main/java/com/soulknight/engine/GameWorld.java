@@ -48,6 +48,9 @@ import com.soulknight.database.PlayerSaveMapper;
 import com.soulknight.database.ShopDAO;
 import com.soulknight.database.UserSession;
 import com.soulknight.animation.FloatingTextManager;
+import com.soulknight.map.RestRoomController;
+import com.soulknight.map.RestShrine;
+import com.soulknight.animation.RestHealEffect;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -109,6 +112,7 @@ public final class GameWorld {
     private final List<Obstacle> obstacles = new ArrayList<>();
     private final List<Obstacle> readOnlyObstacles = java.util.Collections.unmodifiableList(obstacles);
     private final List<Obstacle> destroyedObstacleQueue = new ArrayList<>();
+    private final List<RestHealEffect> restHealEffects = new ArrayList<>();
     //   chia luong hoat dong rieng cua database de tranh lam cham game
     private final ExecutorService databaseExecutor =
             Executors.newSingleThreadExecutor(runnable -> {
@@ -302,6 +306,7 @@ public final class GameWorld {
         updateIonExplosions(deltaSeconds);
         updateSlashEffects(deltaSeconds);
         updateSoundWaves(deltaSeconds);
+        updateRestHealEffects(deltaSeconds);
         updateEnemyDeaths(deltaSeconds);
         enemyBurnManager.update(this, deltaSeconds);
         combatEffectManager.update(deltaSeconds);
@@ -1205,12 +1210,30 @@ public final class GameWorld {
                 }));
             }
         }
+        // Render cac object rieng cua Rest Room.
+        if (currentRoom != null && currentRoom.getType() == Room.RoomType.REST) {
+            RestRoomController restController = currentRoom.getRestRoomController();
 
+            if (restController != null && restController.getShrine() != null) {
+                RestShrine shrine = restController.getShrine();
+
+                renderList.add(new SortableObject(
+                        shrine.getPosition().getY(),
+                        () -> shrine.render(graphicsContext, camera)
+                ));
+            }
+        }
 
         renderList.sort((a, b) -> Double.compare(a.depthY, b.depthY));
         // Thực thi render theo thứ tự sâu/nông
         for (SortableObject obj : renderList) {
             obj.renderAction.run();
+        }
+
+        for (RestHealEffect effect : restHealEffects) {
+            if (effect != null) {
+                effect.render(graphicsContext, camera);
+            }
         }
 
         //  Hiệu ứng đạn, chém, nổ vẽ lên trên cùng
@@ -1326,6 +1349,7 @@ public final class GameWorld {
         this.combatEffectManager.clear();
         this.enemyBurnManager.clear();
         this.destroyedObstacleQueue.clear();
+        this.restHealEffects.clear();
         this.enemySpawnTimer = 0.0;
         floatingTextManager.clear();
 
@@ -2868,6 +2892,32 @@ public final class GameWorld {
          * Khong load map tai day.
          * New Game se tu start run moi tu Spawn Room.
          */
+    }
+
+    // Hien feedback khi Player su dung Rest Shrine.
+    public void showRestShrineEffect(Vector2D position) {
+        if (position == null) return;
+        restHealEffects.add(new RestHealEffect(position));
+        floatingTextManager.spawnCustom(
+                "RESTORED",
+                position.copy().add(0.0, -22.0),
+                Color.AQUAMARINE
+        );
+
+        if (particleManager != null) {
+            particleManager.spawnHitImpact(position);
+        }
+    }
+    // Cap nhat hieu ung hoi phuc cua Rest Shrine.
+    private void updateRestHealEffects(double deltaSeconds) {
+        for (RestHealEffect effect : restHealEffects) {
+            if (effect != null) {
+                effect.update(deltaSeconds);
+            }
+        }
+        restHealEffects.removeIf(
+                effect -> effect == null || effect.isFinished()
+        );
     }
 
     private void playGameBGM() {
