@@ -6,10 +6,7 @@ import com.soulknight.animation.SpawnEffect;
 import com.soulknight.animation.PlayerDeathEffect;
 import com.soulknight.animation.EnemySpawnEffect;
 import com.soulknight.animation.EnemyDeathEffect;
-import com.soulknight.entity.Enemy;
-import com.soulknight.entity.EnemyFactory;
-import com.soulknight.entity.Entity;
-import com.soulknight.entity.Player;
+import com.soulknight.entity.*;
 import com.soulknight.item.EnergyCrystal;
 import com.soulknight.item.GemItem;
 import com.soulknight.item.GoldItem;
@@ -68,7 +65,7 @@ import javafx.scene.paint.Color;
 public final class GameWorld {
 
     private static final boolean DEBUG_LOGGING = false;
-    private static final double ROOM_BUFF_DROP_CHANCE = 1;
+    private static final double ROOM_BUFF_DROP_CHANCE = 1; // Tỉ lệ sinh buff sau khi dọn quái
     private static final double AUTO_SAVE_INTERVAL = 30.0;
     private static final double HOLY_NOVA_RADIUS_TILES = 20.0;
     private static final int HOLY_NOVA_DAMAGE = 200;
@@ -1265,6 +1262,8 @@ public final class GameWorld {
             particleManager.render(graphicsContext, camera);
         }
         floatingTextManager.render(graphicsContext, camera);
+        renderBossHUD(graphicsContext, renderWidth);
+
     }
 
     private void startNewRun() {
@@ -1352,6 +1351,16 @@ public final class GameWorld {
         this.restHealEffects.clear();
         this.enemySpawnTimer = 0.0;
         floatingTextManager.clear();
+
+        // Thêm 3 dòng này vào cuối hàm khởi tạo/reset của GameWorld.java:
+        if (player != null) {
+            // Spawn Boss đứng cách Player 200px về bên phải
+            Vector2D spawnPos = new Vector2D(player.getPosition().getX() + 200, player.getPosition().getY());
+            Enemy boss = enemyFactory.createGrandKnight(spawnPos);
+
+            // Thêm vào danh sách quái
+            addEnemyWithSpawnEffect(boss, 0.0);
+        }
 
         // 7. Tạo nhiệm vụ cho Level hiện tại
         if (this.missionManager != null && this.levelManager != null) {
@@ -1863,6 +1872,31 @@ public final class GameWorld {
         final int MAX_ENEMIES_PER_ROOM = Math.min(3 + (waveNumber / 2), 6);
         int finalEnemyCount = Math.min(desiredEnemyCount, MAX_ENEMIES_PER_ROOM);
         final double MIN_SAFE_DISTANCE = 140.0;
+
+        if (room.getType() == com.soulknight.map.Room.RoomType.BOSS) {
+            // Lấy vị trí trung tâm phòng Boss làm vị trí Spawn
+            bound = room.getBound();
+            Vector2D bossSpawnPt;
+
+            if (bound != null) {
+                bossSpawnPt = new Vector2D(
+                        bound.getMinX() + bound.getWidth() / 2.0,
+                        bound.getMinY() + bound.getHeight() / 2.0
+                );
+            } else {
+                // Trường hợp phòng không có BoundingBox, rơi lại vị trí an toàn quanh Player
+                bossSpawnPt = new Vector2D(player.getPosition().getX() + 250.0, player.getPosition().getY());
+            }
+
+            // Khởi tạo Boss từ EnemyFactory
+            Enemy boss = enemyFactory.createGrandKnight(bossSpawnPt);
+
+            // Thêm Boss vào thế giới kèm hiệu ứng Spawn đẹp mắt
+            addEnemyWithSpawnEffect(boss, 0.0);
+
+            return 1; // Trả về số lượng quái sinh ra là 1 (Boss)
+        }
+
         for (int i = 0; i < finalEnemyCount; i++) {
             Vector2D point = null;
             boolean validPointFound = false;
@@ -2928,6 +2962,63 @@ public final class GameWorld {
     public interface GameStateListener {
         void onStateChanged(GameState newState);
     }
+
+    public void renderBossHUD(GraphicsContext gc, double screenWidth) {
+        if (enemies == null || enemies.isEmpty()) return;
+
+        // 1. Tìm con Boss đang sống trong danh sách enemies
+        Boss boss = null;
+        for (Enemy enemy : enemies) {
+            if (enemy instanceof Boss b && b.isAlive()) {
+                boss = b;
+                break;
+            }
+        }
+
+        // Nếu không có Boss thì không render HUD
+        if (boss == null) return;
+
+        // 2. Thiết lập kích thước & vị trí thanh máu (căn giữa màn hình)
+        double barWidth = 450.0;
+        double barHeight = 22.0;
+        double x = (screenWidth - barWidth) / 2.0;
+        double y = 35.0;
+
+        gc.save();
+
+        // 3. Vẽ nền đen & viền vàng
+        gc.setFill(Color.rgb(20, 20, 20, 0.85));
+        gc.fillRect(x - 4, y - 4, barWidth + 8, barHeight + 8);
+        gc.setStroke(Color.GOLD);
+        gc.setLineWidth(2.0);
+        gc.strokeRect(x - 4, y - 4, barWidth + 8, barHeight + 8);
+
+        // 4. Tính tỉ lệ máu dựa trên getHealth() từ Entity và getMaxHealth() từ Boss
+        int maxHp = boss.getMaxHealth() > 0 ? boss.getMaxHealth() : 1;
+        double healthPercent = Math.max(0.0, Math.min(1.0, (double) boss.getHealth() / maxHp));
+
+        // 5. Thay đổi màu thanh máu theo Phase của Boss
+        Color healthColor = switch (boss.getCurrentPhase()) {
+            case 2 -> Color.ORANGE;
+            case 3 -> Color.RED;
+            default -> Color.PURPLE;
+        };
+
+        // 6. Vẽ thanh máu hiện tại
+        gc.setFill(healthColor);
+        gc.fillRect(x, y, barWidth * healthPercent, barHeight);
+
+        // 7. Hiển thị thông tin Tên Boss, Phase và Chỉ số Máu
+        gc.setFill(Color.WHITE);
+        gc.setFont(javafx.scene.text.Font.font("Consolas", javafx.scene.text.FontWeight.BOLD, 14));
+        gc.fillText("GRAND KNIGHT - PHASE " + boss.getCurrentPhase(), x + 10, y + 16);
+
+        String hpText = boss.getHealth() + " / " + maxHp;
+        gc.fillText(hpText, x + barWidth - 100, y + 16);
+
+        gc.restore();
+    }
+
 
 }
 //NOTE : cac ham xu ly va cham
