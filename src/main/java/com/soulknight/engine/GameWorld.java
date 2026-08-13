@@ -124,6 +124,8 @@ public final class GameWorld {
             });
     private final AtomicBoolean saveInProgress = new AtomicBoolean(false);
     private final AtomicBoolean saveLoadInProgress = new AtomicBoolean(false);
+    // Các phòng đã nhận thưởng trong run hiện tại, key = level:room
+    private final java.util.Set<String> rewardedRoomKeys = new java.util.HashSet<>();
     private GameStateListener stateListener;
     private java.util.function.IntConsumer buffHotkeyListener;
     private MapManager mapManager;
@@ -155,8 +157,6 @@ public final class GameWorld {
     private RewardPicker rewardPicker;
     // Phòng cuối cùng đã mở hộp phần thưởng (tránh mở trùng)
     private Room lastRewardRoom;
-    // Các phòng đã nhận thưởng trong run hiện tại, key = level:room
-    private final java.util.Set<String> rewardedRoomKeys = new java.util.HashSet<>();
     //    Bien cho hieu ung dau tien cua start room
     private SpawnEffect playerSpawnEffect;
     private SpawnEffect petSpawnEffect;
@@ -193,6 +193,7 @@ public final class GameWorld {
             stateListener.onStateChanged(newState);
         }
     }
+
     // Quan ly nhac nen khi thay doi GameState.
     private void handleBGMStateChange(GameState oldState, GameState newState) {
         SoundManager sound = SoundManager.getInstance();
@@ -354,182 +355,219 @@ public final class GameWorld {
     }
 
     private void updateBullets(double deltaSeconds) {
-
         for (Bullet bullet : bullets) {
             if (bullet == null || !bullet.isActive()) {
                 continue;
             }
 
-            double bulletX = bullet.getPosition().getX();
-            double bulletY = bullet.getPosition().getY();
+            Vector2D startPos = bullet.getPosition().copy();
 
-            // Đạn xuất hiện trong tường
-            if (mapManager.isBulletCollidingWithWall(bulletX, bulletY, bullet.getRadius())) {
+            // Kiem tra neu dan vua sinh ra da nam trong tuong
+            if (mapManager.isBulletCollidingWithWall(startPos.getX(), startPos.getY(), bullet.getRadius())) {
                 if (bullet.isSoundWave()) {
-                    spawnSoundWave(bullet.getPosition(), bullet.getDamage());
+                    spawnSoundWave(startPos, bullet.getDamage());
                 }
                 bullet.deactivate();
                 continue;
             }
 
-            // Vị trí an toàn trước khi di chuyển (dùng để tính phản đạn khi chạm tường)
-            double prevX = bulletX;
-            double prevY = bulletY;
-
+            // Cap nhat vi tri moi cho dan
             bullet.update(deltaSeconds);
+            Vector2D endPos = bullet.getPosition().copy();
 
-            bulletX = bullet.getPosition().getX();
-            bulletY = bullet.getPosition().getY();
+            // Chia nho quang duong bay de kiem tra va cham (chong xuyên tao)
+            double distance = startPos.distance(endPos);
+            double stepSize = Math.max(bullet.getRadius() * 0.8, 6.0); // Buoc quet nho
+            int steps = Math.max(1, (int) Math.ceil(distance / stepSize));
 
-            // Đạn va chạm tường sau khi di chuyển
-            if (mapManager.isBulletCollidingWithWall(bulletX, bulletY, bullet.getRadius())) {
-                // Đạn laser: lần đầu chạm tường thì phản lại 1 góc (1 lần duy nhất)
-                if (bullet.canReflect()) {
-                    // Xác định trục phản: thử di chuyển từng trục từ vị trí an toàn
-                    boolean flipX = mapManager.isBulletCollidingWithWall(bulletX, prevY, bullet.getRadius());
-                    boolean flipY = mapManager.isBulletCollidingWithWall(prevX, bulletY, bullet.getRadius());
-                    bullet.reflectOnce(new Vector2D(prevX, prevY), flipX, flipY);
-                    spawnBulletExplosion(new Vector2D(bulletX, bulletY));
-                    continue;
-                }
-                Vector2D impactPosition = bullet.getPosition().copy();
-                if (bullet.explodesOnTerrain()) {
-                    triggerIonProjectileExplosion(
-                            impactPosition,
-                            bullet.getTerrainExplosionRadius(),
-                            bullet.getTerrainExplosionDamage(),
-                            bullet.getOwner()
-                    );
-                } else {
-                    if (bullet.isSoundWave()) {
-                        spawnSoundWave(impactPosition, bullet.getDamage());
-                    } else {
-                        spawnBulletExplosion(impactPosition);
-                    }
-                }
-                bullet.deactivate();
-                continue;
-            }
+            boolean bulletDeactivated = false;
 
-            // Dan va cham obstacle.
-            for (Obstacle obstacle : obstacles) {
-                if (obstacle == null || obstacle.isDestroyed()) continue;
-                if (!obstacle.intersectsCircle(bullet.getPosition(), bullet.getRadius())) continue;
+            for (int step = 1; step <= steps; step++) {
+                double t = (double) step / steps;
+                double checkX = startPos.getX() + (endPos.getX() - startPos.getX()) * t;
+                double checkY = startPos.getY() + (endPos.getY() - startPos.getY()) * t;
+                Vector2D checkPos = new Vector2D(checkX, checkY);
 
-                // Laser/piercing cu co the xuyen obstacle.
-                if (bullet.piercesObstacles()) {
-                    if (!bullet.hasAlreadyHit(obstacle)) {
-                        bullet.markHit(obstacle);
-                        damageObstacle(obstacle, bullet.getDamage(), bullet.getPosition());
-                    }
-
-                    continue;
-                }
-
-                //  dan Ion xuyen Enemy nhung no khi cham obstacle.
-                if (bullet.explodesOnTerrain()) {
-                    Vector2D impactPosition = bullet.getPosition().copy();
-
-                    damageObstacle(obstacle, bullet.getDamage(), impactPosition);
-                    triggerIonProjectileExplosion(
-                            impactPosition,
-                            bullet.getTerrainExplosionRadius(),
-                            bullet.getTerrainExplosionDamage(),
-                            bullet.getOwner()
-                    );
-                    bullet.deactivate();
+                // Kiem tra va cham voi van can
+                if (processObstacleCollision(bullet, checkPos)) {
+                    bulletDeactivated = true;
                     break;
                 }
 
-                damageObstacle(obstacle, bullet.getDamage(), bullet.getPosition());
-                if (bullet.isSoundWave()) {
-                    spawnSoundWave(bullet.getPosition(), bullet.getDamage());
+                // Kiem tra va cahm coi enemy player
+                if (processEntityCollision(bullet, checkPos)) {
+                    bulletDeactivated = true;
+                    break;
                 }
-                bullet.deactivate();
-                break;
-            }
-            if (bullet.getOwner() instanceof Player) {
-                for (Enemy enemy : enemies) {
-                    if (enemy == null || !enemy.isAlive() || isEnemySpawning(enemy)) {
-                        continue;
-                    }
 
-                    if (bullet.intersects(enemy)) {
-                        // Đạn laser xuyên quái: mỗi con chỉ trúng 1 lần, tia tiếp tục bay
-                        if (bullet.isPiercing()) {
-                            if (!bullet.hasAlreadyHit(enemy)) {
-                                bullet.markHit(enemy);
-                                int healthBefore = enemy.getHealth();
-                                enemy.takeDamage(bullet.getDamage());
+                // Kiem tra va cham voi tuong
+                if (mapManager.isBulletCollidingWithWall(checkX, checkY, bullet.getRadius())) {
+                    bullet.getPosition().set(checkPos); // Dat vi tri dan ngay tai diem cham tuong
 
-                                int realDamage = healthBefore
-                                        - enemy.getHealth();
+                    if (bullet.canReflect()) {
+                        double prevStepT = (double) (step - 1) / steps;
+                        double prevX = startPos.getX() + (endPos.getX() - startPos.getX()) * prevStepT;
+                        double prevY = startPos.getY() + (endPos.getY() - startPos.getY()) * prevStepT;
 
-                                if (realDamage > 0 && bullet.getOwner() instanceof Player attackingPlayer) {
+                        boolean flipX = mapManager.isBulletCollidingWithWall(checkX, prevY, bullet.getRadius());
+                        boolean flipY = mapManager.isBulletCollidingWithWall(prevX, checkY, bullet.getRadius());
 
-                                    attackingPlayer.getBuffManager().notifyDamageDealt(this, enemy, realDamage);
-                                }
-                                floatingTextManager.spawnDamage(
-                                        enemy.getPosition(),
-                                        bullet.getDamage()
-                                );
-                                if (particleManager != null) {
-                                    particleManager.spawnHitImpact(enemy.getPosition());
-                                }
-
-                            }
-                            continue;
-                        }
-//                        dan thuong
-                        int healthBefore = enemy.getHealth();
-                        enemy.takeDamage(bullet.getDamage());
-                        int realDamage = healthBefore - enemy.getHealth();
-
-                        if (realDamage > 0 && bullet.getOwner() instanceof Player attackingPlayer) {
-
-                            attackingPlayer.getBuffManager().notifyDamageDealt(this, enemy, realDamage);
-                        }
-                        floatingTextManager.spawnDamage(
-                                enemy.getPosition(),
-                                bullet.getDamage()
-                        );
-                        if (particleManager != null) {
-                            particleManager.spawnHitImpact(enemy.getPosition());
-                        }
-                        spawnBulletExplosion(bullet.getPosition());
-                        if (bullet.isSoundWave()) {
-                            spawnSoundWave(bullet.getPosition(), bullet.getDamage());
+                        bullet.reflectOnce(new Vector2D(prevX, prevY), flipX, flipY);
+                        spawnBulletExplosion(checkPos);
+                    } else {
+                        if (bullet.explodesOnTerrain()) {
+                            triggerIonProjectileExplosion(
+                                    checkPos,
+                                    bullet.getTerrainExplosionRadius(),
+                                    bullet.getTerrainExplosionDamage(),
+                                    bullet.getOwner()
+                            );
+                        } else if (bullet.isSoundWave()) {
+                            spawnSoundWave(checkPos, bullet.getDamage());
+                        } else {
+                            spawnBulletExplosion(checkPos);
                         }
                         bullet.deactivate();
-                        break;
+                        bulletDeactivated = true;
                     }
+                    break; // Ket thuc sub-stepping cho vien dan nay
                 }
-            } else if (player != null && player.isAlive() && bullet.intersects(player)) {
-                int healthBefore = player.getHealth();
-
-                player.takeDamage(bullet.getDamage());
-
-                int realDamage = healthBefore - player.getHealth();
-
-                if (realDamage > 0) {
-                    floatingTextManager.spawnDamage(
-                            player.getPosition(),
-                            realDamage
-                    );
-                }
-
-                if (bullet.isSoundWave()) {
-                    // Debug: In vị trí đạn va chạm để kiểm tra tâm hiệu ứng
-                    System.out.println("Sound wave spawn at: " + bullet.getPosition().getX() + ", " + bullet.getPosition().getY());
-                    spawnSoundWave(bullet.getPosition(), bullet.getDamage());
-                } else {
-                    spawnBulletExplosion(bullet.getPosition());
-                }
-                bullet.deactivate();
             }
         }
-        // Nếu đạn không còn hoạt động
+
+        // Xoa cac dan ngung hoat dong
         bullets.removeIf(bullet -> bullet == null || !bullet.isActive());
+    }
+
+    /**
+     * Xu ly va cham giua dan va Obstacle tai vi tri checkPos
+     * Trả về true neu dan bi deactive
+     */
+    private boolean processObstacleCollision(Bullet bullet, Vector2D checkPos) {
+        for (Obstacle obstacle : obstacles) {
+            if (obstacle == null || obstacle.isDestroyed()) continue;
+
+            // Cap nhat tam thoi vi tri checkPos cho bullet de kiem tra va cham
+            Vector2D originalPos = bullet.getPosition().copy();
+            bullet.getPosition().set(checkPos);
+
+            // Dung truc tiep ham intersects moi (AABB) - "1 phat an ngay" giong Enemy
+            boolean isHit = obstacle.intersects(bullet);
+
+            // Tra lai vi tri ban dau neu khong trung (de khong anh huong logic khac)
+            if (!isHit) {
+                bullet.getPosition().set(originalPos);
+                continue;
+            }
+
+            // --- DA TRUNG OBSTACLE ---
+
+            // Dan laser/piercing xuyen obstacle
+            if (bullet.piercesObstacles()) {
+                if (!bullet.hasAlreadyHit(obstacle)) {
+                    bullet.markHit(obstacle);
+                    damageObstacle(obstacle, bullet.getDamage(), checkPos);
+                }
+                bullet.getPosition().set(originalPos); // Tra lai vi tri de dan bay tiep
+                continue;
+            }
+
+            // Dan Ion xuyen Enemy nhung no khi cham obstacle
+            if (bullet.explodesOnTerrain()) {
+                damageObstacle(obstacle, bullet.getDamage(), checkPos);
+                triggerIonProjectileExplosion(
+                        checkPos,
+                        bullet.getTerrainExplosionRadius(),
+                        bullet.getTerrainExplosionDamage(),
+                        bullet.getOwner()
+                );
+                bullet.deactivate();
+                return true;
+            }
+
+            // Dan thuong
+            damageObstacle(obstacle, bullet.getDamage(), checkPos);
+            if (bullet.isSoundWave()) {
+                spawnSoundWave(checkPos, bullet.getDamage());
+            } else {
+                spawnBulletExplosion(checkPos);
+            }
+            bullet.deactivate();
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Xu ly va cham giua dan va Entity (Enemy/Player) tai vi tri checkPos
+     * Trả về true neu dan bi deactive
+     */
+    private boolean processEntityCollision(Bullet bullet, Vector2D checkPos) {
+        if (bullet.getOwner() instanceof Player) {
+            for (Enemy enemy : enemies) {
+                if (enemy == null || !enemy.isAlive() || isEnemySpawning(enemy)) {
+                    continue;
+                }
+
+                if (bullet.intersects(enemy)) {
+                    if (bullet.isPiercing()) {
+                        if (!bullet.hasAlreadyHit(enemy)) {
+                            bullet.markHit(enemy);
+                            applyDamageToEnemy(enemy, bullet);
+                        }
+                        continue; // Dan xuyen tiep tuc bay
+                    }
+
+                    bullet.getPosition().set(checkPos);
+                    applyDamageToEnemy(enemy, bullet);
+
+                    if (bullet.isSoundWave()) {
+                        spawnSoundWave(checkPos, bullet.getDamage());
+                    } else {
+                        spawnBulletExplosion(checkPos);
+                    }
+                    bullet.deactivate();
+                    return true;
+                }
+            }
+        } else if (player != null && player.isAlive() && bullet.intersects(player)) {
+            bullet.getPosition().set(checkPos);
+            int healthBefore = player.getHealth();
+            player.takeDamage(bullet.getDamage());
+            int realDamage = healthBefore - player.getHealth();
+
+            if (realDamage > 0) {
+                floatingTextManager.spawnDamage(player.getPosition(), realDamage);
+            }
+
+            if (bullet.isSoundWave()) {
+                spawnSoundWave(checkPos, bullet.getDamage());
+            } else {
+                spawnBulletExplosion(checkPos);
+            }
+            bullet.deactivate();
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Ham phu tro tinh sat thuong va hieu ung len Enemy
+     */
+    private void applyDamageToEnemy(Enemy enemy, Bullet bullet) {
+        int healthBefore = enemy.getHealth();
+        enemy.takeDamage(bullet.getDamage());
+        int realDamage = healthBefore - enemy.getHealth();
+
+        if (realDamage > 0 && bullet.getOwner() instanceof Player attackingPlayer) {
+            attackingPlayer.getBuffManager().notifyDamageDealt(this, enemy, realDamage);
+        }
+
+        floatingTextManager.spawnDamage(enemy.getPosition(), bullet.getDamage());
+
+        if (particleManager != null) {
+            particleManager.spawnHitImpact(enemy.getPosition());
+        }
     }
 
     private void updatePlayerDeath() {
@@ -610,6 +648,7 @@ public final class GameWorld {
         }
         soundWaves.removeIf(soundWave -> !soundWave.isActive());
     }
+
     //    gay vu no
     public void triggerDeathExplosion(Vector2D center, int damage) {
         if (center == null || damage <= 0) {
@@ -638,6 +677,7 @@ public final class GameWorld {
         combatEffectManager.spawnDeathFireExplosion(center);
         SoundManager.getInstance().playSFXShort("death_explosion", 0.45);
     }
+
     public void triggerDragonBreath() {
         if (player == null || !player.isAlive() || player.getPosition() == null || mapManager == null) {
             return;
@@ -686,7 +726,8 @@ public final class GameWorld {
             /*
              * Enemy trung hoi tho luon bi/refresh Burn.
              */
-            if (enemy.isAlive()) {enemyBurnManager.applyBurn(enemy);
+            if (enemy.isAlive()) {
+                enemyBurnManager.applyBurn(enemy);
             }
         }
 
@@ -696,6 +737,7 @@ public final class GameWorld {
         combatEffectManager.spawnDragonBreath(origin, dirX, dirY, range, DRAGON_BREATH_HALF_ANGLE);
         SoundManager.getInstance().playSFXShort("dragon_breath", 0.75);
     }
+
     //    buff trc tan cong don chi mang
     public void triggerHolyNova() {
         if (player == null || !player.isAlive() || player.getPosition() == null || mapManager == null) {
@@ -789,6 +831,7 @@ public final class GameWorld {
         double dot = dirX * targetDirX + dirY * targetDirY;
         return dot >= Math.cos(DRAGON_BREATH_HALF_ANGLE);
     }
+
     private void triggerDragonBreathExplosion(Vector2D center) {
         if (center == null) {
             return;
@@ -818,6 +861,7 @@ public final class GameWorld {
         combatEffectManager.spawnDragonExplosion(center);
         SoundManager.getInstance().playSFXShort("dragon_explosion", 0.5);
     }
+
     // sinh hieu ung tia set
     public void spawnChainLightning(Vector2D source, List<Enemy> targets) {
         if (source == null || targets == null || targets.isEmpty()) {
@@ -843,6 +887,7 @@ public final class GameWorld {
 
         combatEffectManager.spawnPurpleChainLightning(points);
     }
+
     // Vu no Ion co visual rieng, damage AoE van do GameWorld xu ly.
     private void triggerIonProjectileExplosion(Vector2D center, double radius, int damage, Entity owner) {
         if (center == null || radius <= 0.0) return;
@@ -852,7 +897,8 @@ public final class GameWorld {
 
         if (owner instanceof Player attackingPlayer) {
             for (Enemy enemy : enemies) {
-                if (enemy == null || !enemy.isAlive() || enemy.getPosition() == null || isEnemySpawning(enemy)) continue;
+                if (enemy == null || !enemy.isAlive() || enemy.getPosition() == null || isEnemySpawning(enemy))
+                    continue;
 
                 double distance = center.distance(enemy.getPosition());
                 if (distance > radius + enemy.getRadius()) continue;
@@ -879,6 +925,7 @@ public final class GameWorld {
         }
         explosions.removeIf(explosion -> !explosion.isActive());
     }
+
     // Cap nhat hieu ung no Ion va xoa effect da ket thuc.
     private void updateIonExplosions(double deltaSeconds) {
         for (IonExplosionEffect explosion : ionExplosions) {
@@ -929,7 +976,7 @@ public final class GameWorld {
                         player.getPosition(), Color.LIMEGREEN);
 
                 saveCollectedBuff(type);
-            } else if (item instanceof EnergyCrystal energyCrystal){
+            } else if (item instanceof EnergyCrystal energyCrystal) {
                 double amount = energyCrystal.getAmount();
                 double before = player.getMana();
                 player.restoreMana(amount);
@@ -939,7 +986,7 @@ public final class GameWorld {
                             player.getPosition(), Color.AQUA);
                 }
             }
-                item.collect();
+            item.collect();
         }
 
         items.removeIf(Item::isCollected);
@@ -973,6 +1020,7 @@ public final class GameWorld {
             addEnemyWithSpawnEffect(enemy, 0.0);
         }
     }
+
     //ve 2.5D Y-position
     private void renderWorld(GraphicsContext graphicsContext, double renderWidth, double renderHeight) {
         //  Ve background neon trung co phia sau map
@@ -992,14 +1040,7 @@ public final class GameWorld {
         }
 
         // Danh sách Y-Sorting
-        class SortableObject {
-            final double depthY;
-            final Runnable renderAction;
-
-            SortableObject(double depthY, Runnable renderAction) {
-                this.depthY = depthY;
-                this.renderAction = renderAction;
-            }
+        record SortableObject(double depthY, Runnable renderAction) {
         }
 
         List<SortableObject> renderList = new ArrayList<>();
@@ -1301,11 +1342,13 @@ public final class GameWorld {
         loadObstaclesFromCurrentMap();
 
 
-        // 3. Khởi tạo hoặc Đặt lại vị trí Người chơi (Player)
+        // Khoi tao va dat lai vi tri nguoi choi
         Vector2D spawnPoint = mapManager.getSpawnPoint();
         if (this.player == null || freshRun) {
+//            trong truong hop choi moi hoac freshrun
             this.player = new Player(spawnPoint);
         } else {
+//            neu da ton tai tu truoc se cap nhat theo vi tri ban do
             this.player.getPosition().set(spawnPoint);
         }
         this.player.setDragonBreathAction(this::triggerDragonBreath);
@@ -1319,6 +1362,8 @@ public final class GameWorld {
         applyPendingPlayerSave();
 //        dua player den phong da luu
         restorePlayerRoomPosition();
+//        truong hop phong da luu
+//        tim phong da luu va dat player o phong do sao cho tranh vat can
 
         // 4. Khởi tạo Pet đi theo
         createSelectedPet();
@@ -1409,6 +1454,7 @@ public final class GameWorld {
 
         rebuildObstacleCache();
     }
+
     /**
      * Mở bảng chọn phần thưởng (vàng / vũ khí) khi hoàn thành một phòng chiến đấu.
      * Mỗi phòng (trừ START room) khi dọn sạch sẽ mở hộp 1 lần.
@@ -1426,7 +1472,7 @@ public final class GameWorld {
             return;
         }
         if (currentRoom.getType() == Room.RoomType.START || currentRoom.getType() == Room.RoomType.REST
-        || currentRoom.getType() == Room.RoomType.BOSS) {
+                || currentRoom.getType() == Room.RoomType.BOSS) {
             return;
         }
         if (!currentRoom.hasSpawnedEnemies()) {
@@ -1503,11 +1549,13 @@ public final class GameWorld {
             finishRewardPick();
         }
     }
+
     private void finishRewardPick() {
         rewardPicker = null;
         rewardPickerShown = false;
         changeState(GameState.PLAYING);
     }
+
     private void applyGoldReward() {
         if (rewardPicker == null) return;
 
@@ -1524,6 +1572,7 @@ public final class GameWorld {
         SoundManager.getInstance().playSFX("button");
         debug("Nguoi choi chon vang: +" + amount);
     }
+
     // Weapon reward chi thay loadout cua run hien tai, khong thay loadout trong Shop.
     private boolean replaceRunWeaponSlot(int slot, Weapon rewardWeapon) {
         if (rewardWeapon == null || player == null) return false;
@@ -1574,6 +1623,7 @@ public final class GameWorld {
         floatingTextManager.spawnCustom(weapon.getDisplayName() + " ALREADY EQUIPPED", player.getPosition(), Color.ORANGE);
         SoundManager.getInstance().playSFX("button");
     }
+
     private WeaponType findWeaponType(Weapon weapon) {
         if (weapon == null || weapon.getName() == null) return null;
 
@@ -1591,6 +1641,7 @@ public final class GameWorld {
         if (value == null) return "";
         return value.replaceAll("[^a-zA-Z0-9]", "").toLowerCase();
     }
+
     private Weapon getValidRewardWeapon() {
         for (int attempt = 0; attempt < 10; attempt++) {
             Weapon weapon = levelManager.getRewardWeaponForCurrentLevel();
@@ -1728,6 +1779,7 @@ public final class GameWorld {
             pendingBankGold += amount;
         }
     }
+
     public int getGems() {
         return gems;
     }
@@ -1745,6 +1797,7 @@ public final class GameWorld {
             pendingBankGems += amount;
         }
     }
+
     public List<Obstacle> getObstacles() {
         return readOnlyObstacles;
     }
@@ -1782,6 +1835,7 @@ public final class GameWorld {
     public void setPlayerEnergy(double playerEnergy) {
         this.playerEnergy = Math.max(0.0, playerEnergy);
     }
+
     public void switchPlayerWeapon() {
 
         if (player == null ||
@@ -1831,6 +1885,7 @@ public final class GameWorld {
 //        xu li ngam ban tu chuot
         return camera.screenToWorld(inputHandler.getMousePosition());
     }
+
     //Kiem tra xem di duoc khong
     public boolean canMoveTo(Vector2D position, double radius) {
         if (position == null || mapManager == null || radius < 0.0) {
@@ -2193,7 +2248,6 @@ public final class GameWorld {
     public PetType getEquippedPetType() {
         return PetSelectionManager.getInstance().getSelectedPet();
     }
-
 
 
     //    data base
@@ -2604,7 +2658,7 @@ public final class GameWorld {
         int savedRoomNumber = currentRoomNumber;
         int roomIndex = savedRoomNumber - 1;
         if (roomIndex < 0 || roomIndex >= mapManager.getRooms().size()) {
-            System.err.println("Phòng đã lưu không hợp lệ: " + savedRoomNumber);
+            System.err.println("Phong da luu khong hop le: " + savedRoomNumber);
             currentRoomNumber = 1;
             return;
         }
@@ -2612,90 +2666,121 @@ public final class GameWorld {
         Room savedRoom = mapManager.getRooms().get(roomIndex);
 
         if (savedRoom == null || savedRoom.getBound() == null) {
-            System.err.println("Không tìm thấy dữ liệu phòng: " + savedRoomNumber);
+            System.err.println("Khong tim thay du lieu phong: " + savedRoomNumber);
             currentRoomNumber = 1;
             return;
         }
 
         /*
-         * Thử vị trí trung tâm phòng trước.
+         *  khoang cach an toan (padding/margin) them vao ban kinh player
+         * Giup player khong bi dinh sat tuong/vat can dan toi bi ket khong di chuyen duoc
+         */
+        double safetyMargin = 12.0;
+        double checkRadius = player.getRadius() + safetyMargin;
+
+        /*
+         * Thu vi tri trung tam phong truoc voi ban kinh an toan mo rong
          */
         double centerX = savedRoom.getBound().getMinX() + savedRoom.getBound().getWidth() / 2.0;
-
         double centerY = savedRoom.getBound().getMinY() + savedRoom.getBound().getHeight() / 2.0;
 
         Vector2D targetPosition = new Vector2D(centerX, centerY);
 
         /*
-         * Nếu tâm phòng bị tường hoặc obstacle chặn,
-         * tìm một vị trí đi được khác trong chính phòng đó.
+         * Kiem tra xem tam phong co dam bao ban kinh an toan (checkRadius) hay khong.
+         * Neu bi vuong vat can hoac qua sat tuong, tim vi tri khac trong phong.
          */
-        if (!canMoveTo(targetPosition, player.getRadius())) {
-            targetPosition = findWalkablePositionInSavedRoom(savedRoom);
+        if (!canMoveTo(targetPosition, checkRadius)) {
+            targetPosition = findWalkablePositionInSavedRoom(savedRoom, safetyMargin);
         }
 
         if (targetPosition == null) {
-            System.err.println("Không tìm được vị trí hợp lệ trong phòng " + savedRoomNumber);
+            System.err.println("Khong tim duoc vi tri an toan hop le trong phong " + savedRoomNumber);
 
             /*
-             * Không gán currentRoomNumber về 1 ở đây.
-             * Giữ nguyên số phòng save để dễ phát hiện lỗi.
+             * Giu nguyen so phong save de de phat hien loi va debug.
              */
             return;
         }
+
         player.getPosition().set(targetPosition);
         currentRoom = savedRoom;
         currentRoomNumber = savedRoomNumber;
 
-        System.out.println("Đã khôi phục Player tại phòng " + currentRoomNumber + " | position=" + player.getPosition());
+        System.out.println("Da khoi phuc Player tai phong " + currentRoomNumber + " | position=" + player.getPosition());
     }
 
-    private Vector2D findWalkablePositionInSavedRoom(Room savedRoom) {
+    private Vector2D findWalkablePositionInSavedRoom(Room savedRoom, double safetyMargin) {
         if (savedRoom == null || savedRoom.getBound() == null || mapManager == null || player == null) {
             return null;
         }
+
+        // Ban kinh kiem tra va cham da bao gom khoang cach an toan
+        double checkRadius = player.getRadius() + safetyMargin;
+
         /*
-         * Ưu tiên dùng hàm tìm vị trí ngẫu nhiên
-         * trong phòng đã có sẵn trong MapManager.
+         * Thu tim ngau nhien vi tri an toan trong phong.
+         * Su dung checkRadius de dam bao MapManager/canMoveTo tinh toan ca khoang dem.
          */
         for (int attempt = 0; attempt < 50; attempt++) {
             Vector2D candidate =
-                    mapManager.findRandomWalkablePositionInRoom(savedRoom, random, player.getRadius());
+                    mapManager.findRandomWalkablePositionInRoom(savedRoom, random, checkRadius);
 
             if (candidate == null) {
                 continue;
             }
 
+            // Kiem tra ung vien co nam trong vung bien cua phong khong
             if (!savedRoom.getBound().contains(candidate.getX(), candidate.getY())) {
                 continue;
             }
 
-            if (canMoveTo(candidate, player.getRadius())) {
+            // Kiem tra lai dieu kien di chuyen va khoang cach an toan
+            if (canMoveTo(candidate, checkRadius)) {
                 return candidate;
             }
         }
 
         /*
-         * Fallback: quét các điểm trong phòng theo tile,
-         * tránh phụ thuộc hoàn toàn vào random.
+         *  Fallback - quet cac diem trong phong theo tileSize.
+         * Lui bien min/max vao trong mot khoang (tileSize + safetyMargin)
+         * de tranh quet vao cac o sat mep tuong phong.
          */
         double tileSize = mapManager.getTileSize();
-        double minX = savedRoom.getBound().getMinX() + tileSize;
-        double minY = savedRoom.getBound().getMinY() + tileSize;
-        double maxX = savedRoom.getBound().getMaxX() - tileSize;
-        double maxY = savedRoom.getBound().getMaxY() - tileSize;
+        double offset = tileSize + safetyMargin;
+
+        double minX = savedRoom.getBound().getMinX() + offset;
+        double minY = savedRoom.getBound().getMinY() + offset;
+        double maxX = savedRoom.getBound().getMaxX() - offset;
+        double maxY = savedRoom.getBound().getMaxY() - offset;
+
         for (double y = minY; y <= maxY; y += tileSize) {
             for (double x = minX; x <= maxX; x += tileSize) {
+                Vector2D candidate = new Vector2D(x, y);
+
+                if (canMoveTo(candidate, checkRadius)) {
+                    return candidate;
+                }
+            }
+        }
+
+        /*
+         * Fallback cuoi cung - neu phong qua nho hoac qua nhieu vat can
+         * khong tim duoc vi tri co safetyMargin, thu tim lai vi tri chi can vuot qua
+         * ban kinh thuc te player.getRadius() (de tranh bi treo/tra ve null).
+         */
+        for (double y = savedRoom.getBound().getMinY() + tileSize; y <= savedRoom.getBound().getMaxY() - tileSize; y += tileSize) {
+            for (double x = savedRoom.getBound().getMinX() + tileSize; x <= savedRoom.getBound().getMaxX() - tileSize; x += tileSize) {
                 Vector2D candidate = new Vector2D(x, y);
                 if (canMoveTo(candidate, player.getRadius())) {
                     return candidate;
                 }
             }
         }
+
         return null;
     }
 
-    // Cache obstacle để các phép va chạm không phải tạo ArrayList mới mỗi lần gọi.
     private void rebuildObstacleCache() {
         obstacles.clear();
 
@@ -2787,6 +2872,7 @@ public final class GameWorld {
         changeState(GameState.PLAYING);
         saveGameAsync();
     }
+
     public void continueGameFromMenu() {
 
         if (pendingPlayerSave == null) {
@@ -2808,6 +2894,7 @@ public final class GameWorld {
 
         changeState(GameState.PLAYING);
     }
+
     private void initializeRunWeaponLoadout() {
         WeaponSelectionManager manager = WeaponSelectionManager.getInstance();
         runWeaponSlot1 = manager.getSlot1();
@@ -2820,6 +2907,7 @@ public final class GameWorld {
             runWeaponSlot2 = WeaponType.OLD_SWORD;
         }
     }
+
     private void equipActiveRunWeapon() {
 
         if (player == null) {
@@ -2831,6 +2919,7 @@ public final class GameWorld {
         }
         player.equipWeapon(weaponType.createWeapon());
     }
+
     private WeaponType getActiveRunWeaponType() {
         if (activeRunWeaponSlot == 0) {
             return runWeaponSlot1;
@@ -2851,6 +2940,7 @@ public final class GameWorld {
 
         spawnEndingPortal(room);
     }
+
     private void spawnEndingPortal(Room room) {
         if (room == null || room.getBound() == null) return;
 
@@ -2865,6 +2955,7 @@ public final class GameWorld {
 
         debug("Ending portal spawned.");
     }
+
     private void updateEndingPortal(double deltaSeconds) {
         if (endingPortal == null || endingStoryTriggered || player == null) return;
 
@@ -2877,6 +2968,7 @@ public final class GameWorld {
         SoundManager.getInstance().stopBGM();
         changeState(GameState.ENDING_STORY);
     }
+
     // Ket thuc run sau cinematic Boss.
     public void finishEndingRun() {
         SoundManager.getInstance().stopBGM();
@@ -2910,6 +3002,7 @@ public final class GameWorld {
             particleManager.spawnHitImpact(position);
         }
     }
+
     // Cap nhat hieu ung hoi phuc cua Rest Shrine.
     private void updateRestHealEffects(double deltaSeconds) {
         for (RestHealEffect effect : restHealEffects) {
@@ -2921,6 +3014,7 @@ public final class GameWorld {
                 effect -> effect == null || effect.isFinished()
         );
     }
+
     // Cap nhat trang bi tu Shop khi Continue vao run dang ton tai.
     public void refreshEquipmentFromShop() {
         if (player == null || !player.isAlive()) return;
@@ -2928,6 +3022,7 @@ public final class GameWorld {
         refreshPetFromShop();
         refreshRunWeaponsFromShop();
     }
+
     private void refreshRunWeaponsFromShop() {
         WeaponSelectionManager manager = WeaponSelectionManager.getInstance();
         WeaponType newSlot1 = manager.getSlot1();
@@ -2941,11 +3036,13 @@ public final class GameWorld {
         activeRunWeaponSlot = Math.max(0, Math.min(1, activeRunWeaponSlot));
         equipActiveRunWeapon();
     }
+
     // Tao lai Pet theo lua chon moi nhat trong Shop.
     private void refreshPetFromShop() {
         PetType selectedPet = PetSelectionManager.getInstance().getSelectedPet();
         equipPet(selectedPet);
     }
+
     // Tao lai Player neu Hero trong Shop da thay doi.
     private void refreshHeroFromShop() {
         if (player == null || player.getPosition() == null) return;
@@ -3006,6 +3103,7 @@ public final class GameWorld {
         sound.stopBGM();
         sound.playBGM("/assets/Audio/StartGame.mp3");
     }
+
     public interface GameStateListener {
         void onStateChanged(GameState newState);
     }
