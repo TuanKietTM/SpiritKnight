@@ -2102,6 +2102,8 @@ onEnemyKilled()
     \texttt{BuffType}, mỗi Buff có thể triển khai cơ chế riêng nhưng
     vẫn tuân theo cùng một vòng đời quản lý. Thiết kế này giúp hệ thống
     dễ mở rộng khi cần bổ sung thêm các hiệu ứng mới.
+
+
     \chapter{Hệ thống Weapon}
 
     Hệ thống Weapon trong \textit{Spirit Knight} quản lý các loại vũ khí
@@ -2388,6 +2390,8 @@ PetRoomEntryController
     tìm đường tránh vật cản, AI chiến đấu và Sprite Sheet Animation.
     Nhờ đó Pet hoạt động như một thực thể đồng hành độc lập thay vì
     chỉ đơn thuần di chuyển theo vị trí của Player.
+
+
     \chapter{Hệ thống Item}
 
     Hệ thống Item trong \textit{Spirit Knight} quản lý các vật phẩm
@@ -2488,4 +2492,23 @@ ItemMagnetSystem
     Sprite Animation và Magnet System. Thiết kế này giúp việc bổ sung
     các loại vật phẩm mới tương đối đơn giản và đồng thời cải thiện
     trải nghiệm thu thập vật phẩm trong quá trình chiến đấu.
+
+
+    \chapter{Spawn Player}
+    \begin{itemize}
+        \item \textbf{Lấy điểm Spawn từ Map:}Vị trí spawn ban đầu của người chơi được lấy từ đối
+        tượng \texttt{mapManager} thông qua phương thức \texttt{mapManager.getSpawnPoint()}
+        \item \textbf{Khởi tạo ví trí player:}Nếu tạo mới một Player (hoặc chơi lượt mới freshRun),
+        đối tượng Player sẽ được khởi tạo tại vị trí spawnPoint vừa
+        lấy (this.player = new Player(spawnPoint);). Nếu Player đã tồn tại từ trước, vị trí của player
+        sẽ được cập nhật lại theo điểm spawn của bản đồ (this.player.getPosition().set(spawnPoint);).
+        Hàm này sẽ tìm phòng đã lưu (savedRoom) và đặt Player vào
+        \textbf{tâm của phòng đó}. Trong trường hợp tâm phòng bị vướng tường hoặc vật cản (!canMoveTo(...)),
+        hệ thống sẽ tự động tìm kiếm một \textbf{vị trí ngẫu nhiên hoặc vị trí đi lại được hợp lệ}
+        nằm trong chính phòng đó để đặt Player vào.Chu í phương thức restorePlayerRoomPosition để
+        hôi phục trái thái của player. Đã thêm môt khoangr cách an toàn để tránh sinh quas gần với vật cản và tường.
+        \item Xuử lí va chamj giữa đạn và tường: sử dụng cơ chế Bouding Box AABBso sanh va chạm hình chữ nhât
+        trong class Obstacle
+    \end{itemize}
+
 \end{document}
