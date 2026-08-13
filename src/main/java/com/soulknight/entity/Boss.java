@@ -1,14 +1,13 @@
 package com.soulknight.entity;
 
+import com.soulknight.engine.Camera;
 import com.soulknight.engine.GameWorld;
 import com.soulknight.event.GameEventListener;
-import com.soulknight.utils.Constants;
 import com.soulknight.utils.Vector2D;
 import com.soulknight.weapon.Bullet;
+import com.soulknight.weapon.render.IonProjectileRenderer;
+import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class Boss extends Enemy {
 
@@ -17,16 +16,24 @@ public class Boss extends Enemy {
     private double patternTimer = 0.0;
     private double attackCooldown = 0.0;
     private double spiralAngle = 0.0;
+    private double shockwaveTimer = 0.0;
+
+    private final BossAnimator bossAnimator;
+    private boolean isMoving = false;
 
     public Boss(Vector2D spawnPoint, int health, int contactDamage, GameEventListener eventListener) {
-        // Tận dụng constructor của Enemy (dùng RANGED_ELITE hoặc một Archetype phù hợp)
-        super(EnemyArchetype.RANGED_ELITE, spawnPoint, Constants.ENEMY_RADIUS * 2.2, health, 50.0, contactDamage, null, eventListener);
+        super(EnemyArchetype.RANGED_ELITE, spawnPoint, 30, health, 50.0, contactDamage, null, eventListener);
         this.maxHealth = health;
+        this.bossAnimator = new BossAnimator();
     }
 
     @Override
     public void update(GameWorld world, double deltaSeconds) {
-        // Cập nhật Phase dựa trên tỉ lệ máu hiện tại
+        if (!isAlive()) {
+            bossAnimator.update(BossAnimator.State.DIE, deltaSeconds);
+            return;
+        }
+
         double healthPercent = (double) getHealth() / maxHealth;
         if (healthPercent <= 0.3) {
             currentPhase = 3;
@@ -37,91 +44,161 @@ public class Boss extends Enemy {
         }
 
         patternTimer += deltaSeconds;
+        shockwaveTimer += deltaSeconds;
         attackCooldown = Math.max(0.0, attackCooldown - deltaSeconds);
 
-        // AI di chuyển và bắn đạn dạng Pattern
+        isMoving = false;
+
         if (world.getPlayer() != null && world.getPlayer().getPosition() != null) {
             Vector2D playerPos = world.getPlayer().getPosition();
 
-            // Di chuyển chậm về phía Player
+            setFacingLeft(playerPos.getX() < getPosition().getX());
+
             Vector2D dir = playerPos.copy().subtract(getPosition());
             if (dir.length() > 0) {
                 dir.normalize();
-                double moveSpeed = (currentPhase == 3) ? 75.0 : 45.0; // Phase 3 chạy nhanh hơn
+                double moveSpeed = (currentPhase == 3) ? 75.0 : 45.0;
+
+                Vector2D oldPos = getPosition().copy();
                 move(world, dir.getX() * moveSpeed * deltaSeconds, dir.getY() * moveSpeed * deltaSeconds);
+
+                if (getPosition().distance(oldPos) > 0.1) {
+                    isMoving = true;
+                }
             }
 
-            // Xả đạn theo Phase
             if (attackCooldown <= 0.0) {
                 executePattern(world, playerPos);
             }
         }
 
-        super.update(world, deltaSeconds);
+        BossAnimator.State animState = isMoving ? BossAnimator.State.RUN : BossAnimator.State.IDLE;
+        bossAnimator.update(animState, deltaSeconds);
+
+        if (world.getEnemies() != null) {
+            separateFromOtherEnemies(world, world.getEnemies(), deltaSeconds);
+        }
+    }
+
+    @Override
+    public void render(GraphicsContext gc, Camera camera) {
+        double renderWidth = getRadius() * 4.0;
+        double renderHeight = getRadius() * 4.0;
+
+        bossAnimator.render(
+                gc,
+                camera,
+                getPosition().getX(),
+                getPosition().getY(),
+                renderWidth,
+                renderHeight,
+                getRadius(),
+                isFacingLeft()
+        );
     }
 
     private void executePattern(GameWorld world, Vector2D playerPos) {
         switch (currentPhase) {
             case 1 -> {
-                // Phase 1: Bắn vòng tròn 12 viên đạn
-                spawnRingBullets(world, 12, 220.0);
+                spawnRingIonBullets(world, 12, 220.0, 0.6, Color.PURPLE);
+                spawnShockwave(world, 160.0, 300.0, 16.0, getContactDamage(), Color.RED);
                 attackCooldown = 1.8;
             }
             case 2 -> {
-                // Phase 2: Bắn xoắn ốc (Spiral)
-                spawnSpiralBullet(world, 260.0);
-                attackCooldown = 0.15; // Bắn liên tục
+                spawnSpiralIonBullet(world, 260.0, 0.8, Color.ORANGE);
+                if (shockwaveTimer >= 3.0) {
+                    spawnShockwave(world, 200.0, 380.0, 18.0, getContactDamage(), Color.ORANGE);
+                    shockwaveTimer = 0.0;
+                }
+                attackCooldown = 0.15;
             }
             case 3 -> {
-                // Phase 3: Cuồng nộ - Kết hợp Bắn Shotgun về phía Player + Vòng tròn
-                spawnShotgunSpread(world, playerPos, 7, 320.0);
+                spawnShotgunIonSpread(world, playerPos, 7, 320.0, 1.0, Color.RED);
                 if (patternTimer % 1.0 < 0.2) {
-                    spawnRingBullets(world, 16, 240.0);
+                    spawnRingIonBullets(world, 16, 240.0, 0.7, Color.DEEPPINK);
+                }
+                if (shockwaveTimer >= 2.5) {
+                    spawnShockwave(world, 280.0, 420.0, 24.0, (int)(getContactDamage() * 1.5), Color.DARKRED);
+                    shockwaveTimer = 0.0;
                 }
                 attackCooldown = 0.8;
             }
         }
     }
 
-    private void spawnRingBullets(GameWorld world, int count, double speed) {
+    private void spawnShockwave(GameWorld world, double maxRadius, double expandSpeed, double thickness, int damage, Color color) {
+        if (world != null && getPosition() != null) {
+            world.spawnShockwave(
+                    getPosition().copy(),
+                    maxRadius,
+                    expandSpeed,
+                    thickness,
+                    damage,
+                    color,
+                    false
+            );
+        }
+    }
+
+    private void spawnIonBullet(GameWorld world, Vector2D velocity, double radius, double chargeRatio, Color color) {
+        Bullet bullet = new Bullet(
+                getPosition().copy(),
+                velocity,
+                getContactDamage(),
+                radius,
+                this,
+                color,
+                true,
+                false
+        );
+
+        bullet.withRenderer(new IonProjectileRenderer(chargeRatio));
+        bullet.setPiercesObstacles(false);
+        bullet.withTerrainExplosion(radius * 4.0, getContactDamage());
+
+        world.addBullet(bullet);
+    }
+
+    private void spawnRingIonBullets(GameWorld world, int count, double speed, double chargeRatio, Color color) {
         double angleStep = 360.0 / count;
         for (int i = 0; i < count; i++) {
             double rad = Math.toRadians(i * angleStep);
             Vector2D velocity = new Vector2D(Math.cos(rad), Math.sin(rad)).scale(speed);
-            Bullet bullet = new Bullet(getPosition().copy(), velocity, getContactDamage(), 8.0, this, Color.PURPLE);
-            world.addBullet(bullet);
+            spawnIonBullet(world, velocity, 10.0, chargeRatio, color);
         }
     }
 
-    private void spawnSpiralBullet(GameWorld world, double speed) {
+    private void spawnSpiralIonBullet(GameWorld world, double speed, double chargeRatio, Color color) {
         spiralAngle += 22.5;
         double rad = Math.toRadians(spiralAngle);
         Vector2D velocity = new Vector2D(Math.cos(rad), Math.sin(rad)).scale(speed);
-        Bullet bullet = new Bullet(getPosition().copy(), velocity, getContactDamage(), 7.0, this, Color.ORANGE);
-        world.addBullet(bullet);
+        spawnIonBullet(world, velocity, 8.0, chargeRatio, color);
     }
 
-    private void spawnShotgunSpread(GameWorld world, Vector2D targetPos, int count, double speed) {
+    private void spawnShotgunIonSpread(GameWorld world, Vector2D targetPos, int count, double speed, double chargeRatio, Color color) {
         Vector2D dir = targetPos.copy().subtract(getPosition());
         if (dir.length() > 0) dir.normalize();
 
         double baseAngle = Math.atan2(dir.getY(), dir.getX());
-        double spread = Math.toRadians(40.0); // Bán kính xòe 40 độ
+        double spread = Math.toRadians(40.0);
         double startAngle = baseAngle - spread / 2.0;
         double step = spread / (count - 1);
 
         for (int i = 0; i < count; i++) {
             double angle = startAngle + i * step;
             Vector2D velocity = new Vector2D(Math.cos(angle), Math.sin(angle)).scale(speed);
-            Bullet bullet = new Bullet(getPosition().copy(), velocity, getContactDamage(), 8.0, this, Color.RED);
-            world.addBullet(bullet);
+            spawnIonBullet(world, velocity, 12.0, chargeRatio, color);
         }
     }
 
     public int getMaxHealth() { return maxHealth; }
     public int getCurrentPhase() { return currentPhase; }
+    public void setCurrentPhase(int phase) { this.currentPhase = phase; }
 
-    public void setCurrentPhase(int phase) {
-        this.currentPhase = phase;
+    public BossAnimator getBossAnimator() {
+        return bossAnimator;
+    }
+    public boolean isDeathAnimationFinished() {
+        return bossAnimator != null && bossAnimator.isDeathAnimationFinished();
     }
 }
