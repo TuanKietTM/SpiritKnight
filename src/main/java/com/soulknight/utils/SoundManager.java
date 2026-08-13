@@ -64,7 +64,9 @@ public final class SoundManager {
         loadSFX("boss_step","/assets/Audio/step.mp3");
         loadSFX("boss_stomp","/assets/Audio/shockwave'.mp3");
         loadSFX("boss_shoot_laser","/assets/Audio/ion_boss.mp3");
-        loadSFX("boss_shotgun","assets/Audio/s_gun.mp3");
+        loadSFX("boss_shotgun","/assets/Audio/s_gun.mp3");
+        loadSFX("boss_shoot_ring","/assets/Audio/shoot_ring.mp3");
+
     }
 
     public static SoundManager getInstance() {

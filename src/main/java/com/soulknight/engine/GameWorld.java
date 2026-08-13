@@ -3191,9 +3191,6 @@ public final class GameWorld {
     public interface GameStateListener {
         void onStateChanged(GameState newState);
     }
-
-
-
 }
 //NOTE : cac ham xu ly va cham
 // Player - titled (mapmanager): cua room
