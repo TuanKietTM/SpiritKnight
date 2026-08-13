@@ -77,10 +77,9 @@ public final class GameWorld {
     private static final int DRAGON_BREATH_DAMAGE = 5;
     private static final int DRAGON_EXPLOSION_DAMAGE = 33;
     private static final double DRAGON_EXPLOSION_RADIUS = 130.0;
+
     private final Random random = new Random();
-    // phong nao da roi buff thi khong roi lan nua
     private final java.util.Set<Room> buffRewardedRooms = java.util.Collections.newSetFromMap(new IdentityHashMap<>());
-    // trang thai phong frame truoc
     private final java.util.Map<Room, Room.RoomState> previousRoomStates = new IdentityHashMap<>();
     private final InputHandler inputHandler;
     private final Camera camera = new Camera();
@@ -89,21 +88,19 @@ public final class GameWorld {
     private final MissionManager missionManager = new MissionManager();
     private final EnemyFactory enemyFactory = new EnemyFactory(levelManager, missionManager);
     private final FloatingTextManager floatingTextManager = new FloatingTextManager();
-    // Ngan cong trung khi nhieu su kien save xay ra lien tiep
     private final AtomicBoolean bankSyncInProgress = new AtomicBoolean(false);
     private final Object bankRewardLock = new Object();
+
     private final List<Enemy> enemies = new ArrayList<>();
     private final Map<Enemy, EnemySpawnEffect> enemySpawnEffects = new IdentityHashMap<>();
     private final Map<Enemy, EnemyDeathEffect> enemyDeathEffects = new IdentityHashMap<>();
+
     private final List<Bullet> bullets = new ArrayList<>();
-    // Danh sach hieu ung no khi dan va cham (tuong hoac muc tieu)
     private final List<ExplosionEffect> explosions = new ArrayList<>();
-    // Danh sach hieu ung song am lan toa
     private final List<SoundWaveEffect> soundWaves = new ArrayList<>();
-    // Danh sach hieu ung chem cua vu khi can chien (kiem)
     private final List<SlashEffect> slashEffects = new ArrayList<>();
-    // Hieu ung no rieng cua Ion, khong dung chung ExplosionEffect.
     private final List<IonExplosionEffect> ionExplosions = new ArrayList<>();
+
     private final List<Item> items = new ArrayList<>();
     private final ItemMagnetSystem itemMagnetSystem = new ItemMagnetSystem();
     private final ParticleManager particleManager = new ParticleManager();
@@ -113,7 +110,7 @@ public final class GameWorld {
     private final List<Obstacle> readOnlyObstacles = java.util.Collections.unmodifiableList(obstacles);
     private final List<Obstacle> destroyedObstacleQueue = new ArrayList<>();
     private final List<RestHealEffect> restHealEffects = new ArrayList<>();
-    //   chia luong hoat dong rieng cua database de tranh lam cham game
+
     private final ExecutorService databaseExecutor =
             Executors.newSingleThreadExecutor(runnable -> {
                 Thread thread = new Thread(runnable, "soul-knight-database-worker");
@@ -133,7 +130,6 @@ public final class GameWorld {
     private String currentPlayerName = "";
     private int gold = 0;
     private int gems = 0;
-    // Tien cua run hien tai, dung cho HUD va Continue
     private int pendingBankGold = 0;
     private int pendingBankGems = 0;
     private int score = 0;
@@ -147,15 +143,11 @@ public final class GameWorld {
     private GameState state = GameState.INTRO;
     private double enemySpawnTimer;
     private Vector2D pendingPortalPosition;
-    // Cờ đánh dấu bảng chọn phần thưởng đã được mở trong màn hiện tại
+
     private boolean rewardPickerShown;
-    // Bảng chọn phần thưởng hiện tại (null khi không ở trạng thái REWARD_PICK)
     private RewardPicker rewardPicker;
-    // Phòng cuối cùng đã mở hộp phần thưởng (tránh mở trùng)
     private Room lastRewardRoom;
-    // Các phòng đã nhận thưởng trong run hiện tại, key = level:room
     private final java.util.Set<String> rewardedRoomKeys = new java.util.HashSet<>();
-    //    Bien cho hieu ung dau tien cua start room
     private SpawnEffect playerSpawnEffect;
     private SpawnEffect petSpawnEffect;
     private PlayerDeathEffect playerDeathEffect;
@@ -165,55 +157,60 @@ public final class GameWorld {
         this.inputHandler = inputHandler;
     }
 
+    // Lắng nghe sự kiện
     public void setGameStateListener(GameStateListener listener) {
         this.stateListener = listener;
-        // Kích hoạt trạng thái ban đầu cho giao diện
         if (this.stateListener != null) {
             this.stateListener.onStateChanged(this.state);
         }
     }
 
+    // Lắng nghe sự kiện
     public void setBuffHotkeyListener(java.util.function.IntConsumer listener) {
         this.buffHotkeyListener = listener;
     }
 
+    // Hàm chuyển đổi State
     public void changeState(GameState newState) {
         if (newState == null || this.state == newState) return;
 
         GameState oldState = this.state;
         this.state = newState;
 
+        // Chuyển sang State mới thì xóa phím bấm
         if (inputHandler != null) {
             inputHandler.clearState();
         }
-        handleBGMStateChange(oldState, newState);
+        // Quản lí chuyển nhạc nền
+        handleBGMStateChange(newState);
+
         if (stateListener != null) {
             stateListener.onStateChanged(newState);
         }
     }
-    // Quan ly nhac nen khi thay doi GameState.
-    private void handleBGMStateChange(GameState oldState, GameState newState) {
+    // Quản lí chuyển nhạc nền
+    private void handleBGMStateChange(GameState newState) {
         SoundManager sound = SoundManager.getInstance();
+
         if (newState == GameState.PLAYING) {
-            // Luon khoi dong lai BGM gameplay khi quay vao game.
             playGameBGM();
             return;
         }
         if (newState == GameState.PAUSED) {
-            // Pause chi dung logic game, khong dung BGM.
             return;
         }
         if (newState == GameState.MAIN_MENU) {
-            // Neu menu co BGM rieng thi class menu co the play sau do.
             sound.stopBGM();
         }
     }
 
+    // Cập nhật logic chính toàn bộ game
     public void update(double deltaSeconds, double viewportWidth, double viewportHeight) {
-//        game pause thi ngung toan bo logic , cap nhat
+        // Paused thì return luôn
         if (state == GameState.PAUSED) {
             return;
         }
+        // Buff
         if (state == GameState.PLAYING && inputHandler != null) {
             int buffIndex = inputHandler.consumeBuffHotkeyRequest();
 
@@ -221,20 +218,17 @@ public final class GameWorld {
                 buffHotkeyListener.accept(buffIndex);
             }
         }
+
         dynamicBackground.update(deltaSeconds);
 
         switch (state) {
-            case INTRO -> {
-                inputHandler.consumeConfirmRequest();
-            }
-            case MAIN_MENU -> {
+            case INTRO, MAIN_MENU -> {
                 inputHandler.consumeConfirmRequest();
             }
             case PLAYING -> updatePlaying(deltaSeconds, viewportWidth, viewportHeight, false);
             case LEVEL_CLEAR -> updateLevelClear(deltaSeconds, viewportWidth, viewportHeight);
             case REWARD_PICK -> updateRewardPick();
-            case ENDING_STORY -> {
-            }
+            case ENDING_STORY -> {}
             case GAME_OVER, GAME_VICTORY -> {
                 if (inputHandler.consumeConfirmRequest()) {
                     startNewRun();
@@ -245,24 +239,24 @@ public final class GameWorld {
     }
 
     public void render(GraphicsContext graphicsContext, double renderWidth, double renderHeight) {
+
         graphicsContext.clearRect(0.0, 0.0, renderWidth, renderHeight);
+
         if (state != GameState.INTRO && state != GameState.MAIN_MENU && mapManager != null && player != null) {
             renderWorld(graphicsContext, renderWidth, renderHeight);
         }
-        // Vẽ overlay chọn phần thưởng lên trên cùng khi đang ở trạng thái REWARD_PICK
         if (state == GameState.REWARD_PICK && rewardPicker != null) {
             Vector2D mousePos = inputHandler != null ? inputHandler.getMousePosition() : null;
             rewardPicker.render(graphicsContext, mousePos);
         }
     }
 
-    //    update cho trang thai PLAYING, cap nhat tat ca cac doi tuong trong game
+    // update Playing State
     private void updatePlaying(double deltaSeconds, double viewportWidth, double viewportHeight, boolean allowSpawns) {
         if (player == null || mapManager == null) {
             return;
         }
-
-//       cap nhat hieu ung spawn cho player va pet
+        // cập nhật hiệu ứng
         if (playerSpawnEffect != null) {
             playerSpawnEffect.update(deltaSeconds);
         }
@@ -272,6 +266,7 @@ public final class GameWorld {
         if (playerDeathEffect != null) {
             playerDeathEffect.update(deltaSeconds);
         }
+
         updateEnemySpawnEffects(deltaSeconds);
 
         if (player.isAlive()) {
@@ -279,7 +274,6 @@ public final class GameWorld {
             updatePet(deltaSeconds);
             updateCurrentRoom();
         }
-
         if (currentRoom != null) {
             currentRoom.update(this, player, enemies, deltaSeconds);
         }
