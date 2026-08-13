@@ -59,6 +59,12 @@ public final class SoundManager {
         loadSFX("ion_explosion", "/assets/Audio/ion_explosion.mp3");
         loadSFX("portal_open", "/assets/Audio/portal_open.mp3");
         loadSFX("heal", "/assets/Audio/heal.mp3");
+        loadSFX("boss_die","/assets/Audio/die.mp3");
+        loadSFX("boss_roar","/assets/Audio/roam.mp3");
+        loadSFX("boss_step","/assets/Audio/step.mp3");
+        loadSFX("boss_stomp","/assets/Audio/shockwave'.mp3");
+        loadSFX("boss_shoot_laser","/assets/Audio/ion_boss.mp3");
+        loadSFX("boss_shotgun","assets/Audio/s_gun.mp3");
     }
 
     public static SoundManager getInstance() {

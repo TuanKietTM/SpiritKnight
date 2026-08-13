@@ -112,6 +112,7 @@ public final class GameWorld {
     private final List<Obstacle> readOnlyObstacles = java.util.Collections.unmodifiableList(obstacles);
     private final List<Obstacle> destroyedObstacleQueue = new ArrayList<>();
     private final List<RestHealEffect> restHealEffects = new ArrayList<>();
+    private final List<Shockwave> shockwaves = new ArrayList<>();
     //   chia luong hoat dong rieng cua database de tranh lam cham game
     private final ExecutorService databaseExecutor =
             Executors.newSingleThreadExecutor(runnable -> {
@@ -314,6 +315,7 @@ public final class GameWorld {
         updateItemCollection();
         updateEndingPortal(deltaSeconds);
         openRewardPickerOnMissionComplete();
+        updateShockwaves(deltaSeconds);
         updateAutoSave(deltaSeconds);
 
         if (allowSpawns) {
@@ -1024,6 +1026,8 @@ public final class GameWorld {
         dynamicBackground.render(graphicsContext, camera, renderWidth, renderHeight);
         // Vẽ sàn nhà bẹt dưới cùng trước
         mapManager.renderFloor(graphicsContext, camera, renderWidth, renderHeight);
+//        shockwave duoi bong va duoi tat ca enemy vat can
+        renderShockwaves(graphicsContext, camera);
         // Vẽ bóng của obstacle dưới các sprite. Obstacle đã được load một lần khi load map.
         for (Obstacle obstacle : obstacles) {
             if (obstacle == null || obstacle.isDestroyed() || obstacle.getPosition() == null) {
@@ -1305,8 +1309,6 @@ public final class GameWorld {
             particleManager.render(graphicsContext, camera);
         }
         floatingTextManager.render(graphicsContext, camera);
-        renderBossHUD(graphicsContext, renderWidth);
-
     }
 
     private void startNewRun() {
@@ -1406,7 +1408,7 @@ public final class GameWorld {
             Enemy boss = enemyFactory.createGrandKnight(spawnPos);
 
             // Thêm vào danh sách quái
-            addEnemyWithSpawnEffect(boss, 0.0);
+            //addEnemyWithSpawnEffect(boss, 0.0);
         }
 
         // 7. Tạo nhiệm vụ cho Level hiện tại
@@ -1676,7 +1678,7 @@ public final class GameWorld {
             }
         }
         if (spawnPoints.isEmpty()) {
-            spawnPoints.add(mapManager.getBossSpawnPoint());
+//            spawnPoints.add(mapManager.getBossSpawnPoint());
         }
         return spawnPoints;
     }
@@ -2541,6 +2543,21 @@ public final class GameWorld {
             if (enemy == null || enemy.isAlive()) {
                 continue;
             }
+//            Xử lí riêng hiệu ứng die của boss
+            if (enemy instanceof Boss boss) {
+                enemySpawnEffects.remove(boss);
+                if (player != null && player.getBuffManager() != null) {
+                    player.getBuffManager().notifyEnemyKilled(this, boss);
+                }
+                boss.getBossAnimator().update(BossAnimator.State.DIE, deltaSeconds);
+                if (boss.isDeathAnimationFinished()) {
+                    giveEnemyReward(boss);
+                    enemies.remove(i);
+                    handleBossDeathCompleted(boss);
+                }
+                continue;
+            }
+//            hieu ung die cua quai thuong
             EnemyDeathEffect deathEffect = enemyDeathEffects.get(enemy);
 
             if (deathEffect == null) {
@@ -3131,7 +3148,40 @@ public final class GameWorld {
 
         this.player = newPlayer;
     }
+    public void addShockwave(Shockwave shockwave) {
+        if (shockwave != null) {
+            synchronized (shockwaves) {
+                shockwaves.add(shockwave);
+            }
+        }
+    }
+    public void spawnShockwave(Vector2D position, double maxRadius, double expandSpeed, double thickness, int damage, Color color, boolean fromPlayer) {
+        addShockwave(new Shockwave(position, 0.0, maxRadius, expandSpeed,
+                thickness, damage, color, fromPlayer));
 
+    }
+    private void updateShockwaves(double deltaSeconds) {
+        synchronized (shockwaves) {
+            for (int i = 0; i < shockwaves.size(); i++) {
+                shockwaves.get(i).update(this, deltaSeconds);
+            }
+            shockwaves.removeIf(sw -> !sw.isActive());
+        }
+    }
+    public void renderShockwaves(GraphicsContext gc, Camera camera) {
+        synchronized (shockwaves) {
+            for (int i = 0; i < shockwaves.size(); i++) {
+                shockwaves.get(i).render(gc, camera);
+            }
+        }
+    }
+    private void handleBossDeathCompleted(Boss boss) {
+        if (levelManager != null && levelManager.getCurrentLevel() != null
+                && levelManager.getCurrentLevel().bossLevel()) {
+            Vector2D portalPos = boss.getPosition().copy();
+            this.endingPortal = new EndingPortal(portalPos);
+        }
+    }
     private void playGameBGM() {
         SoundManager sound = SoundManager.getInstance();
         sound.stopBGM();
@@ -3141,64 +3191,6 @@ public final class GameWorld {
     public interface GameStateListener {
         void onStateChanged(GameState newState);
     }
-
-    public void renderBossHUD(GraphicsContext gc, double screenWidth) {
-        if (enemies == null || enemies.isEmpty()) return;
-
-        // 1. Tìm con Boss đang sống trong danh sách enemies
-        Boss boss = null;
-        for (Enemy enemy : enemies) {
-            if (enemy instanceof Boss b && b.isAlive()) {
-                boss = b;
-                break;
-            }
-        }
-
-        // Nếu không có Boss thì không render HUD
-        if (boss == null) return;
-
-        // 2. Thiết lập kích thước & vị trí thanh máu (căn giữa màn hình)
-        double barWidth = 450.0;
-        double barHeight = 22.0;
-        double x = (screenWidth - barWidth) / 2.0;
-        double y = 35.0;
-
-        gc.save();
-
-        // 3. Vẽ nền đen & viền vàng
-        gc.setFill(Color.rgb(20, 20, 20, 0.85));
-        gc.fillRect(x - 4, y - 4, barWidth + 8, barHeight + 8);
-        gc.setStroke(Color.GOLD);
-        gc.setLineWidth(2.0);
-        gc.strokeRect(x - 4, y - 4, barWidth + 8, barHeight + 8);
-
-        // 4. Tính tỉ lệ máu dựa trên getHealth() từ Entity và getMaxHealth() từ Boss
-        int maxHp = boss.getMaxHealth() > 0 ? boss.getMaxHealth() : 1;
-        double healthPercent = Math.max(0.0, Math.min(1.0, (double) boss.getHealth() / maxHp));
-
-        // 5. Thay đổi màu thanh máu theo Phase của Boss
-        Color healthColor = switch (boss.getCurrentPhase()) {
-            case 2 -> Color.ORANGE;
-            case 3 -> Color.RED;
-            default -> Color.PURPLE;
-        };
-
-        // 6. Vẽ thanh máu hiện tại
-        gc.setFill(healthColor);
-        gc.fillRect(x, y, barWidth * healthPercent, barHeight);
-
-        // 7. Hiển thị thông tin Tên Boss, Phase và Chỉ số Máu
-        gc.setFill(Color.WHITE);
-        gc.setFont(javafx.scene.text.Font.font("Consolas", javafx.scene.text.FontWeight.BOLD, 14));
-        gc.fillText("GRAND KNIGHT - PHASE " + boss.getCurrentPhase(), x + 10, y + 16);
-
-        String hpText = boss.getHealth() + " / " + maxHp;
-        gc.fillText(hpText, x + barWidth - 100, y + 16);
-
-        gc.restore();
-    }
-
-
 }
 //NOTE : cac ham xu ly va cham
 // Player - titled (mapmanager): cua room

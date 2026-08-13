@@ -353,30 +353,28 @@ public class Enemy extends Entity {
 // HÀM PHỤ TRỢ: TÍNH HƯỚNG VÀ PHÓNG ĐẠN
 // ==========================================
     private void shootBulletAt(GameWorld world, Vector2D targetPos) {
-        // 1. Tính Vector hướng từ Quái tới vị trí Player tại thời điểm bắn
         Vector2D dir = targetPos.copy().subtract(getPosition());
 
         if (dir.length() > 0) {
-            dir.normalize(); // Chuẩn hóa về Vector độ dài 1
+            dir.normalize();
         } else {
-            dir = new Vector2D(1, 0); // Mặc định hướng sang phải nếu đứng trùng tọa độ
+            dir = new Vector2D(1, 0);
         }
 
-        // 2. Tính Vector vận tốc đạn (Hướng * Tốc độ đạn)
         Vector2D bulletVelocity = dir.scale(bulletSpeed);
 
-        // 3. Khởi tạo viên đạn mới theo đúng Constructor của class Bullet
+        // Chon mau dan tuy thuoc theo archetype cua Quai
+        Color bulletColor = (this.archetype == EnemyArchetype.RANGED_ELITE) ? Color.PURPLE : Color.ORANGERED;
+
         Bullet bullet = new Bullet(
-                getPosition().copy(),   // Vị trí xuất phát (từ tâm Quái)
-                bulletVelocity,         // Vận tốc đạn
-                bulletDamage,           // Sát thương
-                bulletRadius,           // Bán kính va chạm của đạn
-                this,                   // Owner: Entity bắn ra đạn này (Enemy)
-                Color.RED               // Màu dự phòng (nếu chưa load được ảnh dan.png)
+                getPosition().copy(),
+                bulletVelocity,
+                bulletDamage,
+                bulletRadius,
+                this,
+                bulletColor             // Truyen mau dam đac trung cho quai
         );
 
-        // 4. Thêm viên đạn vào GameWorld
-        // (Bạn lưu ý kiểm tra tên hàm thêm đạn trong GameWorld của bạn, ví dụ: addBullet hoặc spawnBullet)
         world.addBullet(bullet);
     }
 
@@ -475,6 +473,9 @@ public class Enemy extends Entity {
         double startAngle = -spreadAngleDeg / 2.0;
         double angleStep = spreadAngleDeg / (bulletCount - 1);
 
+        // Quai Elite ban chùm đạn mau tim (Purple) hoac do đam
+        Color bulletColor = Color.PURPLE;
+
         for (int i = 0; i < bulletCount; i++) {
             double currentAngleDeg = startAngle + (i * angleStep);
             double angleRad = Math.toRadians(currentAngleDeg);
@@ -494,10 +495,9 @@ public class Enemy extends Entity {
                     this.bulletDamage,
                     this.bulletRadius,
                     this,
-                    Color.RED
+                    bulletColor
             );
 
-            // Kích hoạt tính năng giảm tốc & tầm xa giới hạn
             bullet.setDecelerationAndRange(dragFactor, maxDistance);
 
             world.addBullet(bullet);
@@ -527,5 +527,12 @@ public class Enemy extends Entity {
         PATROL,
         AIMING,
         REPOSITION
+    }
+    public boolean isFacingLeft() {
+        return isFacingLeft;
+    }
+
+    public void setFacingLeft(boolean facingLeft) {
+        this.isFacingLeft = facingLeft;
     }
 }

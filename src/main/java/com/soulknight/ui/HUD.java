@@ -98,6 +98,15 @@ public final class HUD {
     @FXML
     private HBox activeBuffContainer;
 
+    @FXML
+    private VBox bossHudContainer;
+    @FXML
+    private Label bossNameLabel;
+    @FXML
+    private ProgressBar bossHpBar;
+    @FXML
+    private Label bossHpLabel;
+
     private MinimapRenderer minimapRenderer;
 
     private Runnable onPauseRequested;
@@ -212,6 +221,7 @@ public final class HUD {
 
         updatePlayerUI(player);
         updateWorldUI(world, enemyCount);
+        updateBossUI(world);
 
         updateJoystickUI(world);
         updateMinimapUI(world, player);
@@ -649,5 +659,64 @@ public final class HUD {
             return null;
         }
         return new Image(resource.toExternalForm(), false);
+    }
+    private void updateBossUI(GameWorld world) {
+        if (bossHudContainer == null || world == null || world.getEnemies() == null) {
+            hideBossHUD();
+            return;
+        }
+
+        // Tim con Boss dang song trong danh sach enemies
+        com.soulknight.entity.Boss boss = null;
+        for (com.soulknight.entity.Enemy enemy : world.getEnemies()) {
+            if (enemy instanceof com.soulknight.entity.Boss b && b.isAlive()) {
+                boss = b;
+                break;
+            }
+        }
+
+        // Neu khong co Boss dang song -> An HUD Boss ngay lập tức
+        if (boss == null) {
+            hideBossHUD();
+            return;
+        }
+
+        // Neu co Boss -> Hiện HUD
+        bossHudContainer.setVisible(true);
+        bossHudContainer.setManaged(true);
+
+        // Dynamic HP & Max HP
+        int currentHp = Math.max(0, boss.getHealth());
+        int maxHp = boss.getMaxHealth() > 0 ? boss.getMaxHealth() : 1;
+        double healthPercent = (double) currentHp / maxHp;
+
+        if (bossHpBar != null) {
+            bossHpBar.setProgress(healthPercent);
+
+            // Thay doi mau thanh mau theo Phase của Boss
+            String colorHex = switch (boss.getCurrentPhase()) {
+                case 2 -> "#FFA500"; // Orange
+                case 3 -> "#FF0000"; // Red
+                default -> "#800080"; // Purple
+            };
+            bossHpBar.setStyle("-fx-accent: " + colorHex + ";");
+        }
+
+        // Update Text chỉ số Máu
+        if (bossHpLabel != null) {
+            bossHpLabel.setText(currentHp + " / " + maxHp);
+        }
+
+        // Update Tên Boss va Phase hiện tại
+        if (bossNameLabel != null) {
+            bossNameLabel.setText("GRAND KNIGHT - PHASE " + boss.getCurrentPhase());
+        }
+    }
+
+    private void hideBossHUD() {
+        if (bossHudContainer != null && bossHudContainer.isVisible()) {
+            bossHudContainer.setVisible(false);
+            bossHudContainer.setManaged(false);
+        }
     }
 }
