@@ -199,4 +199,29 @@
                 radius="25"
                 styleClass="joystick-thumb"/>
     </StackPane>
+    <VBox fx:id="bossHudContainer"
+          alignment="CENTER"
+          spacing="4"
+          visible="false"
+          managed="false"
+          AnchorPane.topAnchor="75.0"
+          AnchorPane.leftAnchor="0.0"
+          AnchorPane.rightAnchor="0.0"
+          mouseTransparent="true">
+        <HBox alignment="CENTER" spacing="10">
+            <Label fx:id="bossNameLabel"
+                   text="GRAND KNIGHT - PHASE 1"
+                   style="-fx-text-fill: #FFD700; -fx-font-weight: bold; -fx-font-size: 14px; -fx-font-family: 'Consolas';" />
+        </HBox>
+        <StackPane alignment="CENTER" maxWidth="480.0">
+            <ProgressBar fx:id="bossHpBar"
+                         progress="1.0"
+                         prefWidth="480.0"
+                         prefHeight="20.0"
+                         style="-fx-accent: #800080;" />
+            <Label fx:id="bossHpLabel"
+                   text="1000 / 1000"
+                   style="-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 12px; -fx-font-family: 'Consolas';" />
+        </StackPane>
+    </VBox>
 </AnchorPane>

@@ -3,6 +3,7 @@ package com.soulknight.entity;
 import com.soulknight.engine.Camera;
 import com.soulknight.engine.GameWorld;
 import com.soulknight.event.GameEventListener;
+import com.soulknight.utils.SoundManager;
 import com.soulknight.utils.Vector2D;
 import com.soulknight.weapon.Bullet;
 import com.soulknight.weapon.render.IonProjectileRenderer;
@@ -18,6 +19,9 @@ public class Boss extends Enemy {
     private double spiralAngle = 0.0;
     private double shockwaveTimer = 0.0;
 
+    private double stepSoundTimer = 0.0;
+    private boolean playedDeathSound = false;
+
     private final BossAnimator bossAnimator;
     private boolean isMoving = false;
 
@@ -31,10 +35,18 @@ public class Boss extends Enemy {
     public void update(GameWorld world, double deltaSeconds) {
         if (!isAlive()) {
             bossAnimator.update(BossAnimator.State.DIE, deltaSeconds);
+
+            if (!playedDeathSound) {
+                SoundManager.getInstance().playSFX("boss_die");
+                playedDeathSound = true;
+            }
             return;
         }
 
+
         double healthPercent = (double) getHealth() / maxHealth;
+        int oldPhase = currentPhase;
+
         if (healthPercent <= 0.3) {
             currentPhase = 3;
         } else if (healthPercent <= 0.6) {
@@ -43,9 +55,14 @@ public class Boss extends Enemy {
             currentPhase = 1;
         }
 
+        if (currentPhase > oldPhase) {
+            SoundManager.getInstance().playSFX("boss_roar");
+        }
+
         patternTimer += deltaSeconds;
         shockwaveTimer += deltaSeconds;
         attackCooldown = Math.max(0.0, attackCooldown - deltaSeconds);
+        stepSoundTimer += deltaSeconds;
 
         isMoving = false;
 
@@ -64,6 +81,10 @@ public class Boss extends Enemy {
 
                 if (getPosition().distance(oldPos) > 0.1) {
                     isMoving = true;
+                    if (stepSoundTimer >= 0.4) {
+                        SoundManager.getInstance().playSFX("boss_step");
+                        stepSoundTimer = 0.0;
+                    }
                 }
             }
 
@@ -128,6 +149,9 @@ public class Boss extends Enemy {
 
     private void spawnShockwave(GameWorld world, double maxRadius, double expandSpeed, double thickness, int damage, Color color) {
         if (world != null && getPosition() != null) {
+            // 4. Âm thanh dậm đất tạo sóng chấn động
+            SoundManager.getInstance().playSFX("boss_stomp"); // Đổi tên file sfx
+
             world.spawnShockwave(
                     getPosition().copy(),
                     maxRadius,
@@ -160,6 +184,8 @@ public class Boss extends Enemy {
     }
 
     private void spawnRingIonBullets(GameWorld world, int count, double speed, double chargeRatio, Color color) {
+        SoundManager.getInstance().playSFX("boss_shoot_ring"); // Đổi tên file sfx
+
         double angleStep = 360.0 / count;
         for (int i = 0; i < count; i++) {
             double rad = Math.toRadians(i * angleStep);
@@ -169,6 +195,8 @@ public class Boss extends Enemy {
     }
 
     private void spawnSpiralIonBullet(GameWorld world, double speed, double chargeRatio, Color color) {
+        SoundManager.getInstance().playSFX("boss_shoot_laser");
+
         spiralAngle += 22.5;
         double rad = Math.toRadians(spiralAngle);
         Vector2D velocity = new Vector2D(Math.cos(rad), Math.sin(rad)).scale(speed);
@@ -176,6 +204,9 @@ public class Boss extends Enemy {
     }
 
     private void spawnShotgunIonSpread(GameWorld world, Vector2D targetPos, int count, double speed, double chargeRatio, Color color) {
+
+        SoundManager.getInstance().playSFX("boss_shotgun");
+
         Vector2D dir = targetPos.copy().subtract(getPosition());
         if (dir.length() > 0) dir.normalize();
 
