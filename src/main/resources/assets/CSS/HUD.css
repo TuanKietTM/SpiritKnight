@@ -230,3 +230,15 @@
     -fx-translate-x: 3px;
     -fx-translate-y: 3px;
 }
+#bossHpBar .track {
+    -fx-background-color: rgba(20, 20, 20, 0.85);
+    -fx-background-radius: 4px;
+    -fx-border-color: #FFD700;
+    -fx-border-width: 2px;
+    -fx-border-radius: 4px;
+}
+
+#bossHpBar .bar {
+    -fx-background-radius: 2px;
+    -fx-padding: 2px;
+}
