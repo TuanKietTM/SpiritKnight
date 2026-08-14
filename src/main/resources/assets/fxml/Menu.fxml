@@ -10,7 +10,8 @@
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
-<StackPane xmlns="http://javafx.com/javafx/21"
+<StackPane fx:id="rootStackPane"
+           xmlns="http://javafx.com/javafx/21"
            xmlns:fx="http://javafx.com/fxml/1"
            fx:controller="com.soulknight.ui.Menu"
            stylesheets="@../CSS/Menu.css"

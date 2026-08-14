@@ -593,8 +593,8 @@ public final class UIManager {
             menuController.setOnAccountRequested(() -> {
                 sound.playSFX("button");
 
-                menuRoot.setVisible(false);
-                menuRoot.setManaged(false);
+                menuRoot.setVisible(true);
+                menuRoot.setManaged(true);
 
                 accountRoot.setVisible(true);
                 accountRoot.setManaged(true);
@@ -624,7 +624,7 @@ public final class UIManager {
 
             menuController.setOnSettingsRequested(() -> {
                 sound.playSFX("button");
-                menuRoot.setVisible(false);
+                menuRoot.setVisible(true);
                 settingRoot.setVisible(true);
                 settingRoot.toFront();
 
@@ -655,8 +655,8 @@ public final class UIManager {
 
                 sound.playSFX("button");
 
-                menuRoot.setVisible(false);
-                menuRoot.setManaged(false);
+                menuRoot.setVisible(true);
+                menuRoot.setManaged(true);
 
                 leaderboardRoot.setVisible(true);
                 leaderboardRoot.setManaged(true);
@@ -696,8 +696,8 @@ public final class UIManager {
 
                 sound.playSFX("button");
 
-                menuRoot.setVisible(false);
-                menuRoot.setManaged(false);
+                menuRoot.setVisible(true);
+                menuRoot.setManaged(true);
 
                 shopRoot.setVisible(true);
                 shopRoot.setManaged(true);

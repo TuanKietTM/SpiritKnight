@@ -3,40 +3,58 @@
     src: url("../fonts/PressStart2P-Regular.ttf");
 }
 
+
 .pause-screen-overlay {
-    -fx-background-color: rgba(2, 6, 13, 0.86);
+    -fx-background-color: rgba(2, 6, 13, 0.88);
     -fx-alignment: center;
     -fx-padding: 24px;
 }
 
 .pause-dialog {
-    -fx-background-color: rgba(5, 10, 19, 0.98);
-    -fx-border-color: rgba(198, 181, 112, 0.62);
-    -fx-border-width: 2px;
+    -fx-background-color: #0b121e;
+    -fx-border-color: #ffd700 #7a6200 #7a6200 #ffd700; /* Viền Vàng Nổi Pixel 3D */
+    -fx-border-width: 3px;
     -fx-padding: 24px;
-    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.86), 22, 0.25, 0, 8);
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.95), 22, 0.3, 0, 8);
 }
 
 .header-container {
     -fx-padding: 0 0 14px 0;
-    -fx-border-color: transparent transparent rgba(198, 181, 112, 0.24) transparent;
-    -fx-border-width: 0 0 1px 0;
+    -fx-border-color: transparent transparent #2a3a4b transparent;
+    -fx-border-width: 0 0 2px 0;
 }
 
 .avatar-box {
-    -fx-background-color: #080d17;
-    -fx-min-width: 72px;
-    -fx-min-height: 72px;
-    -fx-max-width: 72px;
-    -fx-max-height: 72px;
-    -fx-border-color: #526775;
-    -fx-border-width: 2px;
+    -fx-background-color: #05080e;
+    -fx-min-width: 64px;
+    -fx-min-height: 64px;
+    -fx-max-width: 64px;
+    -fx-max-height: 64px;
+    -fx-border-color: #ffffff #3a4b5c #3a4b5c #ffffff;
+    -fx-border-width: 3px;
+    -fx-padding: 2px;
+}
+
+.pause-banner-wrapper {
+    -fx-alignment: center;
+    -fx-padding: 0 10px;
+}
+
+.pause-banner {
+    -fx-background-color: linear-gradient(to bottom, #e84118 0%, #c23616 50%, #8c1d04 100%);
+    -fx-border-color: #fbc531 #6d0f00 #6d0f00 #fbc531;
+    -fx-border-width: 3px;
+    -fx-padding: 8px 30px;
+    -fx-alignment: center;
+    -fx-effect: dropshadow(two-pass-box, rgba(0, 0, 0, 0.8), 6, 0.0, 0, 5);
 }
 
 .pause-title {
     -fx-font-family: "Press Start 2P";
     -fx-font-size: 22px;
-    -fx-text-fill: #fff0b8;
+    -fx-text-fill: #fbc531;
+
+    -fx-effect: dropshadow(one-pass-box, #2c0b05, 0, 0, 3, 3);
 }
 
 .pause-title-line {
@@ -63,36 +81,35 @@
 }
 
 .buff-grid {
-    -fx-padding: 5px 0 0 0;
+    -fx-padding: 10px 0;
 }
 
 .buff-slot {
-    -fx-min-width: 48px;
-    -fx-min-height: 48px;
-    -fx-pref-width: 48px;
-    -fx-pref-height: 48px;
-    -fx-max-width: 48px;
-    -fx-max-height: 48px;
-    -fx-background-color: #080d17;
-    -fx-border-color: #314453;
-    -fx-border-width: 2px;
+    -fx-min-width: 50px;
+    -fx-min-height: 50px;
+    -fx-pref-width: 50px;
+    -fx-pref-height: 50px;
+    -fx-max-width: 50px;
+    -fx-max-height: 50px;
+    -fx-background-color: #060a12;
+    -fx-border-color: #1e2b37 #486581 #486581 #1e2b37;
+    -fx-border-width: 3px;
 }
 
 .slot-filled {
-    -fx-background-color: #111d29;
-    -fx-border-color: #788c98;
+    -fx-background-color: #101c28;
+    -fx-border-color: #fbc531 #7a6200 #7a6200 #fbc531; /* Viền vàng sáng cho ô có Buff */
 }
 
 .buff-slot-quantity {
     -fx-font-family: "Press Start 2P";
     -fx-font-size: 8px;
     -fx-font-weight: bold;
-    -fx-text-fill: #ffffff;
-    -fx-background-color: rgba(0, 0, 0, 0.82);
-    -fx-background-radius: 5px;
-    -fx-padding: 2px 3px 2px 3px;
-    -fx-translate-x: 3px;
-    -fx-translate-y: 3px;
+    -fx-text-fill: #00cec9;
+    -fx-background-color: rgba(0, 0, 0, 0.9);
+    -fx-border-color: #2d3436;
+    -fx-border-width: 1px;
+    -fx-padding: 1px 3px;
 }
 
 .settings-header {
@@ -196,38 +213,47 @@
     -fx-cursor: hand;
 }
 
+/* =========================================================================
+   FOOTER BUTTONS
+   ========================================================================= */
+.footer-container {
+    -fx-padding: 6px 0 0 0;
+}
+
 .action-button {
     -fx-font-family: "Press Start 2P";
     -fx-font-size: 9px;
-    -fx-background-color: rgba(15, 24, 36, 0.96);
-    -fx-border-color: #526775;
-    -fx-border-width: 2px;
-    -fx-text-fill: #bac8cf;
-    -fx-padding: 13px 16px;
+    -fx-background-color: #1b2634;
+    -fx-border-color: #486581 #0f172a #0f172a #486581;
+    -fx-border-width: 3px;
+    -fx-padding: 8px 12px;
     -fx-cursor: hand;
+    -fx-alignment: center;
 }
 
 .action-button:hover {
-    -fx-background-color: #223342;
-    -fx-border-color: #9fb7c2;
-    -fx-text-fill: #ffffff;
+    -fx-background-color: #2c3e50;
+    -fx-border-color: #7f8c8d #1e272e #1e272e #7f8c8d;
+}
+
+.action-button:pressed {
+    -fx-border-color: #0f172a #486581 #486581 #0f172a;
+    -fx-translate-y: 2px;
 }
 
 .btn-resume {
-    -fx-background-color: rgba(89, 76, 34, 0.96);
-    -fx-border-color: #d8c271;
-    -fx-text-fill: #fff4cb;
-    -fx-min-width: 180px;
+    -fx-background-color: #c23616;
+    -fx-border-color: #fbc531 #6d0f00 #6d0f00 #fbc531;
+    -fx-min-width: 130px;
 }
 
 .btn-resume:hover {
-    -fx-background-color: #827037;
-    -fx-border-color: #fff0a8;
+    -fx-background-color: #e84118;
 }
 
 .btn-home,
 .btn-setting {
-    -fx-min-width: 150px;
+    -fx-min-width: 90px;
 }
 
 .btn-close {
