@@ -13,8 +13,10 @@ import javafx.scene.image.Image;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Dai dien cho mot phong trong ban do
+/*
+    - Quản lí loại phòng
+    - Quản lí đợt quái trong phòng
+
  */
 public class Room {
 
@@ -67,17 +69,13 @@ public class Room {
             this.maxWaves = 1;
         } else {
             this.type = RoomType.FIGHT;
-            this.maxWaves = 2;
+            this.maxWaves = 3;
         }
     }
 
-    /**
-     * Cap nhat trang thai phong theo thoi gian
-     */
     public void update(GameWorld gameWorld, Player player, List<Enemy> globalEnemies, double deltaSeconds) {
         doorController.update(deltaSeconds);
-        doorController.update(deltaSeconds);
-// Rest Room khong combat nhung van cap nhat Shrine.
+        // Rest Room
         if (type == RoomType.REST) {
             doorController.setClosed(false);
 
@@ -86,7 +84,7 @@ public class Room {
             }
             return;
         }
-
+        // Start Room hoặc room đã clear thì mở cửa
         if (type == RoomType.START || state == RoomState.CLEARED) {
             doorController.setClosed(false);
             return;
@@ -97,13 +95,11 @@ public class Room {
         }
 
         Vector2D playerPosition = player.getPosition();
-
-        // Kiem tra nguoi choi buoc vao phong
+        // Kích họat room khi đủ điều kiện
         if (state == RoomState.NOT_STARTED && !petEntryController.isPending() && bound.contains(playerPosition.getX(), playerPosition.getY())) {
             beginRoomActivation(player);
         }
 
-        // Cho pet di vao phong
         if (petEntryController.isPending()) {
             PetRoomEntryController.EntryResult result = petEntryController.update(gameWorld, this, player, deltaSeconds);
 
@@ -124,17 +120,18 @@ public class Room {
             return;
         }
 
-        // Quan lí cac wave quai
         updateWaves(gameWorld, deltaSeconds);
         checkRoomClear(globalEnemies);
     }
 
+    // Gọi khi player bước qua mép door
     private void beginRoomActivation(Player player) {
         petEntryController.begin();
         doorController.setClosed(false);
         pushPlayerInside(player);
     }
 
+    // Pet vào phòng thì active hoàn toàn
     private void completeRoomActivation(GameWorld gameWorld) {
         petEntryController.finish();
         state = RoomState.IN_PROGRESS;
@@ -189,9 +186,6 @@ public class Room {
         clearRoom();
     }
 
-    /**
-     *Nap cac vat can tu map
-     */
     public void loadObstaclesFromTiles(Tile[][] tiles) {
         if (tiles == null || obstaclesLoaded) return;
         obstaclesLoaded = true;
@@ -280,13 +274,6 @@ public class Room {
                 && position.getY() + safeRadius <= bound.getMaxY();
     }
 
-    public void startBattle() {
-        if (type != RoomType.START && type != RoomType.REST && state != RoomState.CLEARED) {
-            this.doorController.setClosed(true);
-            this.state = RoomState.IN_PROGRESS;
-        }
-    }
-
     public void clearRoom() {
         this.state = RoomState.CLEARED;
         this.doorController.setClosed(false);
@@ -299,6 +286,38 @@ public class Room {
 
     public void renderSingleDoor(GraphicsContext graphicsContext, Camera camera, BoundingBox door, double tileSize) {
         doorController.renderSingleDoor(graphicsContext, camera, door, tileSize);
+    }
+
+    public List<Vector2D> getRandomSpawnPoints(int count) {
+        List<Vector2D> points = new ArrayList<>();
+        java.util.Random random = new java.util.Random();
+
+        // Chừa lề 64px (khoảng 2 tile) tính từ mép tường vào trong lòng phòng để quái không bị kẹt tường
+        double margin = 64.0;
+
+        double minX = bound.getMinX() + margin;
+        double maxX = bound.getMaxX() - margin;
+        double minY = bound.getMinY() + margin;
+        double maxY = bound.getMaxY() - margin;
+
+        // Trường hợp phòng quá nhỏ không đủ chừa lề, lấy tạm tâm phòng
+        if (minX >= maxX || minY >= maxY) {
+            double centerX = bound.getMinX() + bound.getWidth() / 2.0;
+            double centerY = bound.getMinY() + bound.getHeight() / 2.0;
+            for (int i = 0; i < count; i++) {
+                points.add(new Vector2D(centerX, centerY));
+            }
+            return points;
+        }
+
+        // Tạo các tọa độ ngẫu nhiên nằm gọn trong vùng an toàn của phòng
+        for (int i = 0; i < count; i++) {
+            double spawnX = minX + random.nextDouble() * (maxX - minX);
+            double spawnY = minY + random.nextDouble() * (maxY - minY);
+            points.add(new Vector2D(spawnX, spawnY));
+        }
+
+        return points;
     }
 
     public String getName() {

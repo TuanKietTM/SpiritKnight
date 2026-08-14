@@ -15,7 +15,6 @@ import java.util.List;
 
 public final class LevelManager {
 
-    // Đếm số lần mở hộp phần thưởng để trả về vũ khí theo thứ tự
     private int rewardBoxCount = 0;
 
     private final List<LevelDefinition> levels = List.of(
@@ -25,7 +24,7 @@ public final class LevelManager {
                     "EASY",
                     20,
                     4,
-                    0,
+                    10,
                     5,
                     0,
                     false,
@@ -42,7 +41,7 @@ public final class LevelManager {
                     "MEDIUM",
                     24,
                     5,
-                    8,
+                    5,
                     7,
                     3,
                     false,
@@ -57,7 +56,7 @@ public final class LevelManager {
                     "HARD",
                     32,
                     7,
-                    15,
+                    5,
                     9,
                     0,
                     true,
@@ -144,17 +143,6 @@ public final class LevelManager {
     public String getLevelBanner() {
         LevelDefinition level = getCurrentLevel();
         return "Level " + level.number() + " - " + level.name() + " (" + level.difficulty() + ")";
-    }
-
-    public String getScaledSummary() {
-        LevelDefinition level = getCurrentLevel();
-        return "HP x" + formatMultiplier(1.0 + 0.3 * (currentLevelIndex - 1))
-                + ", DMG +" + (currentLevelIndex - 1)
-                + ", Count +" + (2 * (currentLevelIndex - 1));
-    }
-
-    private String formatMultiplier(double value) {
-        return String.format("%.1f", value);
     }
 
     public record LevelDefinition(

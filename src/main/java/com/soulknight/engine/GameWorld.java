@@ -226,7 +226,6 @@ public final class GameWorld {
                 inputHandler.consumeConfirmRequest();
             }
             case PLAYING -> updatePlaying(deltaSeconds, viewportWidth, viewportHeight, false);
-            case LEVEL_CLEAR -> updateLevelClear(deltaSeconds, viewportWidth, viewportHeight);
             case REWARD_PICK -> updateRewardPick();
             case ENDING_STORY -> {}
             case GAME_OVER, GAME_VICTORY -> {
@@ -242,6 +241,7 @@ public final class GameWorld {
 
         graphicsContext.clearRect(0.0, 0.0, renderWidth, renderHeight);
 
+        // gọi hàm renderWorld
         if (state != GameState.INTRO && state != GameState.MAIN_MENU && mapManager != null && player != null) {
             renderWorld(graphicsContext, renderWidth, renderHeight);
         }
@@ -251,7 +251,7 @@ public final class GameWorld {
         }
     }
 
-    // update Playing State
+    // update Playing state
     private void updatePlaying(double deltaSeconds, double viewportWidth, double viewportHeight, boolean allowSpawns) {
         if (player == null || mapManager == null) {
             return;
@@ -269,6 +269,7 @@ public final class GameWorld {
 
         updateEnemySpawnEffects(deltaSeconds);
 
+        // Player còn sống thì update
         if (player.isAlive()) {
             player.update(this, deltaSeconds);
             updatePet(deltaSeconds);
@@ -280,20 +281,17 @@ public final class GameWorld {
         Room.RoomState previousState = previousRoomStates.get(currentRoom);
         handleRoomBuffReward(currentRoom, previousState);
         handleBossRoomCleared(currentRoom, previousState);
-
         previousRoomStates.put(currentRoom, currentRoom.getState());
-
 
         for (Enemy enemy : enemies) {
             if (!enemy.isAlive() || isEnemySpawning(enemy)) {
                 continue;
             }
             enemy.update(this, deltaSeconds);
-//            xu li va cham quai voi quai
             enemy.separateFromOtherEnemies(this, enemies, deltaSeconds);
         }
-        resolvePlayerEnemyCollisions(deltaSeconds);
 
+        resolvePlayerEnemyCollisions(deltaSeconds);
         updateBullets(deltaSeconds);
         processDestroyedObstacles();
         updateExplosions(deltaSeconds);
@@ -320,28 +318,19 @@ public final class GameWorld {
             updatePlayerDeath();
             return;
         }
+        // Hiệu ứng
         if (particleManager != null) {
             particleManager.update(deltaSeconds);
         }
+
         floatingTextManager.update(deltaSeconds);
     }
 
-    private void updateLevelClear(double deltaSeconds, double viewportWidth, double viewportHeight) {
-        player.update(this, deltaSeconds);
-        updatePet(deltaSeconds);
-        camera.follow(player.getPosition(), viewportWidth, viewportHeight, mapManager.getWorldWidth(), mapManager.getWorldHeight());
-
-        if (mapManager.isPlayerInsideExitPortal(player.getPosition())) {
-            advanceToNextLevel();
-        }
-    }
-
-    //    update pet
+    // update pet
     private void updatePet(double deltaSeconds) {
         if (currentPet == null || player == null || player.getPosition() == null) {
             return;
         }
-//     pet thua huong
         currentPet.update(deltaSeconds, player.getPosition().getX(), player.getPosition().getY(), this);
     }
 
@@ -355,7 +344,7 @@ public final class GameWorld {
             double bulletX = bullet.getPosition().getX();
             double bulletY = bullet.getPosition().getY();
 
-            // Đạn xuất hiện trong tường
+            // Kiểm tra va chạm với tường
             if (mapManager.isBulletCollidingWithWall(bulletX, bulletY, bullet.getRadius())) {
                 if (bullet.isSoundWave()) {
                     spawnSoundWave(bullet.getPosition(), bullet.getDamage());
@@ -364,7 +353,7 @@ public final class GameWorld {
                 continue;
             }
 
-            // Vị trí an toàn trước khi di chuyển (dùng để tính phản đạn khi chạm tường)
+            // Tính phản đạn
             double prevX = bulletX;
             double prevY = bulletY;
 
@@ -375,15 +364,15 @@ public final class GameWorld {
 
             // Đạn va chạm tường sau khi di chuyển
             if (mapManager.isBulletCollidingWithWall(bulletX, bulletY, bullet.getRadius())) {
-                // Đạn laser: lần đầu chạm tường thì phản lại 1 góc (1 lần duy nhất)
                 if (bullet.canReflect()) {
-                    // Xác định trục phản: thử di chuyển từng trục từ vị trí an toàn
+                    // Kiểm tra trục phản
                     boolean flipX = mapManager.isBulletCollidingWithWall(bulletX, prevY, bullet.getRadius());
                     boolean flipY = mapManager.isBulletCollidingWithWall(prevX, bulletY, bullet.getRadius());
                     bullet.reflectOnce(new Vector2D(prevX, prevY), flipX, flipY);
                     spawnBulletExplosion(new Vector2D(bulletX, bulletY));
                     continue;
                 }
+
                 Vector2D impactPosition = bullet.getPosition().copy();
                 if (bullet.explodesOnTerrain()) {
                     triggerIonProjectileExplosion(
@@ -402,13 +391,11 @@ public final class GameWorld {
                 bullet.deactivate();
                 continue;
             }
-
-            // Dan va cham obstacle.
+            // Đạn va chạm obstacle
             for (Obstacle obstacle : obstacles) {
                 if (obstacle == null || obstacle.isDestroyed()) continue;
                 if (!obstacle.intersectsCircle(bullet.getPosition(), bullet.getRadius())) continue;
-
-                // Laser/piercing cu co the xuyen obstacle.
+                // đạn xuyên vật cản
                 if (bullet.piercesObstacles()) {
                     if (!bullet.hasAlreadyHit(obstacle)) {
                         bullet.markHit(obstacle);
@@ -417,8 +404,7 @@ public final class GameWorld {
 
                     continue;
                 }
-
-                //  dan Ion xuyen Enemy nhung no khi cham obstacle.
+                //  Đạn Ion xuyên enemy khi nổ gặp vật cản
                 if (bullet.explodesOnTerrain()) {
                     Vector2D impactPosition = bullet.getPosition().copy();
 
@@ -440,6 +426,7 @@ public final class GameWorld {
                 bullet.deactivate();
                 break;
             }
+            // Nếu đạn thuộc về Player
             if (bullet.getOwner() instanceof Player) {
                 for (Enemy enemy : enemies) {
                     if (enemy == null || !enemy.isAlive() || isEnemySpawning(enemy)) {
@@ -447,13 +434,12 @@ public final class GameWorld {
                     }
 
                     if (bullet.intersects(enemy)) {
-                        // Đạn laser xuyên quái: mỗi con chỉ trúng 1 lần, tia tiếp tục bay
+                        // Đạn xuyên
                         if (bullet.isPiercing()) {
                             if (!bullet.hasAlreadyHit(enemy)) {
                                 bullet.markHit(enemy);
                                 int healthBefore = enemy.getHealth();
                                 enemy.takeDamage(bullet.getDamage());
-
                                 int realDamage = healthBefore
                                         - enemy.getHealth();
 
@@ -461,6 +447,7 @@ public final class GameWorld {
 
                                     attackingPlayer.getBuffManager().notifyDamageDealt(this, enemy, realDamage);
                                 }
+                                // Hiển thị log
                                 floatingTextManager.spawnDamage(
                                         enemy.getPosition(),
                                         bullet.getDamage()
@@ -472,7 +459,8 @@ public final class GameWorld {
                             }
                             continue;
                         }
-//                        dan thuong
+
+                        // Đạn thường
                         int healthBefore = enemy.getHealth();
                         enemy.takeDamage(bullet.getDamage());
                         int realDamage = healthBefore - enemy.getHealth();
@@ -496,6 +484,7 @@ public final class GameWorld {
                         break;
                     }
                 }
+                // Đạn không thuộc về Player
             } else if (player != null && player.isAlive() && bullet.intersects(player)) {
                 int healthBefore = player.getHealth();
 
@@ -511,8 +500,6 @@ public final class GameWorld {
                 }
 
                 if (bullet.isSoundWave()) {
-                    // Debug: In vị trí đạn va chạm để kiểm tra tâm hiệu ứng
-                    System.out.println("Sound wave spawn at: " + bullet.getPosition().getX() + ", " + bullet.getPosition().getY());
                     spawnSoundWave(bullet.getPosition(), bullet.getDamage());
                 } else {
                     spawnBulletExplosion(bullet.getPosition());
@@ -520,7 +507,7 @@ public final class GameWorld {
                 bullet.deactivate();
             }
         }
-        // Nếu đạn không còn hoạt động
+        // Đạn không hoạt động
         bullets.removeIf(bullet -> bullet == null || !bullet.isActive());
     }
 
@@ -544,12 +531,12 @@ public final class GameWorld {
         playerDeathHandled = true;
         inputHandler.consumeConfirmRequest();
         addScore(100);
-        // Luu run va chot phan thuong tich luy
         saveGameAsync();
         syncBankRewardsAsync();
         changeState(GameState.GAME_OVER);
     }
-
+    
+    // Hàm xử lí vật cản đã nổ
     private void processDestroyedObstacles() {
         if (destroyedObstacleQueue.isEmpty() || mapManager == null || mapManager.getRooms() == null) {
             return;
@@ -561,7 +548,7 @@ public final class GameWorld {
             if (obstacle == null) {
                 continue;
             }
-
+            // Hiệu ứng
             if (particleManager != null) {
                 particleManager.spawnWoodDebris(obstacle.getCenter());
             }
@@ -569,6 +556,7 @@ public final class GameWorld {
             if (obstacle.getPosition() != null) {
                 int gridX = (int) (obstacle.getPosition().getX() / tileSize);
                 int gridY = (int) (obstacle.getPosition().getY() / tileSize);
+                // Đổi sang Floor
                 mapManager.setTileType(gridX, gridY, Tile.TileType.FLOOR);
             }
 
@@ -587,22 +575,22 @@ public final class GameWorld {
         destroyedObstacleQueue.clear();
     }
 
-    // Tao hieu ung no tai vi tri dan va cham (tuong hoac muc tieu)
+    // Hiệu ứng
     private void spawnBulletExplosion(Vector2D position) {
         explosions.add(new ExplosionEffect(position.copy(), 18.0, 0.3, Color.ORANGERED));
     }
-
+    // Hiệu ứng
     private void spawnSoundWave(Vector2D position, int damage) {
         soundWaves.add(new SoundWaveEffect(position.copy(), 35.0, 0.5, damage));
     }
-
+    // Hiệu ứng
     private void updateSoundWaves(double deltaSeconds) {
         for (SoundWaveEffect soundWave : soundWaves) {
             soundWave.update(deltaSeconds, enemies);
         }
         soundWaves.removeIf(soundWave -> !soundWave.isActive());
     }
-    //    gay vu no
+    // Hiệu ứng
     public void triggerDeathExplosion(Vector2D center, int damage) {
         if (center == null || damage <= 0) {
             return;
@@ -624,12 +612,13 @@ public final class GameWorld {
             }
             floatingTextManager.spawnCustom("-" + realDamage, enemy.getPosition(), Color.ORANGERED
             );
-            // Enemy trung no bi bong
+
             enemyBurnManager.applyBurn(enemy);
         }
         combatEffectManager.spawnDeathFireExplosion(center);
         SoundManager.getInstance().playSFXShort("death_explosion", 0.45);
     }
+    // Hiệu ứng
     public void triggerDragonBreath() {
         if (player == null || !player.isAlive() || player.getPosition() == null || mapManager == null) {
             return;
@@ -639,7 +628,7 @@ public final class GameWorld {
         double dirY = player.getLastMoveY();
         double range = mapManager.getTileSize() * DRAGON_BREATH_TILES;
         List<Enemy> hitEnemies = new ArrayList<>();
-        // Tim Enemy trong hinh non
+
         for (Enemy enemy : enemies) {
             if (enemy == null || !enemy.isAlive() || enemy.getPosition() == null || isEnemySpawning(enemy)) {
                 continue;
@@ -650,10 +639,6 @@ public final class GameWorld {
             }
         }
 
-        /*
-         * Damage duoc tinh ngay lap tuc.
-         * Visual chi la animation, khong quyet dinh hit.
-         */
         for (Enemy enemy : hitEnemies) {
             if (enemy == null || !enemy.isAlive()) {
                 continue;
@@ -667,24 +652,13 @@ public final class GameWorld {
                 floatingTextManager.spawnCustom("-" + realDamage, enemy.getPosition(), Color.ORANGERED);
             }
 
-            /*
-             * Neu Enemy da bi Burn truoc khi trung Dragon Breath
-             * thi no se phat no.
-             */
             if (alreadyBurning && enemy.isAlive()) {
                 triggerDragonBreathExplosion(enemy.getPosition().copy());
             }
 
-            /*
-             * Enemy trung hoi tho luon bi/refresh Burn.
-             */
             if (enemy.isAlive()) {enemyBurnManager.applyBurn(enemy);
             }
         }
-
-        /*
-         * Spawn animation Hoi Tho Rong.
-         */
         combatEffectManager.spawnDragonBreath(origin, dirX, dirY, range, DRAGON_BREATH_HALF_ANGLE);
         SoundManager.getInstance().playSFXShort("dragon_breath", 0.75);
     }
@@ -694,13 +668,9 @@ public final class GameWorld {
             return;
         }
         Vector2D center = player.getPosition().copy();
-        /*
-         * Ban kinh = 20 tile.
-         */
+
         double radius = mapManager.getTileSize() * HOLY_NOVA_RADIUS_TILES;
-        /*
-         *  Gay 200 damage cho tat ca Enemy/Boss trong vung
-         */
+
         for (Enemy enemy : enemies) {
             if (enemy == null || !enemy.isAlive() || enemy.getPosition() == null || isEnemySpawning(enemy)) {
                 continue;
@@ -717,23 +687,13 @@ public final class GameWorld {
             }
             floatingTextManager.spawnCustom("-" + realDamage, enemy.getPosition(), Color.LIGHTYELLOW);
         }
-        /*
-         *  Xoa dan cua Enemy trong vung.
-         */
+        // Xóa đạn enemy
         destroyEnemyBulletsInHolyNova(center, radius);
-        /*
-         *  Hoi 50% MAX HP cho Player.
-         */
+        // Hồi hp cho player
         int healAmount = (int) Math.ceil(player.getMaxHealth() * 0.5);
         player.heal(healAmount);
         floatingTextManager.spawnCustom("+" + healAmount, player.getPosition(), Color.LIGHTGREEN);
-        /*
-         *  Tao visual.
-         */
         combatEffectManager.spawnHolyNova(center, radius);
-        /*
-         *  Am thanh.
-         */
         SoundManager.getInstance().playSFXShort("holy_nova", 0.9);
     }
 
@@ -781,14 +741,12 @@ public final class GameWorld {
         double dot = dirX * targetDirX + dirY * targetDirY;
         return dot >= Math.cos(DRAGON_BREATH_HALF_ANGLE);
     }
+    // Hiệu ứng
     private void triggerDragonBreathExplosion(Vector2D center) {
         if (center == null) {
             return;
         }
-        /*
-         * Dung snapshot de tranh loi khi Enemy chet
-         * trong luc dang xu ly.
-         */
+
         List<Enemy> snapshot = new ArrayList<>(enemies);
         for (Enemy enemy : snapshot) {
             if (enemy == null || !enemy.isAlive() || enemy.getPosition() == null) {
@@ -810,7 +768,7 @@ public final class GameWorld {
         combatEffectManager.spawnDragonExplosion(center);
         SoundManager.getInstance().playSFXShort("dragon_explosion", 0.5);
     }
-    // sinh hieu ung tia set
+    // Hiệu ứng
     public void spawnChainLightning(Vector2D source, List<Enemy> targets) {
         if (source == null || targets == null || targets.isEmpty()) {
             return;
@@ -818,7 +776,6 @@ public final class GameWorld {
 
         List<Vector2D> points = new ArrayList<>();
 
-        // Diem bat dau tu Player
         points.add(source.copy());
 
         for (Enemy enemy : targets) {
@@ -835,7 +792,8 @@ public final class GameWorld {
 
         combatEffectManager.spawnPurpleChainLightning(points);
     }
-    // Vu no Ion co visual rieng, damage AoE van do GameWorld xu ly.
+
+    // Hiệu ứng
     private void triggerIonProjectileExplosion(Vector2D center, double radius, int damage, Entity owner) {
         if (center == null || radius <= 0.0) return;
 
@@ -864,23 +822,20 @@ public final class GameWorld {
         SoundManager.getInstance().playSFX("ion_explosion");
     }
 
-    // Cap nhat vong doi hieu ung no, xoa cai da ket thuc
     private void updateExplosions(double deltaSeconds) {
         for (ExplosionEffect explosion : explosions) {
             explosion.update(deltaSeconds);
         }
         explosions.removeIf(explosion -> !explosion.isActive());
     }
-    // Cap nhat hieu ung no Ion va xoa effect da ket thuc.
+
     private void updateIonExplosions(double deltaSeconds) {
         for (IonExplosionEffect explosion : ionExplosions) {
             if (explosion != null) explosion.update(deltaSeconds);
         }
-
         ionExplosions.removeIf(explosion -> explosion == null || !explosion.isActive());
     }
 
-    // Cap nhat vong doi hieu ung chem, xoa cai da ket thuc
     private void updateSlashEffects(double deltaSeconds) {
         for (SlashEffect slash : slashEffects) {
             slash.update(deltaSeconds);
@@ -888,39 +843,35 @@ public final class GameWorld {
         slashEffects.removeIf(slash -> !slash.isActive());
     }
 
-    // Tao hieu ung chem bam theo nhan vat theo huong ngam (goi tu vu khi can chien)
     public void spawnMeleeSlash(Entity owner, double aimAngle) {
         slashEffects.add(new SlashEffect(owner, aimAngle));
     }
 
+    // Update nhặt vật phẩm
     private void updateItemCollection() {
         if (player == null || player.getPosition() == null) return;
 
         for (Item item : items) {
             if (item == null || item.isCollected()) continue;
             if (!item.intersects(player.getPosition(), player.getRadius())) continue;
-
+            // Vật phẩm là Gold
             if (item instanceof GoldItem goldItem) {
                 int amount = goldItem.getAmount();
-
                 addGold(amount);
                 floatingTextManager.spawnGold(player.getPosition(), amount);
                 particleManager.spawnCoinBurst(player.getPosition(), amount);
-
+                // Vật phẩm là Gem
             } else if (item instanceof GemItem gemItem) {
                 int amount = gemItem.getAmount();
-
                 addGems(amount);
-
                 floatingTextManager.spawnCustom("+" + amount, player.getPosition(), Color.MEDIUMPURPLE);
+                // Vật phẩm là buff
             } else if (item instanceof BuffItem buffItem) {
                 BuffType type = buffItem.getBuffType();
                 BuffInventoryManager.getInstance().add(type, 1);
-
-                floatingTextManager.spawnCustom("+1 " + type.getDisplayName(),
-                        player.getPosition(), Color.LIMEGREEN);
-
+                floatingTextManager.spawnCustom("+1 " + type.getDisplayName(), player.getPosition(), Color.LIMEGREEN);
                 saveCollectedBuff(type);
+                // Vật phẩm là Energy
             } else if (item instanceof EnergyCrystal energyCrystal){
                 double amount = energyCrystal.getAmount();
                 double before = player.getMana();
@@ -933,10 +884,10 @@ public final class GameWorld {
             }
                 item.collect();
         }
-
         items.removeIf(Item::isCollected);
     }
 
+    // Đếm thời gian sinh các đợt quái
     private void updateSpawnTimers(double deltaSeconds) {
         LevelManager.LevelDefinition level = levelManager.getCurrentLevel();
         if (level.spawnIntervalSeconds() <= 0) {
@@ -949,13 +900,22 @@ public final class GameWorld {
         }
 
         enemySpawnTimer = 0.0;
-        if (level.number() == 2) {
+
             spawnMixedWave();
-        }
+
     }
 
     private void spawnMixedWave() {
-        List<Vector2D> spawnPoints = createSpawnPoints(4);
+
+        if (currentRoom == null) {
+            return;
+        }
+
+        List<Vector2D> spawnPoints = currentRoom.getRandomSpawnPoints(4);
+
+        if (spawnPoints == null || spawnPoints.isEmpty()) {
+            return;
+        }
 
         for (Enemy enemy : enemyFactory.createInitialEnemies(
                 random,
@@ -965,13 +925,12 @@ public final class GameWorld {
             addEnemyWithSpawnEffect(enemy, 0.0);
         }
     }
-    //ve 2.5D Y-position
+    // Hàm render quan trọng nhất
     private void renderWorld(GraphicsContext graphicsContext, double renderWidth, double renderHeight) {
-        //  Ve background neon trung co phia sau map
+
+        // Tầng 1 vẽ lớp dưới cùng
         dynamicBackground.render(graphicsContext, camera, renderWidth, renderHeight);
-        // Vẽ sàn nhà bẹt dưới cùng trước
         mapManager.renderFloor(graphicsContext, camera, renderWidth, renderHeight);
-        // Vẽ bóng của obstacle dưới các sprite. Obstacle đã được load một lần khi load map.
         for (Obstacle obstacle : obstacles) {
             if (obstacle == null || obstacle.isDestroyed() || obstacle.getPosition() == null) {
                 continue;
@@ -983,21 +942,19 @@ public final class GameWorld {
             obstacle.renderShadow(graphicsContext, camera);
         }
 
-        // Danh sách Y-Sorting
+        // Tầng 2 vẽ Y-Sorting
         class SortableObject {
             final double depthY;
             final Runnable renderAction;
-
             SortableObject(double depthY, Runnable renderAction) {
                 this.depthY = depthY;
                 this.renderAction = renderAction;
             }
         }
-
+        // Danh sách chứa các entity cần Y-Sorting
         List<SortableObject> renderList = new ArrayList<>();
         double tileSize = mapManager.getTileSize();
-
-//  Thêm các wall  vào Y-Sorting moc tinh o day
+        // Load Walls
         for (Tile wall : mapManager.getWallTiles()) {
             if (wall == null || !isVisibleInCamera(wall.getX(), wall.getY(), tileSize, tileSize, renderWidth, renderHeight)) {
                 continue;
@@ -1010,9 +967,7 @@ public final class GameWorld {
                 graphicsContext.drawImage(wall.getTexture(), screenX, screenY, tileSize * zoom, tileSize * zoom);
             }));
         }
-
-//  Thêm player moc tinh o ban chan
-//        render theo cac trang thai : binh thuong , spwan , die
+        // Load Player
         if (player != null && player.getPosition() != null) {
             double playerFootY = player.getPosition().getY() + 10.0;
             renderList.add(new SortableObject(playerFootY, () -> {
@@ -1071,7 +1026,7 @@ public final class GameWorld {
             }));
         }
 
-        // them pet
+        // load pet
         if (currentPet != null && currentPet.getPosition() != null) {
             double petFootY = currentPet.getPosition().getY() + 8.0;
             renderList.add(new SortableObject(petFootY, () -> {
@@ -1100,7 +1055,7 @@ public final class GameWorld {
             }));
         }
 
-        // Them Ending Portal vao Y-Sorting.
+        // load Ending Portal
         if (endingPortal != null && endingPortal.getPosition() != null) {
             Vector2D portalPosition = endingPortal.getPosition();
 
@@ -1113,7 +1068,7 @@ public final class GameWorld {
             ));
         }
 
-        // them quai
+        // loadEnemy
         for (Enemy enemy : enemies) {
             if (enemy == null || enemy.getPosition() == null) continue;
             double enemyDiameter = enemy.getRadius() * 2.0;
@@ -1172,7 +1127,7 @@ public final class GameWorld {
 
         }
 
-        // them than vat can
+        // load Obstacles
         for (Obstacle obstacle : obstacles) {
             if (obstacle == null || obstacle.isDestroyed() || obstacle.getPosition() == null) {
                 continue;
@@ -1187,7 +1142,7 @@ public final class GameWorld {
             renderList.add(new SortableObject(obstacleBottomY,
                     () -> obstacle.render(graphicsContext, camera)));
         }
-        // them cac o cua
+        // Load Door
         for (Room room : mapManager.getRooms()) {
             for (BoundingBox door : room.getDoors()) {
                 if (door == null) continue;
@@ -1196,7 +1151,6 @@ public final class GameWorld {
                     continue;
                 }
 
-                // day cac o cua lam moc
                 double doorBottomY = door.getMaxY();
 
                 renderList.add(new SortableObject(doorBottomY, () -> {
@@ -1217,9 +1171,8 @@ public final class GameWorld {
                 ));
             }
         }
-
+        // Y-Sorting
         renderList.sort((a, b) -> Double.compare(a.depthY, b.depthY));
-        // Thực thi render theo thứ tự sâu/nông
         for (SortableObject obj : renderList) {
             obj.renderAction.run();
         }
@@ -1230,7 +1183,7 @@ public final class GameWorld {
             }
         }
 
-        //  Hiệu ứng đạn, chém, nổ vẽ lên trên cùng
+        // Tầng 3 render hiệu ứng weapon
         for (Item item : items) item.render(graphicsContext, camera);
         for (Bullet bullet : bullets) {
             if (bullet == null || bullet.getPosition() == null || !bullet.isActive()) {
@@ -1247,8 +1200,6 @@ public final class GameWorld {
         for (SlashEffect slash : slashEffects) slash.render(graphicsContext, camera);
         for (ExplosionEffect explosion : explosions) explosion.render(graphicsContext, camera);
         for (SoundWaveEffect soundWave : soundWaves) soundWave.render(graphicsContext, camera);
-
-        // No Ion ve rieng.
         for (IonExplosionEffect explosion : ionExplosions) {
             if (explosion != null) explosion.render(graphicsContext, camera);
         }
@@ -1273,10 +1224,6 @@ public final class GameWorld {
 
         rewardedRoomKeys.clear();
 
-        /*
-         * Moi run moi deu snapshot lai loadout
-         * da chon truoc tran.
-         */
         initializeRunWeaponLoadout();
 
         loadCurrentLevel(true);
@@ -1284,7 +1231,6 @@ public final class GameWorld {
         playGameBGM();
     }
 
-    //(vitdung) chỉnh lại hàm này để test loadMap từ txt
     private void loadCurrentLevel(boolean freshRun) {
         String mapPath = "/maps/primeMap_1.json";
         this.mapManager = new MapManager(mapPath);
@@ -1292,8 +1238,6 @@ public final class GameWorld {
         this.pendingPortalPosition = null;
         loadObstaclesFromCurrentMap();
 
-
-        // 3. Khởi tạo hoặc Đặt lại vị trí Người chơi (Player)
         Vector2D spawnPoint = mapManager.getSpawnPoint();
         if (this.player == null || freshRun) {
             this.player = new Player(spawnPoint);
@@ -1304,26 +1248,21 @@ public final class GameWorld {
         this.player.setHolyNovaAction(this::triggerHolyNova);
         this.playerDeathEffect = null;
         this.playerDeathHandled = false;
-        /*
-         * Player phải được tạo trước rồi mới khôi phục HP
-         * và các dữ liệu trong database.
-         */
+
         applyPendingPlayerSave();
-//        dua player den phong da luu
+
         restorePlayerRoomPosition();
 
-        // 4. Khởi tạo Pet đi theo
         createSelectedPet();
-//        tao hieu ung spawn
+
         this.playerSpawnEffect = new SpawnEffect(spawnPoint, 0.4, 0.7);
         if (currentPet != null) {
-            // player xuat hien truoc pet xuat hien sau mot chut
+
             Vector2D petSpawnPos = new Vector2D(spawnPoint.getX() + 25, spawnPoint.getY() + 10);
             currentPet.getPosition().set(petSpawnPos);
             this.petSpawnEffect = new SpawnEffect(petSpawnPos, 0.55, 0.7);
         }
 
-        // 5. Trang bị vũ khí cho lượt chơi mới
         if (freshRun) {
 
             activeRunWeaponSlot = 0;
@@ -1331,7 +1270,6 @@ public final class GameWorld {
             equipActiveRunWeapon();
         }
 
-        // 6. Reset toàn bộ danh sách Thực thể & Hiệu ứng của màn cũ
         this.enemies.clear();
         this.enemySpawnEffects.clear();
         this.enemyDeathEffects.clear();
@@ -1347,16 +1285,14 @@ public final class GameWorld {
         this.enemySpawnTimer = 0.0;
         floatingTextManager.clear();
 
-        // 7. Tạo nhiệm vụ cho Level hiện tại
         if (this.missionManager != null && this.levelManager != null) {
             this.missionManager.setMission(this.levelManager.createMissionForCurrentLevel());
         }
-        // Cho phép mở bảng chọn phần thưởng mới khi nhiệm vụ mới hoàn thành
+
         this.rewardPickerShown = false;
         this.rewardPicker = null;
         this.lastRewardRoom = null;
 
-        // 9. Sinh Boss nếu đây là Màn Boss
         if (this.levelManager != null
                 && this.levelManager.getCurrentLevel().bossLevel()
                 && this.mapManager.getBossSpawnPoint() != null) {
@@ -1370,7 +1306,6 @@ public final class GameWorld {
             return;
         }
 
-        // Lấy loại Pet đã được lưu trong PetSelectionManager (từ Shop)
         PetType selectedType = PetSelectionManager.getInstance().getSelectedPet();
 
         if (selectedType != null && selectedType.hasPet()) {
@@ -1395,16 +1330,12 @@ public final class GameWorld {
                 continue;
             }
 
-            // Tile map là nguồn dữ liệu duy nhất của obstacle; chỉ load một lần khi đổi map/level.
             room.loadObstaclesFromTiles(currentTiles);
         }
 
         rebuildObstacleCache();
     }
-    /**
-     * Mở bảng chọn phần thưởng (vàng / vũ khí) khi hoàn thành một phòng chiến đấu.
-     * Mỗi phòng (trừ START room) khi dọn sạch sẽ mở hộp 1 lần.
-     */
+
     private void openRewardPickerOnMissionComplete() {
         if (rewardPickerShown) {
             return;
