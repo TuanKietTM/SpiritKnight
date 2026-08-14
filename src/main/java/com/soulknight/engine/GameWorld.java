@@ -1,11 +1,6 @@
 package com.soulknight.engine;
 
-import com.soulknight.animation.ParticleManager;
-import com.soulknight.animation.ShadowRenderer;
-import com.soulknight.animation.SpawnEffect;
-import com.soulknight.animation.PlayerDeathEffect;
-import com.soulknight.animation.EnemySpawnEffect;
-import com.soulknight.animation.EnemyDeathEffect;
+import com.soulknight.animation.*;
 import com.soulknight.entity.*;
 import com.soulknight.item.EnergyCrystal;
 import com.soulknight.item.GemItem;
@@ -34,7 +29,6 @@ import com.soulknight.weapon.SoundWaveEffect;
 import com.soulknight.weapon.Weapon;
 import com.soulknight.weapon.WeaponSelectionManager;
 import com.soulknight.weapon.WeaponType;
-import com.soulknight.animation.EndingPortal;
 import com.soulknight.pet.Pet;
 import com.soulknight.pet.PetFactory;
 import com.soulknight.pet.PetSelectionManager;
@@ -44,10 +38,8 @@ import com.soulknight.database.PlayerSaveDAO;
 import com.soulknight.database.PlayerSaveMapper;
 import com.soulknight.database.ShopDAO;
 import com.soulknight.database.UserSession;
-import com.soulknight.animation.FloatingTextManager;
 import com.soulknight.map.RestRoomController;
 import com.soulknight.map.RestShrine;
-import com.soulknight.animation.RestHealEffect;
 import com.soulknight.entity.HeroSelectionManager;
 import com.soulknight.entity.HeroType;
 import com.soulknight.entity.ScratchMark;
@@ -94,6 +86,7 @@ public final class GameWorld {
     private final Object bankRewardLock = new Object();
     private final List<Enemy> enemies = new ArrayList<>();
     private final Map<Enemy, EnemySpawnEffect> enemySpawnEffects = new IdentityHashMap<>();
+    private BossSpawnEffect bossSpawnEffect;
     private final Map<Enemy, EnemyDeathEffect> enemyDeathEffects = new IdentityHashMap<>();
     private final List<Bullet> bullets = new ArrayList<>();
     // Danh sach hieu ung no khi dan va cham (tuong hoac muc tieu)
@@ -288,6 +281,9 @@ public final class GameWorld {
             playerDeathEffect.update(deltaSeconds);
         }
         updateEnemySpawnEffects(deltaSeconds);
+        if (bossSpawnEffect != null) {
+            bossSpawnEffect.update(deltaSeconds);
+        }
 
         if (player.isAlive()) {
             player.update(this, deltaSeconds);
@@ -1217,6 +1213,19 @@ public final class GameWorld {
                     deathEffect.render(graphicsContext, camera);
                     return;
                 }
+                if (bossSpawnEffect != null && bossSpawnEffect.isSpawning()) {
+                    double alpha = bossSpawnEffect.getEntityAlpha();
+
+                    if (alpha > 0.0) {
+                        graphicsContext.save();
+                        graphicsContext.setGlobalAlpha(alpha);
+                        ShadowRenderer.render(graphicsContext, camera, enemy.getPosition(), 35.0, 10.0, 12.0, false);
+                        enemy.render(graphicsContext, camera);
+                        graphicsContext.restore();
+                    }
+                    bossSpawnEffect.render(graphicsContext, camera);
+                    return;
+                }
 
                 EnemySpawnEffect spawnEffect = enemySpawnEffects.get(enemy);
 
@@ -1976,6 +1985,8 @@ public final class GameWorld {
 
             // Thêm Boss vào thế giới kèm hiệu ứng Spawn đẹp mắt
             addEnemyWithSpawnEffect(boss, 0.0);
+            enemies.add(boss);
+            this.bossSpawnEffect = new BossSpawnEffect(boss.getPosition(), 0.2, 2.2);
 
             bossIntroTimer = BOSS_INTRO_DURATION;
             changeState(GameState.BOSS_INTRO);
@@ -2054,8 +2065,10 @@ public final class GameWorld {
     }
 
     private boolean isEnemySpawning(Enemy enemy) {
+        if (enemy instanceof Boss && bossSpawnEffect != null) {
+            return bossSpawnEffect.blocksEnemyLogic();
+        }
         EnemySpawnEffect effect = enemySpawnEffects.get(enemy);
-
         return effect != null && effect.blocksEnemyLogic();
     }
 
