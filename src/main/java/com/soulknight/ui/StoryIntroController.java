@@ -298,6 +298,7 @@ public final class StoryIntroController {
         });
     }
 
+//    xem class playVisualNovel no tao man hinh cinematic anh va hieu ung typing
     private void playVisualNovelScene(Runnable onFinished) {
         if (finished) return;
         stopCursor();
@@ -348,26 +349,23 @@ public final class StoryIntroController {
         trackAndPlay(flashIn);
     }
 
-    // ===================================================================
-    // BỘ ĐIỀU KHIỂN & SỰ KIỆN NÚT BẤM (SKIP / CONTINUE)
-    // ===================================================================
 
     @FXML
     private void skipIntro() {
         if (finished) return;
 
-        // 1. Dừng ngay lập tức toàn bộ hiệu ứng chữ và âm thanh
+//      dung ngay lap tuc hieu ung hinh anh va am thanh
         typingEffect.stop();
         stopAllSounds();
         stopCursor();
         stopAllActiveAnimations();
 
-        // 2. Dừng scene Visual Novel nếu đang chạy
+        //  Dừng scene Visual Novel nếu đang chạy
         if (visualNovelCinematic != null) {
             visualNovelCinematic.stop();
         }
 
-        // 3. Hoàn tất Intro và chuyển Scene chính ngay lập tức
+        //  Hoàn tất Intro và chuyển Scene chính ngay lập tức
         finishIntro();
     }
 

@@ -10,6 +10,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+/**
+ * Kieu factory method
+ */
 public final class EnemyFactory {
 
     private final LevelManager levelManager;

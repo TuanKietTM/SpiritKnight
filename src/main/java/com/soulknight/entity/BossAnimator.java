@@ -8,6 +8,10 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Quan li cac animation cua BOSS
+ * Boss co 3 trang thai
+ */
 public class BossAnimator {
 
     public enum State {
@@ -22,10 +26,9 @@ public class BossAnimator {
     private int currentFrameIndex = 0;
     private double frameTimer = 0.0;
 
-    // Tốc độ chuyển frame (tương tự Player)
+//  toc do di chuyen cua cac frame
     private static final double FRAME_DURATION = 0.12;
 
-    // Kích thước khung hình gốc trong SpriteSheet của Boss
     private static final double SPRITE_FRAME_WIDTH = 64;
     private static final double SPRITE_FRAME_HEIGHT = 64;
 
@@ -41,6 +44,7 @@ public class BossAnimator {
             runSpriteSheet = loadImage("/assets/boss/BOSS_RUN.png");
             int dieFrameCount = 10;
             for (int i = 1; i <= dieFrameCount; i++) {
+//                hieu ung chet thi la chuoi cac anh chay duy nhat 1 lan
                 Image frame = loadImage("/assets/boss/B" + i + ".png");
                 if (frame != null) {
                     deathFrames.add(frame);
@@ -69,7 +73,9 @@ public class BossAnimator {
         return null;
     }
 
+//    update cac frmae anh
     public void update(State newState, double deltaSeconds) {
+//        phan tach ra hieu ung die va run, idle thi khac nhau
         if (currentState == State.DIE && deathAnimationFinished) {
             return;
         }
@@ -158,9 +164,5 @@ public class BossAnimator {
 
     public boolean isDeathAnimationFinished() {
         return deathAnimationFinished;
-    }
-
-    public State getCurrentState() {
-        return currentState;
     }
 }

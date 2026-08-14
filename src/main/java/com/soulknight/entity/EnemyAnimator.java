@@ -4,6 +4,10 @@ import com.soulknight.engine.Camera;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
 
+/**
+ * Quan li cac animation cua Enemy
+ * enemy thuong thi chi co trang thai run
+ */
 public class EnemyAnimator {
 
     private Image runSpriteSheet;
@@ -32,7 +36,7 @@ public class EnemyAnimator {
             System.err.println("Loi tai " + archetype + ": " + e.getMessage());
         }
     }
-
+//cap nhat cac frame anh
     public void update(double deltaSeconds) {
         if (runSpriteSheet == null) return;
 
