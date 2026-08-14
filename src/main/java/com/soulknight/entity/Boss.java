@@ -26,7 +26,7 @@ public class Boss extends Enemy {
     private boolean isMoving = false;
 
     public Boss(Vector2D spawnPoint, int health, int contactDamage, GameEventListener eventListener) {
-        super(EnemyArchetype.RANGED_ELITE, spawnPoint, 30, health*2, 50.0, contactDamage, null, eventListener);
+        super(EnemyArchetype.RANGED_ELITE, spawnPoint, 30, health, 50.0, contactDamage, null, eventListener);
         this.maxHealth = health;
         this.bossAnimator = new BossAnimator();
     }
