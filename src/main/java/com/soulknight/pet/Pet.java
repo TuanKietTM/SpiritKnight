@@ -399,7 +399,7 @@ public final class Pet {
 
         // Tọa độ cắt từ Sprite Sheet (Nằm ngang)
         double sx = currentFrame * type.getFrameWidth();
-        double sy = 0.0; // Giả định sprite sheet trải ngang 1 hàng
+        double sy = 0.0;
         double sw = type.getFrameWidth();
         double sh = type.getFrameHeight();
 

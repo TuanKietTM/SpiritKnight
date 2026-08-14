@@ -50,6 +50,7 @@ import com.soulknight.map.RestShrine;
 import com.soulknight.animation.RestHealEffect;
 import com.soulknight.entity.HeroSelectionManager;
 import com.soulknight.entity.HeroType;
+import com.soulknight.entity.ScratchMark;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -113,6 +114,7 @@ public final class GameWorld {
     private final List<Obstacle> destroyedObstacleQueue = new ArrayList<>();
     private final List<RestHealEffect> restHealEffects = new ArrayList<>();
     private final List<Shockwave> shockwaves = new ArrayList<>();
+    private final List<ScratchMark> scratchMarks = new ArrayList<>();
     //   chia luong hoat dong rieng cua database de tranh lam cham game
     private final ExecutorService databaseExecutor =
             Executors.newSingleThreadExecutor(runnable -> {
@@ -318,6 +320,7 @@ public final class GameWorld {
         updateExplosions(deltaSeconds);
         updateIonExplosions(deltaSeconds);
         updateSlashEffects(deltaSeconds);
+        updateScratchMarks(deltaSeconds);
         updateSoundWaves(deltaSeconds);
         updateRestHealEffects(deltaSeconds);
         updateEnemyDeaths(deltaSeconds);
@@ -1040,6 +1043,12 @@ public final class GameWorld {
         mapManager.renderFloor(graphicsContext, camera, renderWidth, renderHeight);
 //        shockwave duoi bong va duoi tat ca enemy vat can
         renderShockwaves(graphicsContext, camera);
+//ve hieu ung cao
+        for (ScratchMark mark : scratchMarks) {
+            if (mark != null && !mark.isExpired()) {
+                mark.render(graphicsContext, camera);
+            }
+        }
         // Vẽ bóng của obstacle dưới các sprite. Obstacle đã được load một lần khi load map.
         for (Obstacle obstacle : obstacles) {
             if (obstacle == null || obstacle.isDestroyed() || obstacle.getPosition() == null) {
@@ -1072,6 +1081,8 @@ public final class GameWorld {
                 graphicsContext.drawImage(wall.getTexture(), screenX, screenY, tileSize * zoom, tileSize * zoom);
             }));
         }
+
+
 
 //  Thêm player moc tinh o ban chan
 //        render theo cac trang thai : binh thuong , spwan , die
@@ -1405,6 +1416,7 @@ public final class GameWorld {
         this.explosions.clear();
         this.ionExplosions.clear();
         this.slashEffects.clear();
+        this.scratchMarks.clear();
         this.items.clear();
         this.combatEffectManager.clear();
         this.enemyBurnManager.clear();
@@ -3196,6 +3208,20 @@ public final class GameWorld {
             Vector2D portalPos = boss.getPosition().copy();
             this.endingPortal = new EndingPortal(portalPos);
         }
+    }
+    private void updateScratchMarks(double deltaSeconds) {
+        for (ScratchMark mark : scratchMarks) {
+            mark.update(this, deltaSeconds);
+        }
+        scratchMarks.removeIf(ScratchMark::isExpired);
+    }
+    public void addScratchMark(ScratchMark mark) {
+        if (mark != null) {
+            this.scratchMarks.add(mark);
+        }
+    }
+    public void spawnScratchMark(Vector2D position, double radius, double lifetimeSeconds, int damagePerSecond) {
+        this.scratchMarks.add(new ScratchMark(position, radius, lifetimeSeconds, damagePerSecond));
     }
     private void playGameBGM() {
         SoundManager sound = SoundManager.getInstance();

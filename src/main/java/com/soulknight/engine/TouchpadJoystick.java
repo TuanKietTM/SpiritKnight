@@ -71,7 +71,4 @@ public class TouchpadJoystick {
     }
 
     public boolean isActive() { return active; }
-    public Vector2D getCenterPosition() { return centerPosition; }
-    public Vector2D getCurrentPosition() { return currentPosition; }
-    public double getMaxRadius() { return maxRadius; }
 }

@@ -33,9 +33,6 @@ public class Room {
     private final BoundingBox bound;
     private final RoomType type;
     private final List<Obstacle> obstacles = new ArrayList<>();
-
-
-
     private final PetRoomEntryController petEntryController = new PetRoomEntryController();
     private final RoomDoorController doorController = new RoomDoorController();
     private RestRoomController restRoomController;
@@ -47,6 +44,14 @@ public class Room {
     private boolean isWaitingForNextWave;
     private boolean enemiesSpawned;
 
+    /**
+     * cac loai phong
+     * @param name
+     * @param x
+     * @param y
+     * @param width
+     * @param height
+     */
     public Room(String name, double x, double y, double width, double height) {
         this.name = name;
         this.bound = new BoundingBox(x, y, width, height);
@@ -278,13 +283,6 @@ public class Room {
                 && position.getX() + safeRadius <= bound.getMaxX()
                 && position.getY() - safeRadius >= bound.getMinY()
                 && position.getY() + safeRadius <= bound.getMaxY();
-    }
-
-    public void startBattle() {
-        if (type != RoomType.START && type != RoomType.REST && state != RoomState.CLEARED) {
-            this.doorController.setClosed(true);
-            this.state = RoomState.IN_PROGRESS;
-        }
     }
 
     public void clearRoom() {

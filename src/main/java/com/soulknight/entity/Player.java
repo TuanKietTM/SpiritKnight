@@ -304,7 +304,7 @@ public final class Player extends Entity {
         animator.update(movementState, deltaSeconds);
     }
 
-    // Thuat toan tim kiem ke thu gan nhat
+    // Thuat toan tim kiem ke thu gan nhat de phu tro cho viec tu dong nham ban cua touchpad
 
     private Enemy findNearestEnemy(List<Enemy> enemies) {
         if (enemies == null || enemies.isEmpty()) {

@@ -364,7 +364,7 @@ public class Enemy extends Entity {
         Vector2D bulletVelocity = dir.scale(bulletSpeed);
 
         // Chon mau dan tuy thuoc theo archetype cua Quai
-        Color bulletColor = (this.archetype == EnemyArchetype.RANGED_ELITE) ? Color.PURPLE : Color.ORANGERED;
+        Color bulletColor = (this.archetype == EnemyArchetype.RANGED_ELITE) ? Color.RED : Color.ORANGERED;
 
         Bullet bullet = new Bullet(
                 getPosition().copy(),
