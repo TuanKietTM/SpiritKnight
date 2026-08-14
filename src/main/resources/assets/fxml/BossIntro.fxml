@@ -1,36 +1,41 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.image.Image?>
 <?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
-<?import javafx.scene.text.Font?>
 
-<StackPane xmlns="http://javafx.com/javafx/17"
+<StackPane fx:id="rootPane"
+           xmlns="http://javafx.com/javafx/17"
            xmlns:fx="http://javafx.com/fxml/1"
            fx:controller="com.soulknight.ui.BossIntroController"
            prefWidth="1024" prefHeight="768"
-           mouseTransparent="true"
-           style="-fx-background-color: rgba(0, 0, 0, 0.45);">
+           styleClass="boss-intro-overlay"
+           stylesheets="@../CSS/BossIntro.css">
+    <StackPane alignment="CENTER" maxHeight="260" prefHeight="260" mouseTransparent="true">
+        <Region fx:id="bannerBackground" styleClass="boss-banner-strip" />
+        <HBox alignment="CENTER" spacing="30" maxWidth="960">
+            <padding>
+                <Insets left="40" right="40" />
+            </padding>
+            <VBox fx:id="textContent" alignment="CENTER_LEFT" spacing="12" HBox.hgrow="ALWAYS">
+                <Label text="VOID" styleClass="boss-title-main" />
+                <Label text="LORD" styleClass="boss-title-main" />
+                <Label text="— GENERAL OF DARKNESS —" styleClass="boss-subtitle" />
+            </VBox>
+            <StackPane alignment="CENTER">
+                <ImageView fx:id="bossImageView" fitWidth="300" fitHeight="300" preserveRatio="true">
+                    <image>
+                        <Image url="@../boss/boss.png" />
+                    </image>
+                </ImageView>
+            </StackPane>
 
-    <VBox alignment="CENTER" spacing="15">
-        <ImageView fx:id="bossImageView" fitWidth="500" preserveRatio="true">
-            <image>
-                <Image url="@/assets/boss/boss.png" />
-            </image>
-        </ImageView>
-        <VBox alignment="CENTER" spacing="5">
-            <Label text="GRAND KNIGHT" style="-fx-text-fill: #FF2A2A; -fx-font-weight: bold;">
-                <font>
-                    <Font name="System Bold" size="42.0" />
-                </font>
-            </Label>
-            <Label text="— GENERAL OF THE DARKNESS —" style="-fx-text-fill: #FFD700; -fx-font-style: italic;">
-                <font>
-                    <Font size="18.0" />
-                </font>
-            </Label>
-        </VBox>
-    </VBox>
+        </HBox>
+    </StackPane>
+
 </StackPane>

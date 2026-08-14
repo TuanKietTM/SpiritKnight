@@ -49,6 +49,7 @@ public final class UIManager {
     private RegisterController registerController;
     private LeaderboardController leaderboardController;
     private AccountController accountController;
+    private BossIntroController bossIntroController;
     private Parent introRoot;
     private Parent storyIntroRoot;
     private Parent storyEndingRoot;
@@ -64,6 +65,7 @@ public final class UIManager {
     private Parent registerRoot;
     private Parent leaderboardRoot;
     private Parent accountRoot;
+    private Parent bossIntroRoot;
     private IntroToLoginTransition introToLoginTransition;
     // Luu trang thai Continue cua tai khoan dang dang nhap
     private boolean continueAvailable;
@@ -95,6 +97,13 @@ public final class UIManager {
             loginRoot = loginLoader.load();
             loginController = loginLoader.getController();
             configFullRegion(loginRoot);
+
+            FXMLLoader bossIntroLoader = new FXMLLoader(com.soulknight.Main.class.getResource("/assets/fxml/BossIntro.fxml"));
+            bossIntroRoot = bossIntroLoader.load();
+            bossIntroController = bossIntroLoader.getController();
+            configFullRegion(bossIntroRoot);
+            bossIntroRoot.setPickOnBounds(false);
+            bossIntroRoot.setVisible(false);
 
             FXMLLoader registerLoader = new FXMLLoader(com.soulknight.Main.class.getResource("/assets/fxml/Register.fxml"));
             registerRoot = registerLoader.load();
@@ -175,7 +184,7 @@ public final class UIManager {
             gameOverRoot.setPickOnBounds(false);
 
             rootNode.getChildren().addAll(introRoot, loginRoot, registerRoot, storyIntroRoot, storyEndingRoot, menuRoot, hudRoot, levelClearRoot, victoryRoot,
-                    gameOverRoot, pauseRoot, settingRoot, shopRoot, leaderboardRoot, accountRoot, portalOverlay, loadingOverlay);
+                    gameOverRoot, pauseRoot, settingRoot, shopRoot, leaderboardRoot, accountRoot,bossIntroRoot, portalOverlay, loadingOverlay);
 
             StackPane.setAlignment(introRoot, Pos.CENTER);
             StackPane.setAlignment(storyIntroRoot, Pos.CENTER);
@@ -191,6 +200,7 @@ public final class UIManager {
             StackPane.setAlignment(registerRoot, Pos.CENTER);
             StackPane.setAlignment(accountRoot, Pos.CENTER);
             StackPane.setAlignment(portalOverlay, Pos.CENTER);
+            StackPane.setAlignment(bossIntroRoot, Pos.CENTER);
             StackPane.setAlignment(loadingOverlay, Pos.CENTER);
 
 
@@ -231,6 +241,18 @@ public final class UIManager {
                     if (menuController != null) {
                         menuController.setContinueAvailable(continueAvailable);
                         menuController.startAnimation();
+                    }
+                }
+                case BOSS_INTRO -> {
+                    hudRoot.setVisible(true);
+                    if (bossIntroRoot != null && bossIntroController != null) {
+                        bossIntroRoot.setVisible(true);
+                        bossIntroRoot.toFront();
+                        bossIntroController.playIntroSequence(2.5, () -> {
+                            if (boundWorld != null) {
+                                boundWorld.changeState(GameState.PLAYING);
+                            }
+                        });
                     }
                 }
                 case PLAYING -> {
@@ -1130,6 +1152,9 @@ public final class UIManager {
         if (accountRoot != null) {
             accountRoot.setVisible(false);
             accountRoot.setManaged(false);
+        }
+        if (bossIntroRoot != null) {
+            bossIntroRoot.setVisible(false);
         }
     }
 }

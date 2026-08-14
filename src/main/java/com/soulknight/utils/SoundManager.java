@@ -283,6 +283,13 @@ public final class SoundManager {
     public boolean isMuted() {
         return this.currentState == AudioState.MUTED;
     }
+    public boolean isCurrentlyPlaying(String resourcePath) {
+        if (resourcePath == null || bgmPlayer == null) {
+            return false;
+        }
+        return resourcePath.equals(currentBgmPath) &&
+                bgmPlayer.getStatus() == MediaPlayer.Status.PLAYING;
+    }
 
     public void setBGMVolume(double volume) {
         this.bgmVolume = Math.max(0.0, Math.min(1.0, volume));
