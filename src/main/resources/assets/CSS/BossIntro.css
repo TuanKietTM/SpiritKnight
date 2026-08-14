@@ -1,0 +1,42 @@
+@font-face {
+    font-family: "Press Start 2P";
+    src: url("../fonts/PressStart2P-Regular.ttf");
+}
+
+.boss-intro-overlay {
+    -fx-background-color: rgba(0, 0, 0, 0.75);
+    -fx-alignment: center;
+}
+
+.boss-banner-strip {
+    -fx-background-color: linear-gradient(to right, #11001c, #3a0ca3, #7209b7, #f72585, #11001c);
+    -fx-border-color: #f72585 transparent #f72585 transparent;
+    -fx-border-width: 4px 0px 4px 0px;
+    -fx-effect: dropshadow(three-pass-box, rgba(247, 37, 133, 0.8), 25, 0, 0, 0);
+    -fx-shape: "M 0 30 L 1024 0 L 1024 230 L 0 260 Z";
+}
+
+.boss-banner-shape {
+    -fx-fill: linear-gradient(to right, #20083B, #4D1282, #20083B);
+    -fx-stroke: #A855F7;
+    -fx-stroke-width: 3px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.8), 25, 0, 0, 5);
+}
+
+.boss-content-box {
+    -fx-padding: 0 0 0 40px;
+}
+
+.boss-title-main {
+    -fx-font-family: "Press Start 2P", "Impact", "Arial Black", sans-serif;
+    -fx-font-size: 42px;
+    -fx-text-fill: linear-gradient(to bottom, #FFFFFF 0%, #FF4D6D 100%);
+    -fx-effect: dropshadow(one-pass-box, #000000, 0, 0, 4, 4);
+}
+
+.boss-subtitle {
+    -fx-font-family: "Press Start 2P", "Consolas", "Courier New", monospace;
+    -fx-font-size: 12px;
+    -fx-text-fill: #FFCC00;
+    -fx-effect: dropshadow(one-pass-box, #000000, 0, 0, 2, 2);
+}

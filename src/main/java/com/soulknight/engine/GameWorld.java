@@ -160,6 +160,8 @@ public final class GameWorld {
     private SpawnEffect petSpawnEffect;
     private PlayerDeathEffect playerDeathEffect;
     private boolean playerDeathHandled;
+    private double bossIntroTimer = 0.0;
+    private static final double BOSS_INTRO_DURATION = 3.0;
 
     public GameWorld(InputHandler inputHandler) {
         this.inputHandler = inputHandler;
@@ -262,7 +264,17 @@ public final class GameWorld {
         if (player == null || mapManager == null) {
             return;
         }
-
+//        boss intro
+        if (state == GameState.BOSS_INTRO) {
+            bossIntroTimer -= deltaSeconds;
+            camera.follow(player.getPosition(), viewportWidth, viewportHeight, mapManager.getWorldWidth(), mapManager.getWorldHeight());
+            if (particleManager != null) particleManager.update(deltaSeconds);
+            floatingTextManager.update(deltaSeconds);
+            if (bossIntroTimer <= 0.0) {
+                changeState(GameState.PLAYING);
+            }
+            return;
+        }
 //       cap nhat hieu ung spawn cho player va pet
         if (playerSpawnEffect != null) {
             playerSpawnEffect.update(deltaSeconds);
@@ -1953,6 +1965,9 @@ public final class GameWorld {
             // Thêm Boss vào thế giới kèm hiệu ứng Spawn đẹp mắt
             addEnemyWithSpawnEffect(boss, 0.0);
 
+            bossIntroTimer = BOSS_INTRO_DURATION;
+            changeState(GameState.BOSS_INTRO);
+
             return 1; // Trả về số lượng quái sinh ra là 1 (Boss)
         }
 
@@ -3184,8 +3199,11 @@ public final class GameWorld {
     }
     private void playGameBGM() {
         SoundManager sound = SoundManager.getInstance();
-        sound.stopBGM();
-        sound.playBGM("/assets/Audio/StartGame.mp3");
+        String gameplayBGM = "/assets/Audio/StartGame.mp3";
+        if (!sound.isCurrentlyPlaying(gameplayBGM)) {
+            sound.stopBGM();
+            sound.playBGM(gameplayBGM);
+        }
     }
 
     public interface GameStateListener {
