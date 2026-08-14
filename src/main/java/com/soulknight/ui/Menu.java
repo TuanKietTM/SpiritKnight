@@ -4,13 +4,16 @@ import com.soulknight.utils.SoundManager;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.canvas.Canvas;
+import javafx.scene.layout.StackPane;
 
 public final class Menu {
 
+    @FXML private StackPane rootStackPane;
     @FXML private Button btnNewGame;
     @FXML private Button btnContinue;
     @FXML private Button btnLeaderboard;
@@ -41,10 +44,10 @@ public final class Menu {
     public void initialize() {
         setIcon(newGameIcon, "/assets/icon/play.png");
         setIcon(continueIcon, "/assets/icon/continue.png");
-        setIcon(leaderboardIcon, "/assets/icon/tropy.png");
-        setIcon(shopIcon, "/assets/icon/shop.png");
+        setIcon(leaderboardIcon, "/assets/icon/podium.png");
+        setIcon(shopIcon, "/assets/icon/shopping-cart.png");
         setIcon(accountIcon, "/assets/icon/person.png");
-        setIcon(settingsIcon, "/assets/icon/setting.png");
+        setIcon(settingsIcon, "/assets/icon/settings.png");
         setIcon(exitIcon, "/assets/icon/close.png");
         if (nexusCanvas != null) {
             menuBackground =
@@ -54,6 +57,18 @@ public final class Menu {
         }
 
 
+    }
+    public void showOverlay(Node overlayNode) {
+        if (rootStackPane != null && overlayNode != null) {
+            if (!rootStackPane.getChildren().contains(overlayNode)) {
+                rootStackPane.getChildren().add(overlayNode);
+            }
+        }
+    }
+    public void hideOverlay(Node overlayNode) {
+        if (rootStackPane != null && overlayNode != null) {
+            rootStackPane.getChildren().remove(overlayNode);
+        }
     }
 
     private void setIcon(ImageView imageView, String path) {

@@ -2,6 +2,7 @@
 
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.image.Image?>
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.ColumnConstraints?>
 <?import javafx.scene.layout.GridPane?>
@@ -16,8 +17,10 @@
             <StackPane styleClass="avatar-box">
                 <ImageView fx:id="imgCharacterAvatar" fitHeight="54.0" fitWidth="54.0" pickOnBounds="true" preserveRatio="true" />
             </StackPane>
-            <StackPane styleClass="pause-banner" HBox.hgrow="ALWAYS">
-                <Label styleClass="pause-title" text="PAUSE" />
+            <StackPane styleClass="pause-banner-wrapper" HBox.hgrow="ALWAYS">
+                <StackPane styleClass="pause-banner">
+                    <Label styleClass="pause-title" text="PAUSE" />
+                </StackPane>
             </StackPane>
         </HBox>
         <GridPane alignment="CENTER" hgap="10" styleClass="buff-grid" vgap="10">
@@ -46,11 +49,34 @@
                 <RowConstraints/>
             </rowConstraints>
         </GridPane>
-
         <HBox alignment="CENTER" spacing="20" styleClass="footer-container">
-            <Button focusTraversable="false" onAction="#onMainMenuClicked" styleClass="action-button, btn-home" text="🏠" />
-            <Button focusTraversable="false" onAction="#onResumeClicked" styleClass="action-button, btn-resume" text="▶" />
-            <Button focusTraversable="false" onAction="#onSettingClicked" styleClass="action-button, btn-setting" text="⚙" />
+            <Button focusTraversable="false" onAction="#onMainMenuClicked" styleClass="action-button, btn-home">
+                <graphic>
+                    <ImageView fitHeight="32.0" fitWidth="32.0" preserveRatio="true" smooth="false">
+                        <image>
+                            <Image url="@../icon/home.png" />
+                        </image>
+                    </ImageView>
+                </graphic>
+            </Button>
+            <Button focusTraversable="false" onAction="#onResumeClicked" styleClass="action-button, btn-resume">
+                <graphic>
+                    <ImageView fitHeight="36.0" fitWidth="36.0" preserveRatio="true" smooth="false">
+                        <image>
+                            <Image url="@../icon/play-button.png" />
+                        </image>
+                    </ImageView>
+                </graphic>
+            </Button>
+            <Button focusTraversable="false" onAction="#onSettingClicked" styleClass="action-button, btn-setting">
+                <graphic>
+                    <ImageView fitHeight="32.0" fitWidth="32.0" preserveRatio="true" smooth="false">
+                        <image>
+                            <Image url="@../icon/settings.png" />
+                        </image>
+                    </ImageView>
+                </graphic>
+            </Button>
         </HBox>
 
     </VBox>

@@ -4,7 +4,7 @@
 }
 
 .leaderboard-overlay {
-    -fx-background-color: rgba(2, 6, 13, 0.90);
+    -fx-background-color: rgba(0, 0, 0, 0.65);
     -fx-alignment: center;
     -fx-padding: 24px;
 }

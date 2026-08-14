@@ -4,26 +4,27 @@
 }
 
 .account-root {
-    -fx-background-color: rgba(2, 6, 13, 0.90);
+   -fx-background-color: rgba(0, 0, 0, 0.65);
     -fx-alignment: center;
     -fx-padding: 24px;
 }
 
 .account-window {
-    -fx-background-color: rgba(5, 10, 19, 0.98);
-    -fx-border-color: rgba(198, 181, 112, 0.62);
-    -fx-border-width: 2px;
-    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.86), 22, 0.25, 0, 8);
+    -fx-background-color: rgba(11, 18, 30, 0.95); /* Khung hơi mờ nhẹ để tương phản tốt hơn */
+    -fx-border-color: #ffd700 #7a6200 #7a6200 #ffd700; /* Viền nổi Vàng Pixel 3D */
+    -fx-border-width: 3px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.95), 30, 0.4, 0, 10);
 }
 
 .account-title {
     -fx-font-family: "Press Start 2P";
-    -fx-font-size: 23px;
-    -fx-text-fill: #fff0b8;
+    -fx-font-size: 22px;
+    -fx-text-fill: #fbc531;
+    -fx-effect: dropshadow(one-pass-box, #2c0b05, 0, 0, 3, 3);
 }
 
 .account-title-line {
-    -fx-background-color: #988a57;
+    -fx-background-color: #fbc531;
 }
 
 .account-subtitle {
@@ -33,97 +34,118 @@
 }
 
 .account-info-box {
-    -fx-background-color: rgba(9, 16, 27, 0.96);
-    -fx-border-color: rgba(143, 159, 169, 0.28);
-    -fx-border-width: 1px;
-    -fx-padding: 13px 15px;
-}
-
-.account-form {
-    -fx-background-color: rgba(7, 13, 23, 0.70);
-    -fx-border-color: rgba(143, 159, 169, 0.16);
-    -fx-border-width: 1px;
-    -fx-padding: 16px;
+    -fx-background-color: #05080e;
+    -fx-border-color: #1e2b37 #486581 #486581 #1e2b37;
+    -fx-border-width: 3px;
+    -fx-padding: 12px 16px;
 }
 
 .field-caption {
     -fx-font-family: "Press Start 2P";
     -fx-font-size: 8px;
-    -fx-text-fill: #91a7b7;
+    -fx-text-fill: #788c98;
 }
 
 .username-label {
     -fx-font-family: "Press Start 2P";
-    -fx-font-size: 13px;
-    -fx-text-fill: #f2d97f;
+    -fx-font-size: 14px;
+    -fx-text-fill: #00cec9; /* Màu xanh Neon nổi bật tên Player */
+}
+
+/* =========================================================================
+   FORM & INPUT FIELDS
+   ========================================================================= */
+.account-form {
+    -fx-background-color: rgba(6, 10, 18, 0.85);
+    -fx-border-color: #1e2b37;
+    -fx-border-width: 2px;
+    -fx-padding: 16px;
 }
 
 .account-field {
     -fx-font-family: "Press Start 2P";
-    -fx-font-size: 8px;
-    -fx-background-color: #080d17;
+    -fx-font-size: 9px;
+    -fx-background-color: #04070d;
     -fx-text-fill: #e5eef2;
-    -fx-prompt-text-fill: #526774;
-    -fx-border-color: #314453;
-    -fx-border-width: 2px;
-    -fx-padding: 12px;
+    -fx-prompt-text-fill: #486581;
+    -fx-border-color: #1e2b37 #3a4b5c #3a4b5c #1e2b37;
+    -fx-border-width: 3px;
+    -fx-padding: 10px 12px;
 }
 
 .account-field:focused {
-    -fx-border-color: #d8c271;
+    -fx-border-color: #fbc531 #7a6200 #7a6200 #fbc531; /* Viền sáng khi đang nhập */
+    -fx-background-color: #080e1a;
 }
 
+/* =========================================================================
+   MESSAGE NOTIFICATION
+   ========================================================================= */
 .message-label {
     -fx-font-family: "Press Start 2P";
     -fx-font-size: 8px;
-    -fx-text-fill: #e0c875;
+    -fx-text-fill: #ffeaa7;
     -fx-alignment: center;
-    -fx-min-height: 28px;
+    -fx-min-height: 24px;
 }
 
+/* =========================================================================
+   BUTTONS (Nút bấm chuẩn Pixel 3D)
+   ========================================================================= */
 .account-action-button,
 .account-logout-button,
 .account-back-button {
     -fx-font-family: "Press Start 2P";
     -fx-font-size: 9px;
-    -fx-padding: 13px;
+    -fx-padding: 12px;
     -fx-cursor: hand;
     -fx-background-radius: 0;
     -fx-border-radius: 0;
-    -fx-border-width: 2px;
+    -fx-border-width: 3px;
 }
 
+/* Nút Đổi mật khẩu */
 .account-action-button {
-    -fx-background-color: rgba(89, 76, 34, 0.96);
-    -fx-border-color: #d8c271;
+    -fx-background-color: #c23616;
+    -fx-border-color: #fbc531 #6d0f00 #6d0f00 #fbc531;
     -fx-text-fill: #fff4cb;
 }
 
 .account-action-button:hover {
-    -fx-background-color: #827037;
-    -fx-border-color: #fff0a8;
+    -fx-background-color: #e84118;
 }
 
+.account-action-button:pressed {
+    -fx-translate-y: 2px;
+}
+
+/* Nút Đăng xuất */
 .account-logout-button {
-    -fx-background-color: rgba(57, 25, 31, 0.94);
-    -fx-border-color: #91505b;
-    -fx-text-fill: #d9b3b7;
-}
-
-.account-logout-button:hover {
-    -fx-background-color: #81313d;
-    -fx-border-color: #db7882;
+    -fx-background-color: #6c5ce7;
+    -fx-border-color: #a29bfe #3c2a96 #3c2a96 #a29bfe;
     -fx-text-fill: #ffffff;
 }
 
+.account-logout-button:hover {
+    -fx-background-color: #81259d;
+}
+
+.account-logout-button:pressed {
+    -fx-translate-y: 2px;
+}
+
+/* Nút Quay lại */
 .account-back-button {
-    -fx-background-color: rgba(15, 24, 36, 0.96);
-    -fx-border-color: #526775;
+    -fx-background-color: #1b2634;
+    -fx-border-color: #486581 #0f172a #0f172a #486581;
     -fx-text-fill: #bac8cf;
 }
 
 .account-back-button:hover {
-    -fx-background-color: #223342;
-    -fx-border-color: #9fb7c2;
+    -fx-background-color: #2c3e50;
     -fx-text-fill: #ffffff;
+}
+
+.account-back-button:pressed {
+    -fx-translate-y: 2px;
 }
