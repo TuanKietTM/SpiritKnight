@@ -1,6 +1,7 @@
 package com.soulknight.engine;
 
 import com.soulknight.animation.*;
+import com.soulknight.debuff.DebuffItem;
 import com.soulknight.entity.*;
 import com.soulknight.item.EnergyCrystal;
 import com.soulknight.item.GemItem;
@@ -69,6 +70,7 @@ public final class GameWorld {
     private static final int DRAGON_BREATH_DAMAGE = 5;
     private static final int DRAGON_EXPLOSION_DAMAGE = 33;
     private static final double DRAGON_EXPLOSION_RADIUS = 130.0;
+    private static final double BOSS_INTRO_DURATION = 3.0;
     private final Random random = new Random();
     // phong nao da roi buff thi khong roi lan nua
     private final java.util.Set<Room> buffRewardedRooms = java.util.Collections.newSetFromMap(new IdentityHashMap<>());
@@ -86,7 +88,6 @@ public final class GameWorld {
     private final Object bankRewardLock = new Object();
     private final List<Enemy> enemies = new ArrayList<>();
     private final Map<Enemy, EnemySpawnEffect> enemySpawnEffects = new IdentityHashMap<>();
-    private BossSpawnEffect bossSpawnEffect;
     private final Map<Enemy, EnemyDeathEffect> enemyDeathEffects = new IdentityHashMap<>();
     private final List<Bullet> bullets = new ArrayList<>();
     // Danh sach hieu ung no khi dan va cham (tuong hoac muc tieu)
@@ -119,6 +120,7 @@ public final class GameWorld {
     private final AtomicBoolean saveLoadInProgress = new AtomicBoolean(false);
     // Các phòng đã nhận thưởng trong run hiện tại, key = level:room
     private final java.util.Set<String> rewardedRoomKeys = new java.util.HashSet<>();
+    private BossSpawnEffect bossSpawnEffect;
     private GameStateListener stateListener;
     private java.util.function.IntConsumer buffHotkeyListener;
     private MapManager mapManager;
@@ -156,7 +158,6 @@ public final class GameWorld {
     private PlayerDeathEffect playerDeathEffect;
     private boolean playerDeathHandled;
     private double bossIntroTimer = 0.0;
-    private static final double BOSS_INTRO_DURATION = 3.0;
 
     public GameWorld(InputHandler inputHandler) {
         this.inputHandler = inputHandler;
@@ -995,6 +996,12 @@ public final class GameWorld {
                     floatingTextManager.spawnCustom("+" + (int) restored + " MANA",
                             player.getPosition(), Color.AQUA);
                 }
+            } else if (item instanceof com.soulknight.debuff.DebuffItem debuffItem) {
+                com.soulknight.debuff.DebuffType type = debuffItem.getDebuffType();
+                player.getDebuffManager().applyDebuff(type);
+                floatingTextManager.spawnCustom("TRAPPED" + type.getDisplayName(),
+                        player.getPosition(), type.getColor());
+                SoundManager.getInstance().playSFXShort("trap_trigger", 0.6);
             }
             item.collect();
         }
@@ -1077,7 +1084,6 @@ public final class GameWorld {
                 graphicsContext.drawImage(wall.getTexture(), screenX, screenY, tileSize * zoom, tileSize * zoom);
             }));
         }
-
 
 
 //  Thêm player moc tinh o ban chan
@@ -2030,6 +2036,14 @@ public final class GameWorld {
             }
 
             roomSpawnPoints.add(point);
+        }
+//tich hop debuff item cung cac wave quai
+        if (room.getType() != com.soulknight.map.Room.RoomType.BOSS && room.getType() != com.soulknight.map.Room.RoomType.START) {
+            int debuffCount = random.nextInt(3) + 1;
+            List<DebuffItem> waveDebuffs = com.soulknight.debuff.DebuffSpawner.spawnWaveDebuffs(
+                    mapManager, room, debuffCount, null
+            );
+            this.items.addAll(waveDebuffs);
         }
 
         // sinh quái tùy theo wave
@@ -3188,6 +3202,7 @@ public final class GameWorld {
 
         this.player = newPlayer;
     }
+
     public void addShockwave(Shockwave shockwave) {
         if (shockwave != null) {
             synchronized (shockwaves) {
@@ -3195,11 +3210,13 @@ public final class GameWorld {
             }
         }
     }
+
     public void spawnShockwave(Vector2D position, double maxRadius, double expandSpeed, double thickness, int damage, Color color, boolean fromPlayer) {
         addShockwave(new Shockwave(position, 0.0, maxRadius, expandSpeed,
                 thickness, damage, color, fromPlayer));
 
     }
+
     private void updateShockwaves(double deltaSeconds) {
         synchronized (shockwaves) {
             for (int i = 0; i < shockwaves.size(); i++) {
@@ -3208,6 +3225,7 @@ public final class GameWorld {
             shockwaves.removeIf(sw -> !sw.isActive());
         }
     }
+
     public void renderShockwaves(GraphicsContext gc, Camera camera) {
         synchronized (shockwaves) {
             for (int i = 0; i < shockwaves.size(); i++) {
@@ -3215,6 +3233,7 @@ public final class GameWorld {
             }
         }
     }
+
     private void handleBossDeathCompleted(Boss boss) {
         if (levelManager != null && levelManager.getCurrentLevel() != null
                 && levelManager.getCurrentLevel().bossLevel()) {
@@ -3222,20 +3241,24 @@ public final class GameWorld {
             this.endingPortal = new EndingPortal(portalPos);
         }
     }
+
     private void updateScratchMarks(double deltaSeconds) {
         for (ScratchMark mark : scratchMarks) {
             mark.update(this, deltaSeconds);
         }
         scratchMarks.removeIf(ScratchMark::isExpired);
     }
+
     public void addScratchMark(ScratchMark mark) {
         if (mark != null) {
             this.scratchMarks.add(mark);
         }
     }
+
     public void spawnScratchMark(Vector2D position, double radius, double lifetimeSeconds, int damagePerSecond) {
         this.scratchMarks.add(new ScratchMark(position, radius, lifetimeSeconds, damagePerSecond));
     }
+
     private void playGameBGM() {
         SoundManager sound = SoundManager.getInstance();
         String gameplayBGM = "/assets/Audio/StartGame.mp3";

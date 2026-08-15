@@ -2,6 +2,8 @@ package com.soulknight.entity;
 
 import com.soulknight.buff.BuffManager;
 import com.soulknight.buff.BuffType;
+import com.soulknight.debuff.DebuffType;
+import com.soulknight.debuff.PlayerDebuffManager;
 import com.soulknight.engine.GameWorld;
 import com.soulknight.utils.Constants;
 import com.soulknight.utils.Vector2D;
@@ -28,6 +30,9 @@ public final class Player extends Entity {
     private final double MAX_INVULNERABILITY_TIME = 0.3;
     // Quan ly cac buff dang hoat dong tren Player
     private final BuffManager buffManager;
+    private final PlayerDebuffManager debuffManager = new PlayerDebuffManager();
+    private final double maxMana = 200.0;
+    private final int maxShield = 6;
     private Weapon weapon = new Gun("Blaster", 12, 0.18, 580.0, 0.0)
             .withImage("/assets/WeaponImage/GunImage/OldPistol.png");
     private boolean isFacingLeft = false;
@@ -45,10 +50,8 @@ public final class Player extends Entity {
     private double buffDamageReduction = 0.0;
     // Mana dung cho cac weapon dac biet.
     private double mana = 200.0;
-    private final double maxMana = 200.0;
     // Shield hap thu damage truoc HP.
     private int shield = 6;
-    private final int maxShield = 6;
     private double shieldRegenDelay;
     private double shieldRegenTimer;
 
@@ -97,7 +100,8 @@ public final class Player extends Entity {
         if (invulnerabilityTimer > 0.0 || amount <= 0 || !isAlive()) {
             return;
         }
-        int finalDamage = (int) Math.round(amount * (1.0 - buffDamageReduction));
+        int modifiedAmount = debuffManager.modifyIncomingDamage(amount);
+        int finalDamage = (int) Math.round(modifiedAmount * (1.0 - buffDamageReduction));
         finalDamage = Math.max(0, finalDamage);
         if (finalDamage <= 0) {
             return;
@@ -171,6 +175,8 @@ public final class Player extends Entity {
         updateShield(deltaSeconds);
         weapon.tick(deltaSeconds);
         buffManager.tick(deltaSeconds);
+//cap nhat dem nguoc thoi gian debuff va kich hoat rut mau khi trung doc
+        debuffManager.update(this, deltaSeconds);
 
         double dx = 0.0;
         double dy = 0.0;
@@ -198,6 +204,10 @@ public final class Player extends Entity {
                 dx += 1.0;
             }
         }
+// Dao chieu huong di chuyen khi dinh phai confusion
+        double dirMultiplier = debuffManager.getMovementDirectionMultiplier();
+        dx *= dirMultiplier;
+        dy *= dirMultiplier;
 
         // Xử lý di chuyển
         Vector2D movement = new Vector2D(dx, dy);
@@ -218,8 +228,10 @@ public final class Player extends Entity {
             if (weapon instanceof IonElectromagneticGun ionGun && ionGun.isCharging()) {
                 weaponSpeedMultiplier = ionGun.getMoveSpeedMultiplier();
             }
+//            slow khi gap phai giam toc
+            double debuffSpeedMultiplier = debuffManager.getSpeedModifier();
 
-            movement.scale(getSpeed() * weaponSpeedMultiplier * deltaSeconds);
+            movement.scale(getSpeed() * weaponSpeedMultiplier * debuffSpeedMultiplier * deltaSeconds);
             this.move(world, movement.getX(), movement.getY());
         } else {
             this.movementState = PlayerAnimator.State.IDLE;
@@ -338,9 +350,10 @@ public final class Player extends Entity {
         double worldHeight = 24.0;
 
         /*
-         * Ve nua sau cua quy dao Shield truoc Player.
+         * Ve nua sau cua quy dao Shield truoc Player. va ve nua sau cua vong tron confusion
          */
         buffManager.renderBehind(graphicsContext, camera);
+        debuffManager.renderBack(graphicsContext, camera, this);
 
         /*
          * Ve Player.
@@ -357,9 +370,10 @@ public final class Player extends Entity {
         }
 
         /*
-         * Ve nua truoc cua quy dao Shield sau Player.
+         * Ve nua truoc xuat hien cua cac buff. nua truoc cua confusion(debuff)
          */
         buffManager.renderFront(graphicsContext, camera);
+        debuffManager.renderFront(graphicsContext, camera, this);
     }
 
     /**
@@ -506,6 +520,13 @@ public final class Player extends Entity {
         return mana;
     }
 
+    public void setMana(double mana) {
+        this.mana = Math.max(
+                0.0,
+                Math.min(maxMana, mana)
+        );
+    }
+
     public double getMaxMana() {
         return maxMana;
     }
@@ -540,8 +561,19 @@ public final class Player extends Entity {
         return shield;
     }
 
+    public void setShield(int shield) {
+        this.shield = Math.max(
+                0,
+                Math.min(maxShield, shield)
+        );
+    }
+
     public int getMaxShield() {
         return maxShield;
+    }
+
+    public PlayerDebuffManager getDebuffManager() {
+        return debuffManager;
     }
 
     // Hoi Shield nhung khong vuot qua max.
@@ -549,18 +581,5 @@ public final class Player extends Entity {
         if (amount <= 0) return;
 
         shield = Math.min(maxShield, shield + amount);
-    }
-    public void setMana(double mana) {
-        this.mana = Math.max(
-                0.0,
-                Math.min(maxMana, mana)
-        );
-    }
-
-    public void setShield(int shield) {
-        this.shield = Math.max(
-                0,
-                Math.min(maxShield, shield)
-        );
     }
 }
