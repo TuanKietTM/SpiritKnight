@@ -999,7 +999,7 @@ public final class GameWorld {
             } else if (item instanceof com.soulknight.debuff.DebuffItem debuffItem) {
                 com.soulknight.debuff.DebuffType type = debuffItem.getDebuffType();
                 player.getDebuffManager().applyDebuff(type);
-                floatingTextManager.spawnCustom("BỊ BẪY: " + type.getDisplayName(),
+                floatingTextManager.spawnCustom("TRAPPED " + type.getDisplayName(),
                         player.getPosition(), type.getColor());
                 SoundManager.getInstance().playSFXShort("trap_trigger", 0.6);
             }
