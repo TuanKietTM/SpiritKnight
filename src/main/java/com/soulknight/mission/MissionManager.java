@@ -1,5 +1,6 @@
 package com.soulknight.mission;
 
+import com.soulknight.debuff.DebuffItem;
 import com.soulknight.entity.Boss;
 import com.soulknight.entity.Enemy;
 import com.soulknight.event.GameEventListener;
@@ -23,9 +24,6 @@ public final class MissionManager implements GameEventListener {
         return currentMission;
     }
 
-    public void setMissionCompletedListener(Runnable missionCompletedListener) {
-        this.missionCompletedListener = Objects.requireNonNull(missionCompletedListener);
-    }
 
     @Override
     public void onEnemyDefeated(Enemy enemy) {
@@ -45,25 +43,11 @@ public final class MissionManager implements GameEventListener {
         checkCompletion();
     }
 
-    @Override
-    public void onBossDefeated(Boss boss) {
-        if (currentMission == null) {
-            return;
-        }
-        currentMission.onBossDefeated(boss);
-        checkCompletion();
-    }
-
-    public boolean isMissionComplete() {
-        return currentMission != null && currentMission.isComplete();
+    public void onDebuffSpawned(DebuffItem debuffItem) {
     }
 
     public String getMissionTitle() {
         return currentMission == null ? "No mission" : currentMission.getName();
-    }
-
-    public String getMissionDescription() {
-        return currentMission == null ? "" : currentMission.getDescription();
     }
 
     public String getMissionProgress() {
