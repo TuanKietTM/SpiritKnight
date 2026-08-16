@@ -2,6 +2,7 @@ package com.soulknight.engine;
 
 import com.soulknight.animation.*;
 import com.soulknight.debuff.DebuffItem;
+import com.soulknight.debuff.DebuffSpawner;
 import com.soulknight.entity.*;
 import com.soulknight.item.EnergyCrystal;
 import com.soulknight.item.GemItem;
@@ -573,6 +574,7 @@ public final class GameWorld {
         if (realDamage > 0 && bullet.getOwner() instanceof Player attackingPlayer) {
             attackingPlayer.getBuffManager().notifyDamageDealt(this, enemy, realDamage);
         }
+        trySpawnDebuffOnHit(enemy, realDamage);
 
         floatingTextManager.spawnDamage(enemy.getPosition(), bullet.getDamage());
 
@@ -2040,9 +2042,6 @@ public final class GameWorld {
 //tich hop debuff item cung cac wave quai
         if (room.getType() != com.soulknight.map.Room.RoomType.BOSS && room.getType() != com.soulknight.map.Room.RoomType.START) {
             int debuffCount = random.nextInt(3) + 1;
-            List<DebuffItem> waveDebuffs = com.soulknight.debuff.DebuffSpawner.spawnWaveDebuffs(
-                    mapManager, room, debuffCount, null
-            );
             this.items.addAll(waveDebuffs);
         }
 
@@ -2195,6 +2194,7 @@ public final class GameWorld {
 
                 player.getBuffManager().notifyDamageDealt(this, enemy, realDamage);
             }
+            trySpawnDebuffOnHit(enemy, realDamage);
 //            chem enemy sing ra tia lua
             if (particleManager != null) {
                 particleManager.spawnHitImpact(enemy.getPosition());
@@ -3249,14 +3249,19 @@ public final class GameWorld {
         scratchMarks.removeIf(ScratchMark::isExpired);
     }
 
-    public void addScratchMark(ScratchMark mark) {
-        if (mark != null) {
-            this.scratchMarks.add(mark);
-        }
-    }
-
     public void spawnScratchMark(Vector2D position, double radius, double lifetimeSeconds, int damagePerSecond) {
         this.scratchMarks.add(new ScratchMark(position, radius, lifetimeSeconds, damagePerSecond));
+    }
+
+    private void trySpawnDebuffOnHit(Enemy enemy, int realDamage) {
+        if (enemy == null || realDamage <= 0 || !enemy.isAlive()) return;
+        double dropChance = 0.85;
+        if (random.nextDouble() < dropChance) {
+            DebuffItem debuff = DebuffSpawner.spawnAtPosition(enemy.getPosition(), null);
+            if (debuff != null) {
+                items.add(debuff);
+            }
+        }
     }
 
     private void playGameBGM() {

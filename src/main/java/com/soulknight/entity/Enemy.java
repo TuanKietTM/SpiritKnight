@@ -41,10 +41,13 @@ public class Enemy extends Entity {
     private final double bulletRadius = 7.5;
     private double rangedAttackCooldown = 1.5;
     private double aimTimer = 0.0;
+    private int maxHealth;
+    private double lastHealthPercent = 1.0;
     private Vector2D repositionTarget = null;
     public Enemy(EnemyArchetype archetype, Vector2D spawnPoint, double radius, int health, double moveSpeed,
                  int contactDamage, Weapon rangedWeapon, GameEventListener eventListener) {
         super(spawnPoint, radius, health, colorFor(archetype));
+        this.maxHealth = health;
         this.archetype = archetype;
         this.moveSpeed = moveSpeed;
         this.contactDamage = contactDamage;
@@ -381,11 +384,26 @@ public class Enemy extends Entity {
     @Override
     public void takeDamage(int amount) {
         super.takeDamage(amount);
+        double currentHealthPercent = (double) getHealth() / maxHealth;
+
+        if (isAlive() && (lastHealthPercent - currentHealthPercent >= 0.25)) {
+            lastHealthPercent = currentHealthPercent;
+            dropDebuffItemOnPath();
+        }
+
         if (!isAlive() && !defeatNotified) {
             defeatNotified = true;
             if (eventListener != null) {
                 eventListener.onEnemyDefeated(this);
             }
+        }
+    }
+
+    private void dropDebuffItemOnPath() {
+        com.soulknight.debuff.DebuffItem debuff = com.soulknight.debuff.DebuffSpawner.spawnAtPosition(getPosition(), eventListener);
+
+        if (debuff != null && eventListener != null) {
+            eventListener.onDebuffSpawned(debuff);
         }
     }
 

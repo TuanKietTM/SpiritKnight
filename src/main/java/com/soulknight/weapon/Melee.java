@@ -21,7 +21,7 @@ public final class Melee extends Weapon {
 
     @Override
     public void attack(GameWorld world, Entity owner, Vector2D targetPosition) {
-        if (!isReady()) {
+        if (!isReady(owner)) {
             return;
         }
         if (!consumeMana(owner)) return;

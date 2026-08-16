@@ -38,4 +38,10 @@ public class DebuffSpawner {
 
         return debuffs;
     }
+    public static DebuffItem spawnAtPosition(Vector2D position, GameEventListener listener) {
+        if (position == null) return null;
+        DebuffType[] types = DebuffType.values();
+        DebuffType randomType = types[RANDOM.nextInt(types.length)];
+        return new DebuffItem(randomType, position.copy(), listener);
+    }
 }

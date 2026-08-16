@@ -30,7 +30,7 @@ public final class Gun extends Weapon {
 
     @Override
     public void attack(GameWorld world, Entity owner, Vector2D targetPosition) {
-        if (!isReady()) {
+        if (!isReady(owner)) {
             return;
         }
         // Chi tru mana khi sung san sang ban.
