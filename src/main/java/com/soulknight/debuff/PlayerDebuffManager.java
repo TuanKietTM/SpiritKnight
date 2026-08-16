@@ -23,6 +23,7 @@ public class PlayerDebuffManager {
         visualEffects.put(DebuffType.SLOW, new SlowVisualEffect());
         visualEffects.put(DebuffType.CONFUSION, new ConfusionVisualEffect());
         visualEffects.put(DebuffType.WEAKNESS, new WeaknessVisualEffect());
+        visualEffects.put(DebuffType.FREEZE, new FreezeVisualEffect());
     }
 
     public void applyDebuff(DebuffType type) {
@@ -63,9 +64,15 @@ public class PlayerDebuffManager {
             }
         }
     }
-
+// dieu chinh toc do
     public double getSpeedModifier() {
+        if (hasDebuff(DebuffType.FREEZE)) {
+            return 0.0;
+        }
         return hasDebuff(DebuffType.SLOW) ? 0.5 : 1.0;
+    }
+    public boolean canAttack() {
+        return !hasDebuff(DebuffType.FREEZE);
     }
 
     public double getMovementDirectionMultiplier() {

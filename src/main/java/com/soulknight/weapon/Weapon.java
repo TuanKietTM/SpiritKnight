@@ -38,6 +38,15 @@ public abstract class Weapon {
     protected boolean isReady() {
         return cooldownRemaining <= 0.0;
     }
+    protected boolean isReady(Entity owner) {
+        if (!isReady()) return false;
+        if (owner instanceof Player player) {
+            if (!player.getDebuffManager().canAttack()) {
+                return false;
+            }
+        }
+        return true;
+    }
 
     protected void resetCooldown() {
         cooldownRemaining = cooldownSeconds;

@@ -53,7 +53,7 @@ public final class PrototypeRailgun extends Weapon {
     public void charge(double deltaSeconds, Vector2D targetPosition) {
         if (!isReady() || targetPosition == null) return;
 
-        charging = true;
+        charging = true; 
         chargeTime = Math.min(MAX_CHARGE_TIME, chargeTime + Math.max(0.0, deltaSeconds));
         lastTarget = targetPosition.copy();
     }
