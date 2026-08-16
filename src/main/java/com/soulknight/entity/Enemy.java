@@ -384,26 +384,11 @@ public class Enemy extends Entity {
     @Override
     public void takeDamage(int amount) {
         super.takeDamage(amount);
-        double currentHealthPercent = (double) getHealth() / maxHealth;
-
-        if (isAlive() && (lastHealthPercent - currentHealthPercent >= 0.25)) {
-            lastHealthPercent = currentHealthPercent;
-            dropDebuffItemOnPath();
-        }
-
         if (!isAlive() && !defeatNotified) {
             defeatNotified = true;
             if (eventListener != null) {
                 eventListener.onEnemyDefeated(this);
             }
-        }
-    }
-
-    private void dropDebuffItemOnPath() {
-        com.soulknight.debuff.DebuffItem debuff = com.soulknight.debuff.DebuffSpawner.spawnAtPosition(getPosition(), eventListener);
-
-        if (debuff != null && eventListener != null) {
-            eventListener.onDebuffSpawned(debuff);
         }
     }
 

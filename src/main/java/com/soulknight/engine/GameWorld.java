@@ -110,6 +110,7 @@ public final class GameWorld {
     private final List<RestHealEffect> restHealEffects = new ArrayList<>();
     private final List<Shockwave> shockwaves = new ArrayList<>();
     private final List<ScratchMark> scratchMarks = new ArrayList<>();
+    private final List<UFOEvent> ufoEvents = new ArrayList<>();
     //   chia luong hoat dong rieng cua database de tranh lam cham game
     private final ExecutorService databaseExecutor =
             Executors.newSingleThreadExecutor(runnable -> {
@@ -159,6 +160,8 @@ public final class GameWorld {
     private PlayerDeathEffect playerDeathEffect;
     private boolean playerDeathHandled;
     private double bossIntroTimer = 0.0;
+    private double ufoSpawnTimer = 0.0;
+    private final double UFO_SPAWN_INTERVAL = 10.0;// thoi gian xuat hien cua UFO
 
     public GameWorld(InputHandler inputHandler) {
         this.inputHandler = inputHandler;
@@ -311,6 +314,22 @@ public final class GameWorld {
 //            xu li va cham quai voi quai
             enemy.separateFromOtherEnemies(this, enemies, deltaSeconds);
         }
+
+        // Cập nhật bộ đếm sinh UFO ngẫu nhiên
+        ufoSpawnTimer += deltaSeconds;
+        if (ufoSpawnTimer >= UFO_SPAWN_INTERVAL) {
+            ufoSpawnTimer = 0;
+            if (player != null && player.isAlive()) {
+                ufoEvents.add(new UFOEvent(player.getPosition()));
+            }
+        }
+
+// Cập nhật logic các UFO hiện có
+        for (UFOEvent ufo : ufoEvents) {
+            ufo.update(this, deltaSeconds);
+        }
+
+        ufoEvents.removeIf(UFOEvent::isFinished);
         resolvePlayerEnemyCollisions(deltaSeconds);
 
         updateBullets(deltaSeconds);
@@ -574,7 +593,6 @@ public final class GameWorld {
         if (realDamage > 0 && bullet.getOwner() instanceof Player attackingPlayer) {
             attackingPlayer.getBuffManager().notifyDamageDealt(this, enemy, realDamage);
         }
-        trySpawnDebuffOnHit(enemy, realDamage);
 
         floatingTextManager.spawnDamage(enemy.getPosition(), bullet.getDamage());
 
@@ -1349,6 +1367,9 @@ public final class GameWorld {
             particleManager.render(graphicsContext, camera);
         }
         floatingTextManager.render(graphicsContext, camera);
+        for (UFOEvent ufo : ufoEvents) {
+            ufo.render(graphicsContext, camera);
+        }
     }
 
     private void startNewRun() {
@@ -2039,11 +2060,6 @@ public final class GameWorld {
 
             roomSpawnPoints.add(point);
         }
-//tich hop debuff item cung cac wave quai
-        if (room.getType() != com.soulknight.map.Room.RoomType.BOSS && room.getType() != com.soulknight.map.Room.RoomType.START) {
-            int debuffCount = random.nextInt(3) + 1;
-            this.items.addAll(waveDebuffs);
-        }
 
         // sinh quái tùy theo wave
         // 3. KHỞI TẠO ĐA DẠNG LOẠI QUÁI DỰA TRÊN WAVE
@@ -2194,7 +2210,6 @@ public final class GameWorld {
 
                 player.getBuffManager().notifyDamageDealt(this, enemy, realDamage);
             }
-            trySpawnDebuffOnHit(enemy, realDamage);
 //            chem enemy sing ra tia lua
             if (particleManager != null) {
                 particleManager.spawnHitImpact(enemy.getPosition());
@@ -3253,16 +3268,6 @@ public final class GameWorld {
         this.scratchMarks.add(new ScratchMark(position, radius, lifetimeSeconds, damagePerSecond));
     }
 
-    private void trySpawnDebuffOnHit(Enemy enemy, int realDamage) {
-        if (enemy == null || realDamage <= 0 || !enemy.isAlive()) return;
-        double dropChance = 0.85;
-        if (random.nextDouble() < dropChance) {
-            DebuffItem debuff = DebuffSpawner.spawnAtPosition(enemy.getPosition(), null);
-            if (debuff != null) {
-                items.add(debuff);
-            }
-        }
-    }
 
     private void playGameBGM() {
         SoundManager sound = SoundManager.getInstance();
