@@ -20,8 +20,6 @@ public class UFOEvent {
     private static final int TOTAL_DEBUFF_TYPES = 5;
 
     private static Image ufoSprite;
-    private  AudioClip ufoSound;
-
     private Vector2D position;
     private Vector2D targetPosition;
     private double speed = 350.0;
@@ -38,7 +36,6 @@ public class UFOEvent {
     static {
         try {
             ufoSprite = new Image(UFOEvent.class.getResourceAsStream("/assets/Enemy/UFO.png"));
-            SoundManager.getInstance().playSFX("UFO");
         } catch (Exception e) {
         }
     }
@@ -47,9 +44,7 @@ public class UFOEvent {
         this.position = new Vector2D(playerPos.getX() + (Math.random() * 200 - 100), playerPos.getY() - 500);
         this.targetPosition = playerPos.copy();
         this.isLaserAttack = Math.random() < 0.25;
-        if (ufoSound != null) {
-            ufoSound.play(0.6);
-        }
+        SoundManager.getInstance().playSFX("UFO");
     }
     public void update(GameWorld world, double deltaSeconds) {
         if (finished) return;
