@@ -13,9 +13,6 @@ import javafx.scene.image.Image;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Dai dien cho mot phong trong ban do
- */
 public class Room {
 
     public enum RoomType {
@@ -35,23 +32,15 @@ public class Room {
     private final List<Obstacle> obstacles = new ArrayList<>();
     private final PetRoomEntryController petEntryController = new PetRoomEntryController();
     private final RoomDoorController doorController = new RoomDoorController();
-    private RestRoomController restRoomController;
-    private RoomState state = RoomState.NOT_STARTED;
     private boolean obstaclesLoaded = false;
     private int currentWave;
     private int maxWaves = 2;
     private double waveDelayTimer;
     private boolean isWaitingForNextWave;
     private boolean enemiesSpawned;
+    private RestRoomController restRoomController;
+    private RoomState state = RoomState.NOT_STARTED;
 
-    /**
-     * cac loai phong
-     * @param name
-     * @param x
-     * @param y
-     * @param width
-     * @param height
-     */
     public Room(String name, double x, double y, double width, double height) {
         this.name = name;
         this.bound = new BoundingBox(x, y, width, height);
@@ -76,13 +65,11 @@ public class Room {
         }
     }
 
-    /**
-     * Cap nhat trang thai phong theo thoi gian
-     */
+
     public void update(GameWorld gameWorld, Player player, List<Enemy> globalEnemies, double deltaSeconds) {
+        // đề xuất xóa
         doorController.update(deltaSeconds);
         doorController.update(deltaSeconds);
-// Rest Room khong combat nhung van cap nhat Shrine.
         if (type == RoomType.REST) {
             doorController.setClosed(false);
 

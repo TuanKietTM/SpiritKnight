@@ -15,49 +15,34 @@ import java.util.List;
 
 public final class Player extends Entity {
 
-    // Vi tri nong sung theo chieu cao anh (0 = dinh anh, 1 = day anh).
-    // Dieu chinh gia tri nay de dau nong nam dung tren duong ngam (noi dan bay ra).
-    // 0.5 = giua anh; tang len neu dan bay cao hon nong, giam neu dan bay thap hon.
     private static final double BARREL_HEIGHT_FRACTION = 0.5;
-    // Shield chi bat dau hoi sau mot khoang thoi gian khong trung don.
     private static final double SHIELD_REGEN_DELAY = 4.0;
     private static final double SHIELD_REGEN_INTERVAL = 1.0;
-    private final HeroType heroType;
-    private final PlayerAnimator animator;
-    // Thời gian bất tử khi trúng đòn
     private final double MAX_INVULNERABILITY_TIME = 0.3;
-    // Quan ly cac buff dang hoat dong tren Player
-    private final BuffManager buffManager;
-    private Weapon weapon = new Gun("Blaster", 12, 0.18, 580.0, 0.0)
-            .withImage("/assets/WeaponImage/GunImage/OldPistol.png");
     private boolean isFacingLeft = false;
-    // Goc ngam ban hien tai (radian), 0 = huong sang phai
     private double aimAngle = 0.0;
-    private PlayerAnimator.State movementState = PlayerAnimator.State.IDLE;
     private double invulnerabilityTimer = 0.0;
-    // Dem nguoc thoi gian vung chem: khi > 0 thi an vu khi dang cam,
-    // vi SlashEffect da ve san thanh kiem trong sprite sheet
     private double meleeSwingTimer = 0.0;
-    // He so buff, 1.0 = giu nguyen chi so goc
     private double buffSpeedMultiplier = 1.0;
     private double buffDamageMultiplier = 1.0;
-    // Phan tram giam sat thuong, vi du 0.5 = giam 50%
     private double buffDamageReduction = 0.0;
-    // Mana dung cho cac weapon dac biet.
     private double mana = 200.0;
     private final double maxMana = 200.0;
-    // Shield hap thu damage truoc HP.
     private int shield = 6;
     private final int maxShield = 6;
     private double shieldRegenDelay;
     private double shieldRegenTimer;
-
-    private boolean fireHeldLastFrame;
-
-    private Runnable dragonBreathAction;
-    private Runnable holyNovaAction;
     private double lastMoveX = 1.0;
     private double lastMoveY = 0.0;
+    private boolean fireHeldLastFrame;
+    private final HeroType heroType;
+    private final PlayerAnimator animator;
+    private final BuffManager buffManager;
+    private Runnable dragonBreathAction;
+    private Runnable holyNovaAction;
+    private Weapon weapon = new Gun("Blaster", 12, 0.18, 580.0, 0.0)
+            .withImage("/assets/WeaponImage/GunImage/OldPistol.png");
+    private PlayerAnimator.State movementState = PlayerAnimator.State.IDLE;
 
     public Player(Vector2D spawnPoint) {
         this(spawnPoint, HeroSelectionManager.getInstance().getSelectedHero());
@@ -82,7 +67,6 @@ public final class Player extends Entity {
         this.weapon = weapon;
     }
 
-    // Vu khi dang cam (dung de kiem tra loai vu khi khi doi qua lai)
     public Weapon getWeapon() {
         return weapon;
     }
@@ -91,7 +75,6 @@ public final class Player extends Entity {
         return heroType;
     }
 
-    // Tạo thời gian bất tử để giảm đòn đánh liên tục
     @Override
     public void takeDamage(int amount) {
         if (invulnerabilityTimer > 0.0 || amount <= 0 || !isAlive()) {
@@ -113,7 +96,7 @@ public final class Player extends Entity {
 
         int remainingDamage = finalDamage;
 
-// Shield hap thu damage truoc HP.
+        // Tru damege vao shield truoc
         if (shield > 0) {
             int absorbedDamage = Math.min(shield, remainingDamage);
 
@@ -121,7 +104,6 @@ public final class Player extends Entity {
             remainingDamage -= absorbedDamage;
         }
 
-// Shield da chan het damage thi van kich hoat invulnerability ngan.
         if (remainingDamage <= 0) {
             invulnerabilityTimer = MAX_INVULNERABILITY_TIME;
 
@@ -132,7 +114,6 @@ public final class Player extends Entity {
             return;
         }
 
-// Holy Nova chi can kiem tra phan damage that su vao HP.
         boolean lethalDamage = remainingDamage >= getHealth();
 
         if (lethalDamage && buffManager.isActive(BuffType.HOLY_NOVA)) {
