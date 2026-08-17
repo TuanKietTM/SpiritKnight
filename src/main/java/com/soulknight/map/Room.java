@@ -303,13 +303,6 @@ public class Room {
     public int getCurrentWave() {
         return currentWave;
     }
-    public boolean isUfoSummonUsed() {
-        return ufoSummonUsed;
-    }
-
-    public void setUfoSummonUsed(boolean ufoSummonUsed) {
-        this.ufoSummonUsed = ufoSummonUsed;
-    }
 
     public String getName() {
         return name;
