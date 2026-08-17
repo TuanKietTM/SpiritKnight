@@ -44,6 +44,7 @@ public class Room {
     private double waveDelayTimer;
     private boolean isWaitingForNextWave;
     private boolean enemiesSpawned;
+    private boolean ufoSummonUsed = false;
 
     /**
      * cac loai phong
@@ -148,6 +149,7 @@ public class Room {
         currentWave = 1;
         waveDelayTimer = 0.0;
         isWaitingForNextWave = false;
+        ufoSummonUsed = false;
 
         if (gameWorld.spawnEnemiesInRoom(this, currentWave) > 0) {
             enemiesSpawned = true;
@@ -298,6 +300,14 @@ public class Room {
 
     public void renderSingleDoor(GraphicsContext graphicsContext, Camera camera, BoundingBox door, double tileSize) {
         doorController.renderSingleDoor(graphicsContext, camera, door, tileSize);
+    }
+
+    public boolean isUfoSummonUsed() {
+        return ufoSummonUsed;
+    }
+
+    public void setUfoSummonUsed(boolean ufoSummonUsed) {
+        this.ufoSummonUsed = ufoSummonUsed;
     }
 
     public int getCurrentWave() {

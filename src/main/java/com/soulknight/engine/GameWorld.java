@@ -323,6 +323,19 @@ public final class GameWorld {
                 ufoEvents.add(new UFOEvent(player.getPosition()));
             }
         }
+//        trieu hoi vien binh tuc thi
+        if (currentRoom != null && currentRoom.getType() != Room.RoomType.START
+                && currentRoom.getType() != Room.RoomType.REST && !currentRoom.isUfoSummonUsed()) {
+            long aliveEnemiesCount = enemies.stream().filter(Enemy::isAlive).count();
+
+            if (aliveEnemiesCount > 0 && aliveEnemiesCount <= 2 && currentRoom.hasSpawnedEnemies()) {
+                currentRoom.setUfoSummonUsed(true);
+                if (random.nextDouble() < 0.5) {
+                    Vector2D targetPos = player.getPosition().copy();
+                    ufoEvents.add(new UFOEvent(targetPos, UFOEvent.Type.REINFORCEMENT));
+                }
+            }
+        }
 
 // Cập nhật logic các UFO hiện có
         for (UFOEvent ufo : ufoEvents) {
@@ -3270,28 +3283,30 @@ public final class GameWorld {
 
     // UFO trieu hoi them quai vien binh khi duoc kich hoat
     public void checkAndTriggerUFOSummon(Vector2D targetPosition) {
-        // 1. KIEM TRA AN TOAN: Phong va Nguoi choi phai ton tai
-        if (currentRoom == null || player == null) return;
+        // 1. Kiểm tra tính hợp lệ của đối tượng
+        if (currentRoom == null || player == null || enemyFactory == null) return;
 
-        // 2. BO QUA PHONG KHONG CO TRAN DANH: Khong sinh quai o phong Start hoac Rest
-        if (currentRoom.getType() == Room.RoomType.START || currentRoom.getType() == Room.RoomType.REST) {
+        // 2. Bỏ qua phòng START và REST[cite: 8]
+        Room.RoomType roomType = currentRoom.getType();
+        if (roomType == Room.RoomType.START || roomType == Room.RoomType.REST) {
             return;
         }
 
-        // 3. XAC DINH VI TRI SPATN: Uu tien vi tri vet sang UFO roi xuong, neu null thi dung vi tri Player
+        // 3. Xác định vị trí sinh quái viện binh
         Vector2D spawnPt = (targetPosition != null) ? targetPosition.copy() : player.getPosition().copy();
-
-        // 4. TAO QUAI MOI: Lay cap do dot quai (wave) hien tai cua phong de tao quAI phu hop
         int currentWave = currentRoom.getCurrentWave();
+
+        // 4. Sinh quái viện binh dựa theo wave hiện tại[cite: 8]
         Enemy extraEnemy = enemyFactory.createEnemyByWave(random, spawnPt, Math.max(1, currentWave));
+        if (extraEnemy != null) {
+            addEnemyWithSpawnEffect(extraEnemy, 0.0);
 
-        // 5. THEM QUAI VAO MAP: Kich hoat hieu ung xuat hien ngay lap tuc (delay = 0.0)
-        addEnemyWithSpawnEffect(extraEnemy, 0.0);
-
-        // 6. THONG BAO: Hien thi chu noi thong bao vien binh xuat hien
-        floatingTextManager.spawnCustom("UFO SUMMONED REINFORCEMENT!", spawnPt, Color.PURPLE);
+            // Hiển thị thông báo khi triệu hồi thành công
+            if (floatingTextManager != null) {
+                floatingTextManager.spawnCustom("UFO SUMMONED REINFORCEMENT!", spawnPt, Color.PURPLE);
+            }
+        }
     }
-
     private void playGameBGM() {
         SoundManager sound = SoundManager.getInstance();
         String gameplayBGM = "/assets/Audio/StartGame.mp3";
