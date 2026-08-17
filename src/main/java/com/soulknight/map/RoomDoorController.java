@@ -9,13 +9,19 @@ import javafx.scene.paint.Color;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Quan li danh sach cua , trang thai va cham , dong mo cua
+ */
 public class RoomDoorController {
 
-    private static final float DOOR_ANIM_SPEED = 6.0f;
+    private static final float DOOR_ANIM_SPEED = 6.0f; // toc do truot cua cua
+
     private final List<BoundingBox> doors = new ArrayList<>();
     private boolean isClosed = false;
     private float doorProgress = 0.0f;
-
+    /**
+     * Update qua trinh truot cua theo thoi gian
+     */
     public void update(double deltaSeconds) {
         if (isClosed) {
             if (doorProgress < 1.0f) {
@@ -30,6 +36,9 @@ public class RoomDoorController {
         }
     }
 
+    /**
+     * Ve duy nhat o cua
+     */
     public void renderSingleDoor(GraphicsContext graphicsContext, Camera camera, BoundingBox door, double tileSize) {
         if (graphicsContext == null || camera == null || tileSize <= 0.0 || door == null) {
             return;
@@ -100,7 +109,9 @@ public class RoomDoorController {
             }
         }
     }
-    // Them cua vao danh sach
+    /**
+     * Thêm vị trí cửa
+     */
     public void addDoorCoordinate(double x, double y, double width, double height) {
         for (BoundingBox door : doors) {
             boolean sameX = Double.compare(door.getMinX(), x) == 0;
@@ -115,9 +126,11 @@ public class RoomDoorController {
         doors.add(new BoundingBox(x, y, width, height));
     }
 
+    /**
+     * Kiểm tra vị trí cửa có thuoc phong khac khong
+     */
     public boolean isDoorBelongsToRoom(BoundingBox roomBound, double doorX, double doorY, double doorWidth, double doorHeight) {
         BoundingBox doorBox = new BoundingBox(doorX, doorY, doorWidth, doorHeight);
-        // Mo rong pham vi box cua Room de check
         BoundingBox expandedBound = new BoundingBox(
                 roomBound.getMinX() - 10.0,
                 roomBound.getMinY() - 10.0,
@@ -127,7 +140,9 @@ public class RoomDoorController {
         return expandedBound.intersects(doorBox);
     }
 
-    // Check Player co intersect voi Doors
+    /**
+     * Kiem tra va cham vat li voi cua dang dong
+     */
     public boolean isHitClosedDoor(double worldX, double worldY, double radius) {
         if (!isClosed) {
             return false;
@@ -144,10 +159,12 @@ public class RoomDoorController {
         return false;
     }
 
-    // Check o Tile co vat can la CLosedDoor
+    /**
+     * Kiểm tra xem tile cụ thể có cửa đang đóng hay không
+     */
     public boolean isDoorClosedAtTile(int tileX, int tileY, double tileSize) {
         if (this.doorProgress <= 0.05f) {
-            return false;
+            return false; // Cửa đang mở
         }
 
         double targetWorldX = tileX * tileSize;
