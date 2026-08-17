@@ -323,20 +323,6 @@ public final class GameWorld {
                 ufoEvents.add(new UFOEvent(player.getPosition()));
             }
         }
-//        cập nhân sinh viện binh khi quái găp thê yếu
-        if (currentRoom != null
-                && currentRoom.getType() != Room.RoomType.START
-                && currentRoom.getType() != Room.RoomType.REST
-                && !currentRoom.isUfoSummonUsed()) {
-
-            long aliveEnemiesCount = enemies.stream().filter(Enemy::isAlive).count();
-
-            if (aliveEnemiesCount > 0 && aliveEnemiesCount <= 2 && currentRoom.hasSpawnedEnemies()) {
-                currentRoom.setUfoSummonUsed(true);
-                Vector2D targetPos = player.getPosition().copy();
-                ufoEvents.add(new UFOEvent(targetPos, UFOEvent.Type.REINFORCEMENT));
-            }
-        }
 
 // Cập nhật logic các UFO hiện có
         for (UFOEvent ufo : ufoEvents) {
@@ -1409,6 +1395,7 @@ public final class GameWorld {
         playGameBGM();
     }
 
+    //(vitdung) chỉnh lại hàm này để test loadMap từ txt
     private void loadCurrentLevel(boolean freshRun) {
         String mapPath = "/maps/primeMap_1.json";
         this.mapManager = new MapManager(mapPath);
@@ -1417,36 +1404,49 @@ public final class GameWorld {
         loadObstaclesFromCurrentMap();
 
 
+        // Khoi tao va dat lai vi tri nguoi choi
         Vector2D spawnPoint = mapManager.getSpawnPoint();
-
         if (this.player == null || freshRun) {
+//            trong truong hop choi moi hoac freshrun
             this.player = new Player(spawnPoint);
         } else {
+//            neu da ton tai tu truoc se cap nhat theo vi tri ban do
             this.player.getPosition().set(spawnPoint);
         }
         this.player.setDragonBreathAction(this::triggerDragonBreath);
         this.player.setHolyNovaAction(this::triggerHolyNova);
         this.playerDeathEffect = null;
         this.playerDeathHandled = false;
-        // Du lieu trong Database
+        /*
+         * Player phải được tạo trước rồi mới khôi phục HP
+         * và các dữ liệu trong database.
+         */
         applyPendingPlayerSave();
+//        dua player den phong da luu
         restorePlayerRoomPosition();
+//        truong hop phong da luu
+//        tim phong da luu va dat player o phong do sao cho tranh vat can
+
+        // 4. Khởi tạo Pet đi theo
         createSelectedPet();
-        // Hieu ung
+//        tao hieu ung spawn
         this.playerSpawnEffect = new SpawnEffect(spawnPoint, 0.4, 0.7);
         if (currentPet != null) {
+            // player xuat hien truoc pet xuat hien sau mot chut
             Vector2D petSpawnPos = new Vector2D(spawnPoint.getX() + 25, spawnPoint.getY() + 10);
             currentPet.getPosition().set(petSpawnPos);
             this.petSpawnEffect = new SpawnEffect(petSpawnPos, 0.55, 0.7);
         }
 
-        // them vu khi cho new start
+        // 5. Trang bị vũ khí cho lượt chơi mới
         if (freshRun) {
+
             activeRunWeaponSlot = 0;
+
             equipActiveRunWeapon();
         }
 
-        // Reset
+        // 6. Reset toàn bộ danh sách Thực thể & Hiệu ứng của màn cũ
         this.enemies.clear();
         this.enemySpawnEffects.clear();
         this.enemyDeathEffects.clear();
@@ -1463,20 +1463,26 @@ public final class GameWorld {
         this.enemySpawnTimer = 0.0;
         floatingTextManager.clear();
 
-    
+        // Thêm 3 dòng này vào cuối hàm khởi tạo/reset của GameWorld.java:
         if (player != null) {
-            // Xac dinh vi tri cho boss
+            // Spawn Boss đứng cách Player 200px về bên phải
             Vector2D spawnPos = new Vector2D(player.getPosition().getX() + 200, player.getPosition().getY());
             Enemy boss = enemyFactory.createGrandKnight(spawnPos);
+
+            // Thêm vào danh sách quái
+            //addEnemyWithSpawnEffect(boss, 0.0);
         }
 
+        // 7. Tạo nhiệm vụ cho Level hiện tại
         if (this.missionManager != null && this.levelManager != null) {
             this.missionManager.setMission(this.levelManager.createMissionForCurrentLevel());
         }
+        // Cho phép mở bảng chọn phần thưởng mới khi nhiệm vụ mới hoàn thành
         this.rewardPickerShown = false;
         this.rewardPicker = null;
         this.lastRewardRoom = null;
-        // Đề xuất xóa
+
+        // 9. Sinh Boss nếu đây là Màn Boss
         if (this.levelManager != null
                 && this.levelManager.getCurrentLevel().bossLevel()
                 && this.mapManager.getBossSpawnPoint() != null) {
@@ -1981,16 +1987,15 @@ public final class GameWorld {
     public int spawnEnemiesInRoom(com.soulknight.map.Room room, int waveNumber) {
         List<Vector2D> roomSpawnPoints = new ArrayList<>();
         javafx.geometry.BoundingBox bound = room.getBound();
-        // Tinh so luong quai muon sinh
-        // De xuat sua
+
         int baseEnemyCount = enemyFactory.calculateEnemyCount();
         int desiredEnemyCount = baseEnemyCount + (waveNumber - 1);
         final int MAX_ENEMIES_PER_ROOM = Math.min(3 + (waveNumber / 2), 6);
         int finalEnemyCount = Math.min(desiredEnemyCount, MAX_ENEMIES_PER_ROOM);
-
         final double MIN_SAFE_DISTANCE = 140.0;
-        // Neu la Boss Room
+
         if (room.getType() == com.soulknight.map.Room.RoomType.BOSS) {
+            // Lấy vị trí trung tâm phòng Boss làm vị trí Spawn
             bound = room.getBound();
             Vector2D bossSpawnPt;
 
@@ -2000,11 +2005,14 @@ public final class GameWorld {
                         bound.getMinY() + bound.getHeight() / 2.0
                 );
             } else {
+                // Trường hợp phòng không có BoundingBox, rơi lại vị trí an toàn quanh Player
                 bossSpawnPt = new Vector2D(player.getPosition().getX() + 250.0, player.getPosition().getY());
             }
 
+            // Khởi tạo Boss từ EnemyFactory
             Enemy boss = enemyFactory.createGrandKnight(bossSpawnPt);
 
+            // Thêm Boss vào thế giới kèm hiệu ứng Spawn đẹp mắt
             addEnemyWithSpawnEffect(boss, 0.0);
             enemies.add(boss);
             this.bossSpawnEffect = new BossSpawnEffect(boss.getPosition(), 0.2, 2.2);
