@@ -27,7 +27,6 @@ public class DebuffItem extends Item {
             this.stateTime += deltaSeconds; // Cập nhật thời gian animation
         }
     }
-
     @Override
     public void render(GraphicsContext gc, Camera camera) {
         if (isCollected()) {
@@ -42,21 +41,29 @@ public class DebuffItem extends Item {
         double screenX = camera.worldToScreenX(getPosition().getX());
         double screenY = camera.worldToScreenY(getPosition().getY());
         double zoom = camera.getZoom();
-        double size = getRadius() * 1.8 * zoom;
+        double size = getRadius() * 2.0 * zoom;
 
         gc.save();
 
-        double pulse = 0.8 + 0.2 * Math.sin(stateTime * 5.0);
-        gc.setFill(Color.BLACK);
-        gc.fillRect(screenX - size / 2 - 2, screenY - size / 2 - 2, size + 4, size + 4);
+        double offsetY = Math.sin(stateTime * 6.0) * 3.0;
 
-        gc.setFill(debuffType.getColor());
-        gc.setGlobalAlpha(pulse);
-        gc.fillRect(screenX - size / 2, screenY - size / 2, size, size);
-
-        gc.setFill(Color.WHITE);
-        gc.setGlobalAlpha(0.6 * pulse);
-        gc.fillRect(screenX - size / 2 + 2, screenY - size / 2 + 2, size / 3, size / 3);
+        if (debuffType.getSprite() != null) {
+            // Vẽ Sprite LibreSprite
+            gc.drawImage(
+                    debuffType.getSprite(),
+                    screenX - size / 2,
+                    screenY - size / 2 + offsetY,
+                    size,
+                    size
+            );
+        } else {
+            double pulse = 0.8 + 0.2 * Math.sin(stateTime * 5.0);
+            gc.setFill(Color.BLACK);
+            gc.fillRect(screenX - size / 2 - 2, screenY - size / 2 - 2 + offsetY, size + 4, size + 4);
+            gc.setFill(debuffType.getColor());
+            gc.setGlobalAlpha(pulse);
+            gc.fillRect(screenX - size / 2, screenY - size / 2 + offsetY, size, size);
+        }
 
         gc.restore();
     }
