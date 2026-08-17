@@ -8,6 +8,7 @@ import com.soulknight.utils.SoundManager;
 import com.soulknight.utils.Vector2D;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
+import javafx.scene.media.AudioClip;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.CycleMethod;
 import javafx.scene.paint.LinearGradient;
@@ -15,12 +16,6 @@ import javafx.scene.paint.Stop;
 
 public class UFOEvent {
 
-    public enum Type {
-        DEBUFF,
-        REINFORCEMENT
-    }
-
-    private Type eventType;
     private static int nextDebuffIndex = 0;
     private static final int TOTAL_DEBUFF_TYPES = 5;
 
@@ -29,7 +24,7 @@ public class UFOEvent {
     private Vector2D targetPosition;
     private double speed = 350.0;
     private double hoverTimer = 0.0;
-    private boolean actionExecuted = false;
+    private boolean debuffSummoned = false;
     private boolean finished = false;
 
     private boolean isLaserAttack = false;
@@ -46,21 +41,16 @@ public class UFOEvent {
     }
 
     public UFOEvent(Vector2D playerPos) {
-        this(playerPos, Type.DEBUFF);
-    }
-    public UFOEvent(Vector2D playerPos, Type type) {
         this.position = new Vector2D(playerPos.getX() + (Math.random() * 200 - 100), playerPos.getY() - 500);
         this.targetPosition = playerPos.copy();
-        this.eventType = type;
         this.isLaserAttack = Math.random() < 0.25;
         SoundManager.getInstance().playSFX("UFO");
     }
-
     public void update(GameWorld world, double deltaSeconds) {
         if (finished) return;
-
         switch (state) {
             case ENTERING:
+                // cap nhat vi tri cua player de ngam ban
                 if (world.getPlayer() != null) {
                     this.targetPosition = world.getPlayer().getPosition().copy();
                 }
@@ -70,6 +60,7 @@ public class UFOEvent {
                 if (dir.length() <= 15.0) {
                     state = State.HOVERING;
                     hoverTimer = 1.2;
+//                    chot vi tri ban
                     if (world.getPlayer() != null) {
                         this.targetPosition = world.getPlayer().getPosition().copy();
                     }
@@ -81,13 +72,9 @@ public class UFOEvent {
 
             case HOVERING:
                 hoverTimer -= deltaSeconds;
-                if (!actionExecuted && hoverTimer <= 0.6) {
-                    if (eventType == Type.DEBUFF) {
-                        spawnSequentialDebuff(world);
-                    } else if (eventType == Type.REINFORCEMENT) {
-                        world.checkAndTriggerUFOSummon(targetPosition);
-                    }
-                    actionExecuted = true;
+                if (!debuffSummoned && hoverTimer <= 0.6) {
+                    spawnSequentialDebuff(world);
+                    debuffSummoned = true;
                 }
 
                 if (isLaserAttack && !hasDealtDamage && hoverTimer <= 0.9) {
@@ -183,5 +170,4 @@ public class UFOEvent {
     public boolean isFinished() {
         return finished;
     }
-
 }

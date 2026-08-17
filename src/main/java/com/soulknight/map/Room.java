@@ -285,16 +285,6 @@ public class Room {
     public void renderSingleDoor(GraphicsContext graphicsContext, Camera camera, BoundingBox door, double tileSize) {
         doorController.renderSingleDoor(graphicsContext, camera, door, tileSize);
     }
-    public boolean isUfoSummonUsed() {
-        return ufoSummonUsed;
-    }
-
-    public void setUfoSummonUsed(boolean ufoSummonUsed) {
-        this.ufoSummonUsed = ufoSummonUsed;
-    }
-    public int getCurrentWave() {
-        return currentWave;
-    }
 
     public String getName() {
         return name;

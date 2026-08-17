@@ -323,20 +323,6 @@ public final class GameWorld {
                 ufoEvents.add(new UFOEvent(player.getPosition()));
             }
         }
-//        cập nhân sinh viện binh khi quái găp thê yếu
-        if (currentRoom != null
-                && currentRoom.getType() != Room.RoomType.START
-                && currentRoom.getType() != Room.RoomType.REST
-                && !currentRoom.isUfoSummonUsed()) {
-
-            long aliveEnemiesCount = enemies.stream().filter(Enemy::isAlive).count();
-
-            if (aliveEnemiesCount > 0 && aliveEnemiesCount <= 2 && currentRoom.hasSpawnedEnemies()) {
-                currentRoom.setUfoSummonUsed(true);
-                Vector2D targetPos = player.getPosition().copy();
-                ufoEvents.add(new UFOEvent(targetPos, UFOEvent.Type.REINFORCEMENT));
-            }
-        }
 
 // Cập nhật logic các UFO hiện có
         for (UFOEvent ufo : ufoEvents) {
@@ -1463,7 +1449,7 @@ public final class GameWorld {
         this.enemySpawnTimer = 0.0;
         floatingTextManager.clear();
 
-    
+        // Đề xuất xóa
         if (player != null) {
             // Xac dinh vi tri cho boss
             Vector2D spawnPos = new Vector2D(player.getPosition().getX() + 200, player.getPosition().getY());
@@ -3260,19 +3246,6 @@ public final class GameWorld {
         this.scratchMarks.add(new ScratchMark(position, radius, lifetimeSeconds, damagePerSecond));
     }
 
-    // UFO trieu hoi them quai vien binh khi duoc kich hoat
-    public void checkAndTriggerUFOSummon(Vector2D targetPosition) {
-        if (currentRoom == null || player == null) return;
-        if (currentRoom.getType() == Room.RoomType.START || currentRoom.getType() == Room.RoomType.REST) {
-            return;
-        }
-//        đoạn sinh quái khi nào <= 2 và xác suất được chuyển lên trên trong updateplaying
-        Vector2D spawnPt = (targetPosition != null) ? targetPosition.copy() : player.getPosition().copy();
-        int currentWave = currentRoom.getCurrentWave();
-        Enemy extraEnemy = enemyFactory.createEnemyByWave(random, spawnPt, Math.max(1, currentWave));
-        addEnemyWithSpawnEffect(extraEnemy, 0.0);
-        floatingTextManager.spawnCustom("UFO SUMMONED REINFORCEMENT!", spawnPt, Color.PURPLE);
-    }
 
     private void playGameBGM() {
         SoundManager sound = SoundManager.getInstance();
