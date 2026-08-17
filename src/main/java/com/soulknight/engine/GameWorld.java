@@ -323,6 +323,20 @@ public final class GameWorld {
                 ufoEvents.add(new UFOEvent(player.getPosition()));
             }
         }
+//        cập nhân sinh viện binh khi quái găp thê yếu
+        if (currentRoom != null
+                && currentRoom.getType() != Room.RoomType.START
+                && currentRoom.getType() != Room.RoomType.REST
+                && !currentRoom.isUfoSummonUsed()) {
+
+            long aliveEnemiesCount = enemies.stream().filter(Enemy::isAlive).count();
+
+            if (aliveEnemiesCount > 0 && aliveEnemiesCount <= 2 && currentRoom.hasSpawnedEnemies()) {
+                currentRoom.setUfoSummonUsed(true);
+                Vector2D targetPos = player.getPosition().copy();
+                ufoEvents.add(new UFOEvent(targetPos, UFOEvent.Type.REINFORCEMENT));
+            }
+        }
 
 // Cập nhật logic các UFO hiện có
         for (UFOEvent ufo : ufoEvents) {
@@ -1462,16 +1476,6 @@ public final class GameWorld {
         this.restHealEffects.clear();
         this.enemySpawnTimer = 0.0;
         floatingTextManager.clear();
-
-        // Thêm 3 dòng này vào cuối hàm khởi tạo/reset của GameWorld.java:
-        if (player != null) {
-            // Spawn Boss đứng cách Player 200px về bên phải
-            Vector2D spawnPos = new Vector2D(player.getPosition().getX() + 200, player.getPosition().getY());
-            Enemy boss = enemyFactory.createGrandKnight(spawnPos);
-
-            // Thêm vào danh sách quái
-            //addEnemyWithSpawnEffect(boss, 0.0);
-        }
 
         // 7. Tạo nhiệm vụ cho Level hiện tại
         if (this.missionManager != null && this.levelManager != null) {
@@ -3268,6 +3272,19 @@ public final class GameWorld {
         this.scratchMarks.add(new ScratchMark(position, radius, lifetimeSeconds, damagePerSecond));
     }
 
+    // UFO trieu hoi them quai vien binh khi duoc kich hoat
+    public void checkAndTriggerUFOSummon(Vector2D targetPosition) {
+        if (currentRoom == null || player == null) return;
+        if (currentRoom.getType() == Room.RoomType.START || currentRoom.getType() == Room.RoomType.REST) {
+            return;
+        }
+//        đoạn sinh quái khi nào <= 2 và xác suất được chuyển lên trên trong updateplaying
+        Vector2D spawnPt = (targetPosition != null) ? targetPosition.copy() : player.getPosition().copy();
+        int currentWave = currentRoom.getCurrentWave();
+        Enemy extraEnemy = enemyFactory.createEnemyByWave(random, spawnPt, Math.max(1, currentWave));
+        addEnemyWithSpawnEffect(extraEnemy, 0.0);
+        floatingTextManager.spawnCustom("UFO SUMMONED REINFORCEMENT!", spawnPt, Color.PURPLE);
+    }
 
     private void playGameBGM() {
         SoundManager sound = SoundManager.getInstance();
