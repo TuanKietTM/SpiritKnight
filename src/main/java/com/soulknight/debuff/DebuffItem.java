@@ -33,11 +33,6 @@ public class DebuffItem extends Item {
             return;
         }
 
-        if (debuffType == DebuffType.POISON) {
-            PoisonAreaRenderer.renderGroundPoison(gc, camera, getPosition(), getRadius(), stateTime);
-            return;
-        }
-
         double screenX = camera.worldToScreenX(getPosition().getX());
         double screenY = camera.worldToScreenY(getPosition().getY());
         double zoom = camera.getZoom();

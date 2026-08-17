@@ -29,7 +29,7 @@ public class UFOEvent {
     private Vector2D targetPosition;
     private double speed = 350.0;
     private double hoverTimer = 0.0;
-    private boolean actionExecuted = false; // Đổi tên từ debuffSummoned để dùng chung
+    private boolean actionExecuted = false;
     private boolean finished = false;
 
     private boolean isLaserAttack = false;
@@ -65,7 +65,6 @@ public class UFOEvent {
 
         switch (state) {
             case ENTERING:
-                // Cập nhật vị trí đuổi theo Player khi đang bay vào
                 if (world.getPlayer() != null) {
                     this.targetPosition = world.getPlayer().getPosition().copy();
                 }
@@ -75,7 +74,6 @@ public class UFOEvent {
                 if (dir.length() <= 15.0) {
                     state = State.HOVERING;
                     hoverTimer = 1.2;
-                    // Chốt vị trí nhắm bắn / thả viện binh
                     if (world.getPlayer() != null) {
                         this.targetPosition = world.getPlayer().getPosition().copy();
                     }
@@ -87,8 +85,6 @@ public class UFOEvent {
 
             case HOVERING:
                 hoverTimer -= deltaSeconds;
-
-                // Thực thi hành động tương ứng với eventType khi hover timer đạt mốc
                 if (!actionExecuted && hoverTimer <= 0.6) {
                     if (eventType == Type.DEBUFF) {
                         spawnSequentialDebuff(world);
@@ -168,24 +164,38 @@ public class UFOEvent {
 
     private void renderBeamEffect(GraphicsContext gc, double sx, double sy, double tx, double ty) {
         double beamWidthTop = 20.0;
-        double beamWidthBottom = isLaserAttack ? 80.0 : 45.0;
+        double beamWidthBottom = isLaserAttack ? 80.0 : 55.0;
 
         double[] xPoints = { sx - beamWidthTop / 2, sx + beamWidthTop / 2, tx + beamWidthBottom / 2, tx - beamWidthBottom / 2 };
         double[] yPoints = { sy + 15, sy + 15, ty, ty };
-
-        Color mainColor = isLaserAttack ? Color.RED : Color.LIMEGREEN;
+        Color mainColor;
+        if (isLaserAttack) {
+            mainColor = Color.RED;
+        } else if (eventType == Type.REINFORCEMENT) {
+            mainColor = Color.MEDIUMPURPLE;
+        } else {
+            mainColor = Color.LIMEGREEN;
+        }
+        double progress = Math.max(0.0, Math.min(1.0, (1.2 - hoverTimer) / 1.2));
+        double alpha = Math.sin(progress * Math.PI);
 
         LinearGradient gradient = new LinearGradient(
                 0, sy, 0, ty, false, CycleMethod.NO_CYCLE,
-                new Stop(0, mainColor.deriveColor(0, 1, 1, 0.8)),
-                new Stop(1, mainColor.deriveColor(0, 1, 1, 0.15))
+                new Stop(0, mainColor.deriveColor(0, 1, 1, 0.85 * alpha)),
+                new Stop(1, mainColor.deriveColor(0, 1, 1, 0.2 * alpha))
         );
 
         gc.setFill(gradient);
         gc.fillPolygon(xPoints, yPoints, 4);
-        gc.setStroke(Color.WHITE);
+        gc.setStroke(Color.WHITE.deriveColor(0, 1, 1, 0.9 * alpha));
         gc.setLineWidth(isLaserAttack ? 5 : 2);
         gc.strokeLine(sx, sy + 15, tx, ty);
+        gc.setFill(mainColor.deriveColor(0, 1, 1, 0.4 * alpha));
+        gc.fillOval(tx - beamWidthBottom / 2, ty - 12, beamWidthBottom, 24);
+
+        gc.setStroke(Color.WHITE.deriveColor(0, 1, 1, 0.8 * alpha));
+        gc.setLineWidth(1.5);
+        gc.strokeOval(tx - beamWidthBottom / 2, ty - 12, beamWidthBottom, 24);
     }
 
     public boolean isFinished() {
