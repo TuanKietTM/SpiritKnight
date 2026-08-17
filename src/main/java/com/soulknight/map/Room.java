@@ -43,7 +43,6 @@ public class Room {
     private double waveDelayTimer;
     private boolean isWaitingForNextWave;
     private boolean enemiesSpawned;
-    private boolean ufoSummonUsed = false;
 
     /**
      * cac loai phong
