@@ -7,6 +7,9 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Properties;
 
+/**
+ * Cau hinh database
+ */
 public final class DatabaseConfig {
 
     private static final Path CONFIG_FILE = Path.of("database.properties");

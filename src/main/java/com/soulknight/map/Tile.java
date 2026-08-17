@@ -121,9 +121,7 @@ public final class Tile {
         return FLOOR_4;
     }
 
-    public static Image getFloor1Image() {
-        return FLOOR_1;
-    }
+    public static Image getFloor1Image() {return FLOOR_1;}
 
     public static Image getFloor2Image() {
         return FLOOR_2;

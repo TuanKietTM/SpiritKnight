@@ -8,7 +8,9 @@ import javafx.scene.paint.Color;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-
+/**
+ * Quan li viec sinh Floating text len trn man hinh choi de bao diem
+ */
 public final class FloatingTextManager {
 
     private static final int MAX_FLOATING_TEXTS = 120;
@@ -16,7 +18,7 @@ public final class FloatingTextManager {
     private final List<FloatingText> floatingTexts = new ArrayList<>();
     private final Random random = new Random();
 
-    //taext khi gay sat thuong cho quai
+    //text khi gay sat thuong cho quai
     public void spawnDamage(Vector2D position, int damage) {
         Vector2D spawnPosition = randomOffset(position, 7.0, 4.0);
 
@@ -36,46 +38,6 @@ public final class FloatingTextManager {
 
         add(text);
     }
-
-    public void spawnCritical(Vector2D position, int damage) {
-        Vector2D spawnPosition = randomOffset(position, 5.0, 3.0);
-
-        FloatingText text = new FloatingText(
-                "CRIT! -" + Math.max(0, damage),
-                spawnPosition,
-                new Vector2D(randomRange(-6.0, 6.0), -42.0),
-                Color.GOLD,
-                Color.rgb(90, 25, 0),
-                1.0,
-                15.0,
-                0.65,
-                1.05
-        ).withBounce(true)
-                .withGravity(18.0)
-                .withDrag(0.8)
-                .withOutline(2.5);
-
-        add(text);
-    }
-
-    public void spawnHeal(Vector2D position, int amount) {
-        FloatingText text = new FloatingText(
-                "+" + Math.max(0, amount) + " HP",
-                randomOffset(position, 4.0, 2.0),
-                new Vector2D(0.0, -26.0),
-                Color.LIMEGREEN,
-                Color.rgb(10, 55, 20),
-                0.9,
-                12.0,
-                0.8,
-                1.0
-        ).withBounce(true)
-                .withDrag(1.0)
-                .withOutline(2.0);
-
-        add(text);
-    }
-
     public void spawnGold(Vector2D position, int amount) {
         FloatingText text = new FloatingText(
                 "+" + Math.max(0, amount) + " GOLD",
@@ -93,60 +55,6 @@ public final class FloatingTextManager {
 
         add(text);
     }
-
-    public void spawnEnergy(Vector2D position, int amount) {
-        FloatingText text = new FloatingText(
-                "+" + Math.max(0, amount) + " ENERGY",
-                randomOffset(position, 4.0, 2.0),
-                new Vector2D(0.0, -25.0),
-                Color.DEEPSKYBLUE,
-                Color.rgb(0, 30, 75),
-                0.85,
-                11.0,
-                0.8,
-                1.0
-        ).withBounce(true)
-                .withOutline(2.0);
-
-        add(text);
-    }
-
-    public void spawnMiss(Vector2D position) {
-        FloatingText text = new FloatingText(
-                "MISS",
-                randomOffset(position, 6.0, 3.0),
-                new Vector2D(randomRange(-8.0, 8.0), -22.0),
-                Color.LIGHTGRAY,
-                Color.rgb(40, 40, 50),
-                0.65,
-                11.0,
-                0.9,
-                1.0
-        ).withDrag(1.0)
-                .withOutline(2.0);
-
-        add(text);
-    }
-
-    public void spawnBuff(Vector2D position, String buffName, Color color) {
-        String safeName = buffName == null || buffName.isBlank() ? "BUFF" : buffName.toUpperCase();
-
-        FloatingText text = new FloatingText(
-                safeName,
-                randomOffset(position, 3.0, 2.0),
-                new Vector2D(0.0, -30.0),
-                color == null ? Color.WHITE : color,
-                Color.BLACK,
-                1.0,
-                13.0,
-                0.7,
-                1.0
-        ).withBounce(true)
-                .withOutline(2.0);
-
-        add(text);
-    }
-
     public void spawnCustom(String text, Vector2D position, Color color) {
         FloatingText floatingText = new FloatingText(
                 text,

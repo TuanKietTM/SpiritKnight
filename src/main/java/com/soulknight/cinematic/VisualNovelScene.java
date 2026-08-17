@@ -20,6 +20,10 @@ import java.net.URL;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * Hieu ung cinematic nay la hieu ung cai man hinh cot truyn roi chu duoc typin gra
+ * o ca phan intro va ending
+ */
 public final class VisualNovelScene {
 
     private final StackPane sceneRoot;

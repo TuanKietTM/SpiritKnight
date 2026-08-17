@@ -46,17 +46,8 @@ public final class PetSelectionManager {
         }
     }
 
-    public void removePet() {
-        selectPet(PetType.NONE);
-    }
-
     public boolean isSelected(PetType type) {
         return selectedPet == type;
     }
 
-    public void setSelectionListener(
-            Consumer<PetType> selectionListener
-    ) {
-        this.selectionListener = selectionListener;
-    }
 }

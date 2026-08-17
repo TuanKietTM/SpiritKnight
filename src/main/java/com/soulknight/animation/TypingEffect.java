@@ -7,6 +7,9 @@ import javafx.util.Duration;
 
 import java.util.Objects;
 
+/**
+ * Hieu ung go chu cho phan intro story , ending story - cinematic
+ */
 public final class TypingEffect {
 
     private Timeline timeline;

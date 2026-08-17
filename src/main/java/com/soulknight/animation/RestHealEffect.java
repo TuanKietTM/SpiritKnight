@@ -10,6 +10,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+/**
+ * Quan li hieu ung trong phong  restroom
+ */
 public final class RestHealEffect {
 
     private static final double DURATION = 1.35;

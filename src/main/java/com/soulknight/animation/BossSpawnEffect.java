@@ -4,11 +4,11 @@ import com.soulknight.engine.Camera;
 import com.soulknight.utils.Vector2D;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
-import javafx.scene.paint.CycleMethod;
-import javafx.scene.paint.RadialGradient;
-import javafx.scene.paint.Stop;
-
 import java.util.Random;
+
+/**
+ * Hieu ung spawn boss bang render
+ */
 public final class BossSpawnEffect {
 
     private static final int PARTICLE_COUNT = 40;

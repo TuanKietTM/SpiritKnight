@@ -1,8 +1,6 @@
 package com.soulknight.engine;
 
 import com.soulknight.animation.*;
-import com.soulknight.debuff.DebuffItem;
-import com.soulknight.debuff.DebuffSpawner;
 import com.soulknight.entity.*;
 import com.soulknight.item.EnergyCrystal;
 import com.soulknight.item.GemItem;

@@ -11,6 +11,9 @@ import java.net.URL;
 import java.util.ArrayDeque;
 import java.util.Deque;
 
+/**
+ * Quanm li pet nguoi ban dong hanh
+ */
 public final class Pet {
 
     public enum State {

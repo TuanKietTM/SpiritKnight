@@ -15,6 +15,9 @@ import javafx.scene.paint.Color;
 import javafx.util.Duration;
 import com.soulknight.utils.SoundManager;
 
+/**
+ * Hieu ung portal moi khi bat dau mot man choi
+ */
 public final class PortalEffect {
     private static final String SPRITESHEET_PATH = "/assets/story/portal1.png";
     private static final double FRAME_WIDTH = 200;
