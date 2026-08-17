@@ -18,6 +18,7 @@ import java.util.List;
  */
 public class Room {
 
+
     public enum RoomType {
         START, FIGHT, REST, BOSS
     }
@@ -298,6 +299,17 @@ public class Room {
 
     public void renderSingleDoor(GraphicsContext graphicsContext, Camera camera, BoundingBox door, double tileSize) {
         doorController.renderSingleDoor(graphicsContext, camera, door, tileSize);
+    }
+
+    public int getCurrentWave() {
+        return currentWave;
+    }
+    public boolean isUfoSummonUsed() {
+        return ufoSummonUsed;
+    }
+
+    public void setUfoSummonUsed(boolean ufoSummonUsed) {
+        this.ufoSummonUsed = ufoSummonUsed;
     }
 
     public String getName() {
