@@ -68,6 +68,7 @@ public final class SoundManager {
         loadSFX("boss_shoot_ring","/assets/Audio/shoot_ring.mp3");
         loadSFX("trap_trigger","/assets/Audio/trap.mp3");
         loadSFX("UFO","/assets/Audio/UFO.mp3");
+        loadSFX("gold_pickup","/assets/Audio/coin.mp3");
 
     }
 

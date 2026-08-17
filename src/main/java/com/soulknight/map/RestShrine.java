@@ -99,8 +99,4 @@ public final class RestShrine {
     public Vector2D getPosition() {
         return position;
     }
-
-    public boolean isUsed() {
-        return used;
-    }
 }

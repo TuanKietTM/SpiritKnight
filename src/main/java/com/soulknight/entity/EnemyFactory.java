@@ -100,7 +100,7 @@ public final class EnemyFactory {
     }
 
     public Boss createGrandKnight(Vector2D position) {
-        int health = levelManager.scaleEnemyHealth(180);
+        int health = levelManager.scaleEnemyHealth(250);
         int damage = levelManager.scaleEnemyDamage(8);
         return new Boss(position, health, damage, eventListener);
     }
