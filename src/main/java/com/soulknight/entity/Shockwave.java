@@ -24,12 +24,10 @@ public class Shockwave {
     private boolean active = true;
     private boolean hitPlayer = false; // Dung de dam bao Player chi bi trung 1 lan moi dot song
 
-    // Constructor 1: Mặc định (7 tham số - dành cho Boss/Enemy)
     public Shockwave(Vector2D position, double initialRadius, double maxRadius, double expandSpeed, double thickness, int damage, Color color) {
         this(position, initialRadius, maxRadius, expandSpeed, thickness, damage, color, false);
     }
 
-    // Constructor 2: Đầy đủ (8 tham số - truyền thêm fromPlayer)
     public Shockwave(Vector2D position, double initialRadius, double maxRadius, double expandSpeed, double thickness, int damage, Color color, boolean fromPlayer) {
         this.position = (position != null) ? position.copy() : new Vector2D(0, 0);
         this.currentRadius = initialRadius;
@@ -38,7 +36,7 @@ public class Shockwave {
         this.thickness = thickness;
         this.damage = damage;
         this.color = (color != null) ? color : Color.RED;
-        this.fromPlayer = fromPlayer; // Lưu biến fromPlayer
+        this.fromPlayer = fromPlayer;
     }
 
     public void update(GameWorld world, double deltaSeconds) {

@@ -330,7 +330,7 @@ public final class GameWorld {
 
             if (aliveEnemiesCount > 0 && aliveEnemiesCount <= 2 && currentRoom.hasSpawnedEnemies()) {
                 currentRoom.setUfoSummonUsed(true);
-                if (random.nextDouble() < 0.5) {
+                if (random.nextDouble() < 0.75) {
                     Vector2D targetPos = player.getPosition().copy();
                     ufoEvents.add(new UFOEvent(targetPos, UFOEvent.Type.REINFORCEMENT));
                 }
@@ -1005,20 +1005,21 @@ public final class GameWorld {
                 addGold(amount);
                 floatingTextManager.spawnGold(player.getPosition(), amount);
                 particleManager.spawnCoinBurst(player.getPosition(), amount);
+                SoundManager.getInstance().playSFXShort("gold_pickup", 0.6);
 
             } else if (item instanceof GemItem gemItem) {
                 int amount = gemItem.getAmount();
 
                 addGems(amount);
-
                 floatingTextManager.spawnCustom("+" + amount, player.getPosition(), Color.MEDIUMPURPLE);
+                SoundManager.getInstance().playSFXShort("gold_pickup", 0.6);
             } else if (item instanceof BuffItem buffItem) {
                 BuffType type = buffItem.getBuffType();
                 BuffInventoryManager.getInstance().add(type, 1);
 
                 floatingTextManager.spawnCustom("+1 " + type.getDisplayName(),
                         player.getPosition(), Color.LIMEGREEN);
-
+                SoundManager.getInstance().playSFXShort("gold_pickup", 0.6);
                 saveCollectedBuff(type);
             } else if (item instanceof EnergyCrystal energyCrystal) {
                 double amount = energyCrystal.getAmount();
@@ -1028,6 +1029,7 @@ public final class GameWorld {
                 if (restored > 0) {
                     floatingTextManager.spawnCustom("+" + (int) restored + " MANA",
                             player.getPosition(), Color.AQUA);
+                    SoundManager.getInstance().playSFXShort("gold_pickup", 0.6);
                 }
             } else if (item instanceof com.soulknight.debuff.DebuffItem debuffItem) {
                 com.soulknight.debuff.DebuffType type = debuffItem.getDebuffType();
@@ -3283,25 +3285,16 @@ public final class GameWorld {
 
     // UFO trieu hoi them quai vien binh khi duoc kich hoat
     public void checkAndTriggerUFOSummon(Vector2D targetPosition) {
-        // 1. Kiểm tra tính hợp lệ của đối tượng
         if (currentRoom == null || player == null || enemyFactory == null) return;
-
-        // 2. Bỏ qua phòng START và REST[cite: 8]
         Room.RoomType roomType = currentRoom.getType();
         if (roomType == Room.RoomType.START || roomType == Room.RoomType.REST) {
             return;
         }
-
-        // 3. Xác định vị trí sinh quái viện binh
         Vector2D spawnPt = (targetPosition != null) ? targetPosition.copy() : player.getPosition().copy();
         int currentWave = currentRoom.getCurrentWave();
-
-        // 4. Sinh quái viện binh dựa theo wave hiện tại[cite: 8]
         Enemy extraEnemy = enemyFactory.createEnemyByWave(random, spawnPt, Math.max(1, currentWave));
         if (extraEnemy != null) {
             addEnemyWithSpawnEffect(extraEnemy, 0.0);
-
-            // Hiển thị thông báo khi triệu hồi thành công
             if (floatingTextManager != null) {
                 floatingTextManager.spawnCustom("UFO SUMMONED REINFORCEMENT!", spawnPt, Color.PURPLE);
             }
