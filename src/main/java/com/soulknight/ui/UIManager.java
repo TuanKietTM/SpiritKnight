@@ -26,6 +26,9 @@ import javafx.scene.layout.StackPane;
 
 import java.util.concurrent.CompletableFuture;
 
+/**
+ * Quan li giao dien game
+ */
 public final class UIManager {
 
     private final StackPane rootNode;
@@ -70,6 +73,7 @@ public final class UIManager {
     // Luu trang thai Continue cua tai khoan dang dang nhap
     private boolean continueAvailable;
     private GameWorld boundWorld;
+
     public UIManager(StackPane rootNode) {
         this.rootNode = rootNode;
         initViews();
@@ -77,22 +81,24 @@ public final class UIManager {
 
     private void initViews() {
         try {
+// Tai FXML
             FXMLLoader introLoader = new FXMLLoader(com.soulknight.Main.class.getResource("/assets/fxml/Intro.fxml"));
             introRoot = introLoader.load();
             introController = introLoader.getController();
             configFullRegion(introRoot);
 
-            // Tải FXML của StoryIntro
             FXMLLoader storyIntroLoader = new FXMLLoader(com.soulknight.Main.class.getResource("/assets/fxml/StoryIntro.fxml"));
             storyIntroRoot = storyIntroLoader.load();
             storyIntroController = storyIntroLoader.getController();
             configFullRegion(storyIntroRoot);
+
             // Tai cinematic ket thuc sau Boss.
             FXMLLoader storyEndingLoader = new FXMLLoader(com.soulknight.Main.class.getResource("/assets/fxml/StoryEnding.fxml"));
             storyEndingRoot = storyEndingLoader.load();
             storyEndingController = storyEndingLoader.getController();
             configFullRegion(storyEndingRoot);
-//            Tai FXML login , register
+
+            // Tai FXML login , register
             FXMLLoader loginLoader = new FXMLLoader(com.soulknight.Main.class.getResource("/assets/fxml/Login.fxml"));
             loginRoot = loginLoader.load();
             loginController = loginLoader.getController();
@@ -144,7 +150,6 @@ public final class UIManager {
             pauseController = pauseLoader.getController();
             configFullRegion(pauseRoot);
             pauseRoot.setPickOnBounds(false);
-            pauseRoot.setPickOnBounds(false);
 
             FXMLLoader settingLoader = new FXMLLoader(com.soulknight.Main.class.getResource("/assets/fxml/SettingScreen.fxml"));
             settingRoot = settingLoader.load();
@@ -167,6 +172,7 @@ public final class UIManager {
             accountRoot = accountLoader.load();
             accountController = accountLoader.getController();
             configFullRegion(accountRoot);
+
             portalOverlay.setMinSize(0, 0);
             portalOverlay.setPrefSize(Region.USE_COMPUTED_SIZE, Region.USE_COMPUTED_SIZE);
             portalOverlay.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
@@ -174,8 +180,6 @@ public final class UIManager {
             configFullRegion(portalOverlay);
             portalOverlay.setVisible(false);
             portalOverlay.setManaged(false);
-            configFullRegion(portalOverlay);
-            portalOverlay.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
 
             menuRoot.setPickOnBounds(false);
             hudRoot.setPickOnBounds(false);
@@ -184,7 +188,7 @@ public final class UIManager {
             gameOverRoot.setPickOnBounds(false);
 
             rootNode.getChildren().addAll(introRoot, loginRoot, registerRoot, storyIntroRoot, storyEndingRoot, menuRoot, hudRoot, levelClearRoot, victoryRoot,
-                    gameOverRoot, pauseRoot, settingRoot, shopRoot, leaderboardRoot, accountRoot,bossIntroRoot, portalOverlay, loadingOverlay);
+                    gameOverRoot, pauseRoot, settingRoot, shopRoot, leaderboardRoot, accountRoot, bossIntroRoot, portalOverlay, loadingOverlay);
 
             StackPane.setAlignment(introRoot, Pos.CENTER);
             StackPane.setAlignment(storyIntroRoot, Pos.CENTER);
@@ -203,12 +207,12 @@ public final class UIManager {
             StackPane.setAlignment(bossIntroRoot, Pos.CENTER);
             StackPane.setAlignment(loadingOverlay, Pos.CENTER);
 
-
             loadingOverlay.setVisible(false);
             loadingOverlay.setManaged(false);
 
             hideAllScreens();
             introRoot.setVisible(true);
+            introRoot.setManaged(true);
             introRoot.toFront();
 
         } catch (Exception e) {
@@ -217,6 +221,10 @@ public final class UIManager {
         }
     }
 
+    /**
+     * Xu li thang doi trang thai
+     * @param state
+     */
     public void handleStateChange(GameState state) {
         if (introRoot == null || storyIntroRoot == null || menuRoot == null || hudRoot == null || levelClearRoot == null ||
                 victoryRoot == null || gameOverRoot == null || pauseRoot == null || settingRoot == null)
@@ -228,6 +236,7 @@ public final class UIManager {
                     hideAllScreens();
                     introRoot.setOpacity(1.0);
                     introRoot.setVisible(true);
+                    introRoot.setManaged(true);
                     introRoot.toFront();
                 }
                 case MAIN_MENU -> {
@@ -245,8 +254,10 @@ public final class UIManager {
                 }
                 case BOSS_INTRO -> {
                     hudRoot.setVisible(true);
+                    hudRoot.setManaged(true);
                     if (bossIntroRoot != null && bossIntroController != null) {
                         bossIntroRoot.setVisible(true);
+                        bossIntroRoot.setManaged(true);
                         bossIntroRoot.toFront();
                         bossIntroController.playIntroSequence(2.5, () -> {
                             if (boundWorld != null) {
@@ -258,6 +269,7 @@ public final class UIManager {
                 case PLAYING -> {
                     hideAllScreens();
                     hudRoot.setVisible(true);
+                    hudRoot.setManaged(true);
                     hudRoot.toFront();
 
                     Platform.runLater(() -> {
@@ -273,17 +285,21 @@ public final class UIManager {
                 case LEVEL_CLEAR -> {
                     hideAllScreens();
                     hudRoot.setVisible(true);
+                    hudRoot.setManaged(true);
                     levelClearRoot.setVisible(true);
+                    levelClearRoot.setManaged(true);
                     levelClearRoot.toFront();
                 }
                 case GAME_VICTORY -> {
                     hideAllScreens();
                     victoryRoot.setVisible(true);
+                    victoryRoot.setManaged(true);
                     victoryRoot.toFront();
                 }
                 case GAME_OVER -> {
                     hideAllScreens();
                     gameOverRoot.setVisible(true);
+                    gameOverRoot.setManaged(true);
                     gameOverRoot.toFront();
                 }
                 case ENDING_STORY -> {
@@ -312,17 +328,20 @@ public final class UIManager {
                 case PAUSED -> {
                     hideAllScreens();
                     hudRoot.setVisible(true);
-//pause hien cac buff
+                    hudRoot.setManaged(true);
+
                     if (pauseController != null && boundWorld != null) {
                         pauseController.setPlayer(boundWorld.getPlayer());
                     }
 
                     pauseRoot.setVisible(true);
+                    pauseRoot.setManaged(true);
                     pauseRoot.toFront();
                 }
                 case REWARD_PICK -> {
                     hideAllScreens();
                     hudRoot.setVisible(true);
+                    hudRoot.setManaged(true);
                     hudRoot.toFront();
                 }
             }
@@ -373,9 +392,7 @@ public final class UIManager {
     }
 
     private void bindIntroActions(GameWorld world) {
-        if (introController == null
-                || introRoot == null
-                || loginRoot == null) {
+        if (introController == null || introRoot == null || loginRoot == null) {
             return;
         }
 
@@ -407,59 +424,28 @@ public final class UIManager {
         loginController.setOnRegisterRequested(this::showRegisterScreen);
 
         loginController.setOnLoginSuccess(() -> {
+            String username = UserSession.getCurrentUsername();
+            int userId = UserSession.getCurrentUserId();
 
-            String username =
-                    UserSession.getCurrentUsername();
+            world.setCurrentPlayerName(username);
+            PlayerSessionCache.getInstance().beginSession(userId);
 
-            int userId =
-                    UserSession.getCurrentUserId();
-
-            world.setCurrentPlayerName(
-                    username
-            );
-
-            /*
-             * Tao session RAM moi.
-             */
-            PlayerSessionCache
-                    .getInstance()
-                    .beginSession(userId);
-
-            /*
-             * Tam khoa Continue trong luc check save ngam.
-             */
             continueAvailable = false;
+            menuController.setContinueAvailable(false);
 
-            menuController
-                    .setContinueAvailable(false);
-
-            /*
-             * UI hien NGAY sau khi login thanh cong.
-             */
             if (UserSession.isFirstPlay()) {
-
                 showFirstStory(world);
-
             } else {
-
                 showMainMenu(world);
             }
 
-            /*
-             * Tat ca data phu load background.
-             */
-            preloadSessionData(
-                    userId,
-                    username
-            );
-
-            preloadContinueState(
-                    username
-            );
+            preloadSessionData(userId, username);
+            preloadContinueState(username);
         });
     }
+
     private void preloadSessionData(int userId, String username) {
-        SessionPreloader.preload(userId,username)
+        SessionPreloader.preload(userId, username)
                 .exceptionally(exception -> {
                     System.err.println("Loi preload session: " + exception.getMessage());
                     return null;
@@ -475,17 +461,12 @@ public final class UIManager {
 
         preloadLeaderboard();
     }
+
     private void preloadLeaderboard() {
         LeaderboardCache cache = LeaderboardCache.getInstance();
-        /*
-         * Cache con moi thi khong query lai.
-         */
         if (cache.isFresh()) {
             return;
         }
-        /*
-         * Neu request khac dang preload thi khong tao them request.
-         */
         if (!cache.beginRefresh()) {
             return;
         }
@@ -502,26 +483,21 @@ public final class UIManager {
                     return null;
                 });
     }
-    private void preloadContinueState(
-            String username
-    ) {
-        if (username == null
-                || username.isBlank()) {
+
+    private void preloadContinueState(String username) {
+        if (username == null || username.isBlank()) {
             return;
         }
 
-        CompletableFuture
-                .supplyAsync(
-                        () -> {PlayerSaveDAO saveDAO = new PlayerSaveDAO();
+        CompletableFuture.supplyAsync(
+                        () -> {
+                            PlayerSaveDAO saveDAO = new PlayerSaveDAO();
                             return saveDAO.findByName(username).isPresent();
                         },
                         com.soulknight.utils.DatabaseExecutor.getExecutor()
                 )
                 .thenAccept(hasSave ->
                         Platform.runLater(() -> {
-                            /*
-                             * Tai khoan moi van theo Story.
-                             */
                             if (UserSession.isFirstPlay()) {
                                 return;
                             }
@@ -536,17 +512,15 @@ public final class UIManager {
                     return null;
                 });
     }
+
     private void bindRegisterActions() {
         if (registerController == null) {
             return;
         }
         registerController.setLoadingCallbacks(this::showLoading, this::hideLoading);
 
-
         registerController.setOnLoginRequested(() -> {
-            String username =
-                    registerController.getEnteredUsername();
-
+            String username = registerController.getEnteredUsername();
             showLoginScreen();
 
             if (loginController != null) {
@@ -566,16 +540,11 @@ public final class UIManager {
 
                 sound.playSFX("button");
 
-                /*
-                 * Lan dau choi chay StoryIntro.
-                 * StoryIntro da co portal o cuoi nen khong chay portal lan hai.
-                 */
                 if (UserSession.isFirstPlay() && storyIntroController != null) {
                     showFirstStory(world);
                     return;
                 }
 
-                // Cac lan sau chi chay portal roi tao game moi
                 playPortalBeforeGame(world::startNewGameFromMenu);
             });
 
@@ -590,6 +559,7 @@ public final class UIManager {
                     loadSaveAndContinue(world);
                 }
             });
+
             menuController.setOnAccountRequested(() -> {
                 sound.playSFX("button");
 
@@ -632,7 +602,7 @@ public final class UIManager {
                     boolean isTouchpad = world.getInputHandler() != null && world.getInputHandler().isTouchpadModeEnabled();
 
                     settingController.setup(
-                            () -> { // Nút Close quay lại Main Menu
+                            () -> {
                                 sound.playSFX("button");
                                 settingRoot.setVisible(false);
                                 menuRoot.setVisible(true);
@@ -640,7 +610,7 @@ public final class UIManager {
                             },
                             sound::setBGMVolume,
                             sound::setSFXVolume,
-                            (touchpadEnabled) -> { // Callback khi thay đổi Control Mode
+                            (touchpadEnabled) -> {
                                 if (world.getInputHandler() != null) {
                                     world.getInputHandler().setTouchpadModeEnabled(touchpadEnabled);
                                 }
@@ -651,8 +621,8 @@ public final class UIManager {
                     );
                 }
             });
-            menuController.setOnLeaderboardRequested(() -> {
 
+            menuController.setOnLeaderboardRequested(() -> {
                 sound.playSFX("button");
 
                 menuRoot.setVisible(true);
@@ -663,29 +633,18 @@ public final class UIManager {
                 leaderboardRoot.toFront();
 
                 if (leaderboardController != null) {
-
                     leaderboardController.setup(
                             () -> {
-
-                                leaderboardRoot
-                                        .setVisible(false);
-
-                                leaderboardRoot
-                                        .setManaged(false);
+                                leaderboardRoot.setVisible(false);
+                                leaderboardRoot.setManaged(false);
 
                                 menuRoot.setVisible(true);
                                 menuRoot.setManaged(true);
                                 menuRoot.toFront();
 
-                                menuController
-                                        .setContinueAvailable(
-                                                continueAvailable
-                                        );
-
-                                menuController
-                                        .startAnimation();
+                                menuController.setContinueAvailable(continueAvailable);
+                                menuController.startAnimation();
                             },
-
                             this::showLoading,
                             this::hideLoading
                     );
@@ -693,7 +652,6 @@ public final class UIManager {
             });
 
             menuController.setOnShopRequested(() -> {
-
                 sound.playSFX("button");
 
                 menuRoot.setVisible(true);
@@ -704,7 +662,6 @@ public final class UIManager {
                 shopRoot.toFront();
 
                 if (shopController != null) {
-
                     shopController.setLoadingCallbacks(
                             this::showLoading,
                             this::hideLoading
@@ -733,7 +690,6 @@ public final class UIManager {
                 }
             });
 
-            // Doi vu khi (sung <-> kiem) khi bam vao vong vu khi tren HUD
             hudController.setOnWeaponSwitchRequested(() -> {
                 if (world.getState() == GameState.PLAYING) {
                     sound.playSFX("button");
@@ -758,11 +714,11 @@ public final class UIManager {
 
         if (pauseController != null) {
             pauseController.setCallbacks(
-                    () -> { // Tiếp tục chơi
+                    () -> {
                         sound.playSFX("button");
                         world.changeState(GameState.PLAYING);
                     },
-                    () -> { // Mở Cài đặt từ Pause
+                    () -> {
                         sound.playSFX("button");
                         pauseRoot.setVisible(false);
                         settingRoot.setVisible(true);
@@ -772,7 +728,7 @@ public final class UIManager {
                             boolean isTouchpad = world.getInputHandler() != null && world.getInputHandler().isTouchpadModeEnabled();
 
                             settingController.setup(
-                                    () -> { // Nút Close quay lại Pause Menu
+                                    () -> {
                                         sound.playSFX("button");
                                         settingRoot.setVisible(false);
                                         pauseRoot.setVisible(true);
@@ -780,7 +736,7 @@ public final class UIManager {
                                     },
                                     sound::setBGMVolume,
                                     sound::setSFXVolume,
-                                    (touchpadEnabled) -> { // Callback khi thay đổi Control Mode
+                                    (touchpadEnabled) -> {
                                         if (world.getInputHandler() != null) {
                                             world.getInputHandler().setTouchpadModeEnabled(touchpadEnabled);
                                         }
@@ -791,25 +747,16 @@ public final class UIManager {
                             );
                         }
                     },
-                    () -> { // Quay lai Main Menu
+                    () -> {
                         sound.playSFX("button");
 
-                        /*
-                         * Nguoi choi dang o trong gameplay nen chac chan
-                         * co mot luot choi de Continue.
-                         */
                         continueAvailable = true;
 
                         if (menuController != null) {
                             menuController.setContinueAvailable(true);
                         }
 
-                        /*
-                         * Nen luu truoc khi roi gameplay neu GameWorld
-                         * cua ban da co saveGameAsync() public.
-                         */
                         world.saveGameAsync();
-
                         sound.stopBGM();
                         world.saveBeforeReturnToMenu();
                         world.changeState(GameState.MAIN_MENU);
@@ -817,7 +764,7 @@ public final class UIManager {
             );
         }
     }
-    //goi buff tu HUD
+
     private void useBuffFromHud(GameWorld world, BuffType buffType) {
         if (world == null || buffType == null) {
             return;
@@ -831,22 +778,12 @@ public final class UIManager {
         }
 
         BuffInventoryManager inventory = BuffInventoryManager.getInstance();
-        /*
-         * Khong co buff trong RAM.
-         */
         if (!inventory.hasBuff(buffType)) {
             return;
         }
-        /*
-         * Heal khong dung khi day HP.
-         */
         if (buffType == BuffType.HEAL && player.getHealth() >= player.getMaxHealth()) {
             return;
         }
-        /*
-         * Buff co duration khong duoc kich hoat
-         * lai khi dang active.
-         */
         if (!buffType.isInstant() && player.getBuffManager().isActive(buffType)) {
             return;
         }
@@ -858,12 +795,7 @@ public final class UIManager {
             return;
         }
 
-        // Dong bo cache ngay de HUD va Shop khong bi lech so luong buff
         PlayerSessionCache.getInstance().consumeBuff(buffType);
-
-        /*
-         * Buff kich hoat ngay khi click / bam 1-4.
-         */
         player.getBuffManager().activate(buffType);
 
         SoundManager.getInstance().playSFX("button");
@@ -873,10 +805,6 @@ public final class UIManager {
                     if (success) {
                         return;
                     }
-                    /*
-                     * Database khong tru duoc.
-                     * Khoi phuc buff trong RAM.
-                     */
                     Platform.runLater(() -> {
                         inventory.add(buffType, 1);
                         PlayerSessionCache.getInstance().addBuff(buffType, 1);
@@ -885,10 +813,6 @@ public final class UIManager {
                 })
                 .exceptionally(exception -> {
                     exception.printStackTrace();
-                    /*
-                     * Mat mang / SQL loi:
-                     * tra lai buff.
-                     */
                     Platform.runLater(() -> {
                         inventory.add(buffType, 1);
                         PlayerSessionCache.getInstance().addBuff(buffType, 1);
@@ -896,13 +820,11 @@ public final class UIManager {
                     return null;
                 });
     }
+
     private void handleLogout(GameWorld world) {
         BuffInventoryManager.getInstance().clear();
-
-        // Xoa cache rieng cua tai khoan, tranh tai khoan sau dung du lieu cu
         PlayerSessionCache.getInstance().clear();
 
-        // Leaderboard la du lieu chung nen giu lai cache de mo nhanh hon
         UserSession.logout();
         continueAvailable = false;
 
@@ -971,6 +893,7 @@ public final class UIManager {
 
         registerRoot.setOpacity(1.0);
         registerRoot.setVisible(true);
+        registerRoot.setManaged(true);
         registerRoot.toFront();
     }
 
@@ -1011,7 +934,6 @@ public final class UIManager {
         }
     }
 
-    //    chay portal truoc moi game
     private void playPortalBeforeGame(Runnable onFinished) {
         if (menuRoot != null) {
             menuRoot.setVisible(false);
@@ -1023,7 +945,6 @@ public final class UIManager {
             storyIntroRoot.setManaged(false);
         }
 
-        // PortalOverlay tu quan ly nen, sprite va animation
         portalOverlay.play(() -> Platform.runLater(() -> {
             if (onFinished != null) {
                 onFinished.run();
@@ -1032,12 +953,14 @@ public final class UIManager {
     }
 
     private void showFirstStory(GameWorld world) {
+        // HIDE ALL SCREENS NGAY TỪ ĐẦU để xoá hoàn toàn Login, Intro cũ khỏi tầm nền
+        hideAllScreens();
+
         if (storyIntroController == null || storyIntroRoot == null) {
             world.startNewGameFromMenu();
             return;
         }
 
-        menuRoot.setVisible(false);
         storyIntroRoot.setVisible(true);
         storyIntroRoot.setManaged(true);
         storyIntroRoot.toFront();
@@ -1046,31 +969,22 @@ public final class UIManager {
             int userId = UserSession.getCurrentUserId();
 
             UserSession.setFirstPlay(false);
-            /*
-             * Story da hoan thanh va gameplay sap bat dau.
-             * Tu thoi diem nay tai khoan da co the Continue.
-             */
             continueAvailable = true;
 
             if (menuController != null) {
                 menuController.setContinueAvailable(true);
             }
 
-            // Cap nhat firstPlay bang executor DB dung chung, khong tao thread moi moi lan
             CompletableFuture.runAsync(() -> userDAO.setFirstPlay(userId, false),
                     com.soulknight.utils.DatabaseExecutor.getExecutor());
+            hideAllScreens();
 
-            storyIntroRoot.setVisible(false);
-            storyIntroRoot.setManaged(false);
-
-            // Story da co portal, khong chay them portal tai day
             world.startNewGameFromMenu();
         }));
 
         storyIntroController.startStory();
     }
 
-    // Chi load save khi nguoi choi bam Continue
     private void loadSaveAndContinue(GameWorld world) {
         String username = UserSession.getCurrentUsername();
 
@@ -1088,17 +1002,10 @@ public final class UIManager {
             if (!success) {
                 continueAvailable = false;
                 menuController.setContinueAvailable(false);
-
-                System.err.println(
-                        "Khong the tai save de Continue: " + username
-                );
+                System.err.println("Khong the tai save de Continue: " + username);
                 return;
             }
 
-            /*
-             * Chi chay portal sau khi pendingPlayerSave
-             * da duoc gan trong GameWorld.
-             */
             playPortalBeforeGame(world::continueGameFromMenu);
         });
     }
@@ -1108,6 +1015,7 @@ public final class UIManager {
             hudController.useBuffByIndex(index);
         }
     }
+
     private void finishEndingStory(GameWorld world) {
         if (world == null) return;
 
@@ -1115,10 +1023,7 @@ public final class UIManager {
             storyEndingRoot.setVisible(false);
             storyEndingRoot.setManaged(false);
         }
-        /*
-         * Run da hoan thanh.
-         * Continue cua run Boss khong con hop le.
-         */
+
         continueAvailable = false;
 
         if (menuController != null) {
@@ -1126,35 +1031,29 @@ public final class UIManager {
         }
 
         world.finishEndingRun();
-
         showMainMenu(world);
     }
+
     private void hideAllScreens() {
+        if (introToLoginTransition != null) introToLoginTransition.stop();
         if (loginController != null) loginController.stopBackground();
         if (registerController != null) registerController.stopBackground();
-        if (introRoot != null) introRoot.setVisible(false);
-        if (loginRoot != null) loginRoot.setVisible(false);
-        if (registerRoot != null) registerRoot.setVisible(false);
-        if (storyIntroRoot != null) storyIntroRoot.setVisible(false);
-        if (storyEndingRoot != null) {
-            storyEndingRoot.setVisible(false);
-            storyEndingRoot.setManaged(false);
-        }
-        if (menuRoot != null) menuRoot.setVisible(false);
-        if (hudRoot != null) hudRoot.setVisible(false);
-        if (levelClearRoot != null) levelClearRoot.setVisible(false);
-        if (victoryRoot != null) victoryRoot.setVisible(false);
-        if (gameOverRoot != null) gameOverRoot.setVisible(false);
-        if (pauseRoot != null) pauseRoot.setVisible(false);
-        if (settingRoot != null) settingRoot.setVisible(false);
+
+        if (introRoot != null) { introRoot.setVisible(false); introRoot.setManaged(false); }
+        if (loginRoot != null) { loginRoot.setVisible(false); loginRoot.setManaged(false); }
+        if (registerRoot != null) { registerRoot.setVisible(false); registerRoot.setManaged(false); }
+        if (storyIntroRoot != null) { storyIntroRoot.setVisible(false); storyIntroRoot.setManaged(false); }
+        if (storyEndingRoot != null) { storyEndingRoot.setVisible(false); storyEndingRoot.setManaged(false); }
+        if (menuRoot != null) { menuRoot.setVisible(false); menuRoot.setManaged(false); }
+        if (hudRoot != null) { hudRoot.setVisible(false); hudRoot.setManaged(false); }
+        if (levelClearRoot != null) { levelClearRoot.setVisible(false); levelClearRoot.setManaged(false); }
+        if (victoryRoot != null) { victoryRoot.setVisible(false); victoryRoot.setManaged(false); }
+        if (gameOverRoot != null) { gameOverRoot.setVisible(false); gameOverRoot.setManaged(false); }
+        if (pauseRoot != null) { pauseRoot.setVisible(false); pauseRoot.setManaged(false); }
+        if (settingRoot != null) { settingRoot.setVisible(false); settingRoot.setManaged(false); }
         if (shopRoot != null) { shopRoot.setVisible(false); shopRoot.setManaged(false); }
         if (leaderboardRoot != null) { leaderboardRoot.setVisible(false); leaderboardRoot.setManaged(false); }
-        if (accountRoot != null) {
-            accountRoot.setVisible(false);
-            accountRoot.setManaged(false);
-        }
-        if (bossIntroRoot != null) {
-            bossIntroRoot.setVisible(false);
-        }
+        if (accountRoot != null) { accountRoot.setVisible(false); accountRoot.setManaged(false); }
+        if (bossIntroRoot != null) { bossIntroRoot.setVisible(false); bossIntroRoot.setManaged(false); }
     }
 }
