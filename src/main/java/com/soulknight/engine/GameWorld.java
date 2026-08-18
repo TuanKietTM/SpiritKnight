@@ -103,6 +103,7 @@ public final class GameWorld {
     private final List<Shockwave> shockwaves = new ArrayList<>();
     private final List<ScratchMark> scratchMarks = new ArrayList<>();
     private final List<UFOEvent> ufoEvents = new ArrayList<>();
+    private final List<RainbowRayEffect> rainbowRayEffects = new ArrayList<>();
     //   chia luong hoat dong rieng cua database de tranh lam cham game
     private final ExecutorService databaseExecutor =
             Executors.newSingleThreadExecutor(runnable -> {
@@ -350,6 +351,7 @@ public final class GameWorld {
         updateExplosions(deltaSeconds);
         updateIonExplosions(deltaSeconds);
         updateSlashEffects(deltaSeconds);
+        updateRainbowRayEffects(deltaSeconds);
         updateScratchMarks(deltaSeconds);
         updateSoundWaves(deltaSeconds);
         updateRestHealEffects(deltaSeconds);
@@ -1369,6 +1371,11 @@ public final class GameWorld {
         }
         for (SlashEffect slash : slashEffects) slash.render(graphicsContext, camera);
         for (ExplosionEffect explosion : explosions) explosion.render(graphicsContext, camera);
+        for (RainbowRayEffect ray : rainbowRayEffects) {
+            if (ray != null && ray.isActive()) {
+                ray.render(graphicsContext, camera);
+            }
+        }
         for (SoundWaveEffect soundWave : soundWaves) soundWave.render(graphicsContext, camera);
 
         // No Ion ve rieng.
@@ -1469,6 +1476,7 @@ public final class GameWorld {
         this.explosions.clear();
         this.ionExplosions.clear();
         this.slashEffects.clear();
+        this.rainbowRayEffects.clear();
         this.scratchMarks.clear();
         this.items.clear();
         this.combatEffectManager.clear();
@@ -3299,6 +3307,33 @@ public final class GameWorld {
                 floatingTextManager.spawnCustom("UFO SUMMONED REINFORCEMENT!", spawnPt, Color.PURPLE);
             }
         }
+    }
+    public void addRainbowRay(Vector2D startPos, Vector2D endPos, double maxThickness, double duration, Color rayColor) {
+        if (startPos != null && endPos != null) {
+            this.rainbowRayEffects.add(new RainbowRayEffect(startPos.copy(), endPos.copy(), maxThickness, duration, rayColor));
+        }
+    }
+    private void updateRainbowRayEffects(double deltaSeconds) {
+        for (RainbowRayEffect ray : rainbowRayEffects) {
+            if (ray != null) {
+                ray.update(deltaSeconds);
+            }
+        }
+        rainbowRayEffects.removeIf(ray -> ray == null || !ray.isActive());
+    }
+    public boolean hasPendingUFOReinforcementInRoom(Room room) {
+        if (room == null || ufoEvents.isEmpty()) {
+            return false;
+        }
+        for (UFOEvent ufo : ufoEvents) {
+            if (!ufo.isFinished() && ufo.getEventType() == UFOEvent.Type.REINFORCEMENT) {
+                Vector2D target = ufo.getTargetPosition();
+                if (target != null && room.getBound() != null && room.getBound().contains(target.getX(), target.getY())) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
     private void playGameBGM() {
         SoundManager sound = SoundManager.getInstance();

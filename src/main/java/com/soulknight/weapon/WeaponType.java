@@ -99,7 +99,7 @@ public enum WeaponType {
             "/assets/WeaponImage/MeleeImage/Wand.png",
             "Magic_Cast",
             15, 0.25,
-            false, 0.0, 34.0, 3600, 1
+            false, 0.0, 34.0, 3600, 50
     );
 
     private final String displayName;
@@ -175,6 +175,13 @@ public enum WeaponType {
         // Railgun cung co mana dong theo charge.
         if (this == PROTOTYPE_RAILGUN) {
             return new PrototypeRailgun(displayName, cooldownSeconds)
+                    .withManaCost(manaCost)
+                    .withSound(soundPath)
+                    .withImage(imagePath);
+        }
+        if (this == WAND) {
+            Wand wand = new Wand(displayName, damage, cooldownSeconds, bulletSpeed);
+            return wand
                     .withManaCost(manaCost)
                     .withSound(soundPath)
                     .withImage(imagePath);

@@ -133,7 +133,7 @@ public class Room {
 
         // Quan lí cac wave quai
         updateWaves(gameWorld, deltaSeconds);
-        checkRoomClear(globalEnemies);
+        checkRoomClear(gameWorld, globalEnemies);
     }
 
     private void beginRoomActivation(Player player) {
@@ -174,7 +174,7 @@ public class Room {
         }
     }
 
-    private void checkRoomClear(List<Enemy> globalEnemies) {
+    private void checkRoomClear(GameWorld gameWorld, List<Enemy> globalEnemies) {
         if (globalEnemies == null) {
             return;
         }
@@ -184,7 +184,11 @@ public class Room {
                 .filter(enemy -> bound.contains(enemy.getPosition().getX(), enemy.getPosition().getY()))
                 .count();
 
-        if (aliveEnemiesInRoom > 0 || isWaitingForNextWave) {
+        // Kiểm tra xem có sự kiện UFO viện binh nào đang nhắm vào phòng này không
+        boolean hasPendingUfo = gameWorld != null && gameWorld.hasPendingUFOReinforcementInRoom(this);
+
+        // Nếu còn quái, hoặc đang chờ wave tiếp theo, hoặc  đang có UFO sắp thả quái không clear phòng
+        if (aliveEnemiesInRoom > 0 || isWaitingForNextWave || hasPendingUfo) {
             return;
         }
 
