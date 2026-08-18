@@ -107,7 +107,7 @@ public final class StoryIntroController {
             throw new IllegalStateException("FXML Visual Novel chua khai bao day du.");
         }
     }
-
+//them cac khung canh vao intro
     private void configureCinematic() {
         cinematicPlayer
                 .addScene(this::playBootScene)

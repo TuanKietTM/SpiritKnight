@@ -94,7 +94,7 @@ public final class StoryEndingController {
                 frames
         );
     }
-
+// them cac khun gcang vao ending
     private void configureCinematic() {
         cinematicPlayer
                 .addScene(this::playOpeningFade)
