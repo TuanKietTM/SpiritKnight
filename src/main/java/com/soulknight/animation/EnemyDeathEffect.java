@@ -1,6 +1,7 @@
 package com.soulknight.animation;
 
 import com.soulknight.engine.Camera;
+import com.soulknight.utils.SoundManager;
 import com.soulknight.utils.Vector2D;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
@@ -40,6 +41,7 @@ public final class EnemyDeathEffect {
             particleSize[i] = 1.0 + random.nextInt(3);
             particleDelay[i] = random.nextDouble() * 0.28;
         }
+        SoundManager.getInstance().playSFX("player_die");
     }
 
     public void update(double deltaSeconds) {

@@ -18,7 +18,7 @@ và triệu hôif viện binh khi quái trong phong gặp khó khăn với xác 
 lựa chọn nhân vật mình thích, pet đồng hành , bổ sung vũ khí và các buff)
 * Hệ thống cơ sở dữ liệu: Cho phép lưu trữ thông tin người chơi , phòng màn , trang bị
 đã mua trong shop, và bảng điểm cao leaderbroad
-* Hệ thôgns cốt truyện:mang hơi hướng cinematic gợi cảm giác tò mò
+* Hệ thống cốt truyện:mang hơi hướng cinematic gợi cảm giác tò mò
 * 
 
 ##  Yêu cầu hệ thống

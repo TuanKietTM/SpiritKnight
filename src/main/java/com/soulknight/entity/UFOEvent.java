@@ -205,4 +205,8 @@ public class UFOEvent {
     public Type getEventType() {
         return eventType;
     }
+
+    public Vector2D getTargetPosition() {
+        return targetPosition;
+    }
 }

@@ -2,6 +2,7 @@ package com.soulknight.animation;
 
 import com.soulknight.engine.Camera;
 import com.soulknight.entity.Player;
+import com.soulknight.utils.SoundManager;
 import com.soulknight.utils.Vector2D;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.effect.ColorAdjust;
@@ -53,6 +54,8 @@ public final class PlayerDeathEffect {
         soulColorAdjust.setBrightness(0.48);
         soulColorAdjust.setContrast(-0.18);
         soulGlow.setInput(soulColorAdjust);
+
+        SoundManager.getInstance().playSFX("sound_die");
     }
 
     public void update(double deltaSeconds) {
