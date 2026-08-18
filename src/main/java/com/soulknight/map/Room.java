@@ -294,6 +294,10 @@ public class Room {
         this.petEntryController.cancel();
     }
 
+    public boolean isLastWave() {
+        return currentWave >= maxWaves;
+    }
+
     private boolean isStartRoom() {
         return name != null && (name.equalsIgnoreCase("StartRoom") || name.toLowerCase().contains("spawn"));
     }

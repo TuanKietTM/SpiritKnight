@@ -21,14 +21,8 @@ import com.soulknight.mission.MissionManager;
 import com.soulknight.utils.Constants;
 import com.soulknight.utils.SoundManager;
 import com.soulknight.utils.Vector2D;
-import com.soulknight.weapon.Bullet;
-import com.soulknight.weapon.ExplosionEffect;
+import com.soulknight.weapon.*;
 import com.soulknight.weapon.render.IonExplosionEffect;
-import com.soulknight.weapon.SlashEffect;
-import com.soulknight.weapon.SoundWaveEffect;
-import com.soulknight.weapon.Weapon;
-import com.soulknight.weapon.WeaponSelectionManager;
-import com.soulknight.weapon.WeaponType;
 import com.soulknight.pet.Pet;
 import com.soulknight.pet.PetFactory;
 import com.soulknight.pet.PetSelectionManager;
@@ -322,15 +316,23 @@ public final class GameWorld {
             }
         }
 //        trieu hoi vien binh tuc thi
-        if (currentRoom != null && currentRoom.getType() != Room.RoomType.START
-                && currentRoom.getType() != Room.RoomType.REST && !currentRoom.isUfoSummonUsed()) {
+        if (currentRoom != null
+                && currentRoom.getType() == Room.RoomType.FIGHT
+                && currentRoom.isLastWave()   //chi kich hoat o wave cuoi
+                && !currentRoom.isUfoSummonUsed()) {
+
             long aliveEnemiesCount = enemies.stream().filter(Enemy::isAlive).count();
 
             if (aliveEnemiesCount > 0 && aliveEnemiesCount <= 2 && currentRoom.hasSpawnedEnemies()) {
                 currentRoom.setUfoSummonUsed(true);
                 if (random.nextDouble() < 0.75) {
-                    Vector2D targetPos = player.getPosition().copy();
-                    ufoEvents.add(new UFOEvent(targetPos, UFOEvent.Type.REINFORCEMENT));
+                    Vector2D targetPos1 = player.getPosition().copy();
+                    ufoEvents.add(new UFOEvent(targetPos1, UFOEvent.Type.REINFORCEMENT));
+                    // 50% mang 2 quai vien binh
+                    if (random.nextDouble() < 0.50) {
+                        Vector2D targetPos2 = player.getPosition().copy().add(30.0, 0.0); // Offset vị trí để tránh đè lên UFO 1
+                        ufoEvents.add(new UFOEvent(targetPos2, UFOEvent.Type.REINFORCEMENT));
+                    }
                 }
             }
         }

@@ -10,7 +10,7 @@ public enum WeaponType {
             "Blaster_Fire",
             12, 0.18,
             true, 580.0, 0.0,
-            0, 1
+            0, 0
     ),
 
     OLD_PISTOL(
