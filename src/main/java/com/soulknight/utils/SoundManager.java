@@ -69,7 +69,8 @@ public final class SoundManager {
         loadSFX("trap_trigger","/assets/Audio/trap.mp3");
         loadSFX("UFO","/assets/Audio/UFO.mp3");
         loadSFX("gold_pickup","/assets/Audio/coin.mp3");
-
+        loadSFX("player_die","/assets/Audio/player_die.mp3");
+        loadSFX("sound_die","/assets/Audio/sound_die.mp3");
     }
 
     public static SoundManager getInstance() {
