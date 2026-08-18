@@ -1,6 +1,5 @@
 package com.soulknight.debuff;
 
-import com.soulknight.debuff.render.PoisonAreaRenderer;
 import com.soulknight.engine.Camera;
 import com.soulknight.event.GameEventListener;
 import com.soulknight.item.Item;

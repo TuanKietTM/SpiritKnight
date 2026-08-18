@@ -17,18 +17,18 @@ public class ConfusionVisualEffect implements DebuffVisualEffect {
 
     @Override
     public void render(GraphicsContext gc, Camera camera, Player player) {
-        // Hàm render chung không dùng nữa vì ta chia thành 2 lớp renderBack và renderFront
+        //  2 lớp renderBack và renderFront
     }
 
     /**
-     * Vẽ nửa vòng phía SAU lưng Player (Cần gọi TRƯỚC KHU VẼ PLAYER)
+     * Vẽ nửa vòng phía sau lưng Player - trong render world se goi truoc khi ve player
      */
     public void renderBack(GraphicsContext gc, Camera camera, Player player) {
         renderEllipseLayer(gc, camera, player, true);
     }
 
     /**
-     * Vẽ nửa vòng phía TRƯỚC mặt Player (Cần gọi SAU KHU VẼ PLAYER)
+     * Vẽ nửa vòng phía trong render world se goi de ve sau player
      */
     public void renderFront(GraphicsContext gc, Camera camera, Player player) {
         renderEllipseLayer(gc, camera, player, false);

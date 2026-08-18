@@ -9,6 +9,9 @@ import javafx.scene.canvas.GraphicsContext;
 import java.util.EnumMap;
 import java.util.Map;
 
+/**
+ * Quan li cac trang thai cua mot buff effect
+ */
 public final class BuffVisualEffectManager {
 
     private final Player player;
@@ -27,8 +30,7 @@ public final class BuffVisualEffectManager {
 
         stop(type);
 
-        BuffVisualEffect effect =
-                BuffVisualEffectFactory.create(type);
+        BuffVisualEffect effect = BuffVisualEffectFactory.create(type);
 
         if (effect == null) {
             return;

@@ -16,6 +16,7 @@ public interface BuffVisualEffect {
     );
 
     /**
+     * Chia ra ve cac hieu ung tac dong len player thanh behind va before de theo chuan 2.5D
      * Ve cac thanh phan nam sau Player.
      */
     void renderBehind(

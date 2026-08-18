@@ -7,6 +7,7 @@ import javafx.scene.canvas.GraphicsContext;
 
 /**
  * Quan li vòn doi hieu ung : kich hoat , update , het thoi gian , xoa hieu ung
+ * cac buff cu the se ke thua tu class nay
  */
 public abstract class Buff {
 

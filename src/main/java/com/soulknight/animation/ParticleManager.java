@@ -160,94 +160,6 @@ public class ParticleManager {
             addParticle(particle);
         }
     }
-
-    public void spawnDamageBuff(Vector2D position) {
-        for (int i = 0; i < 5; i++) {
-            Vector2D start = offsetPosition(position, randomRange(-14.0, 14.0), randomRange(-4.0, 12.0));
-            Vector2D velocity = new Vector2D(randomRange(-10.0, 10.0), randomRange(-55.0, -30.0));
-
-            Particle particle = new Particle(
-                    start,
-                    velocity,
-                    randomRange(3.0, 6.0),
-                    randomColor(FIRE_COLORS),
-                    randomRange(0.45, 0.7)
-            ).withEndSize(0.5)
-                    .withDrag(1.5)
-                    .withFadeIn(0.15)
-                    .withShape(Particle.Shape.DIAMOND)
-                    .withRotation(45.0, randomRange(-180.0, 180.0));
-
-            addParticle(particle);
-        }
-    }
-
-    public void spawnSpeedTrail(Vector2D position, boolean facingLeft) {
-        double direction = facingLeft ? 1.0 : -1.0;
-
-        for (int i = 0; i < 3; i++) {
-            Vector2D start = offsetPosition(position, -direction * randomRange(7.0, 14.0), randomRange(-8.0, 8.0));
-            Vector2D velocity = new Vector2D(direction * randomRange(45.0, 85.0), randomRange(-5.0, 5.0));
-
-            Particle particle = new Particle(
-                    start,
-                    velocity,
-                    randomRange(2.0, 4.0),
-                    random.nextBoolean() ? Color.WHITE : Color.LIGHTCYAN,
-                    randomRange(0.14, 0.24)
-            ).withEndSize(0.0)
-                    .withDrag(5.0)
-                    .withShape(Particle.Shape.SQUARE);
-
-            addParticle(particle);
-        }
-    }
-
-    public void spawnHealEffect(Vector2D position) {
-        for (int i = 0; i < 14; i++) {
-            double angle = random.nextDouble() * Math.PI * 2.0;
-            double radius = randomRange(8.0, 22.0);
-            Vector2D start = offsetPosition(position, Math.cos(angle) * radius, Math.sin(angle) * radius);
-            Vector2D velocity = new Vector2D(Math.cos(angle) * 8.0, randomRange(-45.0, -22.0));
-
-            Particle particle = new Particle(
-                    start,
-                    velocity,
-                    randomRange(3.0, 6.0),
-                    randomColor(HEAL_COLORS),
-                    randomRange(0.5, 0.8)
-            ).withEndSize(1.0)
-                    .withDrag(1.0)
-                    .withFadeIn(0.2)
-                    .withShape(Particle.Shape.CIRCLE);
-
-            addParticle(particle);
-        }
-    }
-
-    public void spawnShieldEffect(Vector2D position) {
-        int count = 20;
-
-        for (int i = 0; i < count; i++) {
-            double angle = Math.PI * 2.0 * i / count;
-            double radius = 24.0;
-            Vector2D start = offsetPosition(position, Math.cos(angle) * radius, Math.sin(angle) * radius);
-
-            Particle particle = new Particle(
-                    start,
-                    new Vector2D(0.0, -4.0),
-                    3.5,
-                    i % 2 == 0 ? Color.CYAN : Color.DODGERBLUE,
-                    0.5
-            ).withEndSize(1.0)
-                    .withFadeIn(0.12)
-                    .withShape(Particle.Shape.DIAMOND)
-                    .withRotation(45.0, 120.0);
-
-            addParticle(particle);
-        }
-    }
-
     public void spawnCoinBurst(Vector2D position, int amount) {
         int count = Math.max(6, Math.min(18, amount / 2 + 5));
 
@@ -266,30 +178,6 @@ public class ParticleManager {
                     Particle.Shape.DIAMOND
             ).withDrag(1.5)
                     .withRotation(45.0, randomRange(-360.0, 360.0));
-
-            addParticle(particle);
-        }
-    }
-
-    public void spawnExplosion(Vector2D position, double radius) {
-        int count = Math.max(16, Math.min(45, (int) (radius * 1.5)));
-
-        for (int i = 0; i < count; i++) {
-            double angle = random.nextDouble() * Math.PI * 2.0;
-            double speed = randomRange(radius * 2.0, radius * 5.0);
-            double size = randomRange(4.0, 9.0);
-
-            Particle particle = new Particle(
-                    position,
-                    velocityFromAngle(angle, speed),
-                    size,
-                    randomColor(FIRE_COLORS),
-                    randomRange(0.25, 0.55)
-            ).withEndSize(0.0)
-                    .withDrag(4.0)
-                    .withFadeIn(0.08)
-                    .withShape(random.nextBoolean() ? Particle.Shape.CIRCLE : Particle.Shape.DIAMOND)
-                    .withRotation(randomRange(0.0, 90.0), randomRange(-360.0, 360.0));
 
             addParticle(particle);
         }

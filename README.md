@@ -32,3 +32,192 @@ Dùng chuột để ngắm bắn và tương tác sự kiện trên màn hình<b
 Dùng phím M để tắt tiếng , ESC để pause game<br>
 Ngoài ra có thêm chế độ rảnh tay điều khiển game bằng touch pad và
 tự động ngắm bắn.
+
+## Sơ đồ Cấu trúc Package và Class
+
+
+    namespace com_soulknight_cinematic {
+        class CinematicPlayer
+        class CinematicScene
+        class VisualNovelScene
+    }
+
+    namespace com_soulknight_database {
+        class DatabaseConfig
+        class DatabaseInitializer
+        class DatabaseManager
+        class EquipmentLoader
+        class LeaderboardEntry
+        class PasswordHasher
+        class PlayerSave
+        class PlayerSaveDAO
+        class PlayerSaveMapper
+        class ShopDAO
+        class UserAccount
+        class UserDAO
+        class UserSession
+    }
+
+    namespace com_soulknight_debuff {
+        class DebuffItem
+        class DebuffSpawner
+        class DebuffType
+        class PlayerDebuffManager
+    }
+
+    namespace com_soulknight_debuff_render {
+        class ConfusionVisualEffect
+        class DebuffVisualEffect
+        class FreezeVisualEffect
+        class PoisonVisualEffect
+        class SlowVisualEffect
+        class WeaknessVisualEffect
+    }
+
+    namespace com_soulknight_engine {
+        class Camera
+        class DynamicBackground
+        class GameLoop
+        class GameState
+        class GameWorld
+        class InputHandler
+        class RewardPicker
+        class TouchpadJoystick
+    }
+
+    namespace com_soulknight_entity {
+        class Boss
+        class BossAnimator
+        class Enemy
+        class EnemyAnimator
+        class EnemyArchetype
+        class EnemyFactory
+        class Entity
+        class HeroSelectionManager
+        class HeroType
+        class Player
+        class PlayerAnimator
+        class ScratchMark
+        class Shockwave
+        class UFOEvent
+    }
+
+    namespace com_soulknight_event {
+        class GameEventListener
+    }
+
+    namespace com_soulknight_item {
+        class BuffItem
+        class EnergyCrystal
+        class GemItem
+        class GoldItem
+        class Item
+        class ItemMagnetSystem
+    }
+
+    namespace com_soulknight_level {
+        class LevelManager
+    }
+
+    namespace com_soulknight_map {
+        class MapManager
+        class NeonEnvironmentManager
+        class Obstacle
+        class RestRoomController
+        class RestShrine
+        class Room
+        class RoomDoorController
+        class Tile
+    }
+
+    namespace com_soulknight_map_json {
+        class LayerData
+        class ObjectData
+        class PropertyData
+        class TiledMapData
+    }
+
+    namespace com_soulknight_mission {
+        class BossDefeatMission
+        class CollectItemMission
+        class KillTargetMission
+        class Mission
+        class MissionManager
+    }
+
+    namespace com_soulknight_model {
+        class StoryConfigLoader
+        class StoryFrame
+    }
+
+    namespace com_soulknight_pet {
+        class Pet
+        class PetFactory
+        class PetRoomEntryController
+        class PetRoomInfo
+        class PetRoomPlacementService
+        class PetSelectionManager
+        class PetType
+    }
+
+    namespace com_soulknight_ui {
+        class AccountController
+        class BossIntroController
+        class CatLoadingOverlay
+        class DeveloperRoomBackground
+        class GameOverScreen
+        class HUD
+        class IntroController
+        class IntroToLoginTransition
+        class LeaderboardController
+        class LevelClearScreen
+        class LoginController
+        class MainMenuRealityBreachBackground
+        class Menu
+        class MinimapRenderer
+        class PauseScreen
+        class PortalOverlay
+        class RegisterController
+        class SettingScreen
+        class ShopController
+        class StoryEndingController
+        class StoryIntroController
+        class UIManager
+        class VictoryScreen
+    }
+
+    namespace com_soulknight_utils {
+        class Constants
+        class DatabaseExecutor
+        class ResourceLoader
+        class SoundManager
+        class Vector2D
+    }
+
+    namespace com_soulknight_weapon {
+        class Bullet
+        class ExplosionEffect
+        class Gun
+        class IonElectromagneticGun
+        class Melee
+        class PrototypeRailgun
+        class SlashEffect
+        class SoundWaveEffect
+        class Weapon
+        class WeaponSelectionManager
+        class WeaponType
+    }
+
+    namespace com_soulknight_weapon_render {
+        class IonChargeRenderer
+        class IonExplosionEffect
+        class IonProjectileRenderer
+        class ProjectileRenderer
+    }
+
+## Một số sequence diagram của game 
+Init game sequence diagrame
+![Init game sequence diagrame](src/main/resources/assets/describe/main_thread.jpg)
+Player come to room sequence diagrame
+![Player come to room sequence diagrame](src/main/resources/assets/describe/player_room.jpg)
+
