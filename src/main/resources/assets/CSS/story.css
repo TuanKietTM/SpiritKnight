@@ -602,3 +602,42 @@
     -fx-border-color: #e0bd63;
     -fx-text-fill: #fff1bf;
 }
+
+.credits-container {
+    -fx-padding: 40px 0;
+}
+
+.credits-game-title {
+    -fx-font-family: "Press Start 2P";
+    -fx-font-size: 20px;
+    -fx-text-fill: #ffd700;
+    -fx-effect: dropshadow(gaussian, rgba(255, 215, 0, 0.6), 12, 0.4, 0, 0);
+    -fx-padding: 0 0 20px 0;
+}
+
+.credits-header {
+    -fx-font-family: "Press Start 2P";
+    -fx-font-size: 10px;
+    -fx-text-fill: #59d9bd;
+    -fx-padding: 0 0 15px 0;
+}
+
+.credits-role {
+    -fx-font-family: "Press Start 2P";
+    -fx-font-size: 9px;
+    -fx-text-fill: #8fa6b4;
+}
+
+.credits-name {
+    -fx-font-family: "Press Start 2P";
+    -fx-font-size: 13px;
+    -fx-text-fill: #ffffff;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.8), 4, 0.5, 0, 2);
+}
+
+.credits-footer {
+    -fx-font-family: "Press Start 2P";
+    -fx-font-size: 12px;
+    -fx-text-fill: #e0bd63;
+    -fx-padding: 30px 0 0 0;
+}

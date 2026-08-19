@@ -71,6 +71,8 @@ public final class SoundManager {
         loadSFX("gold_pickup","/assets/Audio/coin.mp3");
         loadSFX("player_die","/assets/Audio/player_die.mp3");
         loadSFX("sound_die","/assets/Audio/sound_die.mp3");
+        loadSFX("appear","/assets/Audio/appear.mp3");
+        loadSFX("credit","/assets/Audio/credit.mp3");
     }
 
     public static SoundManager getInstance() {

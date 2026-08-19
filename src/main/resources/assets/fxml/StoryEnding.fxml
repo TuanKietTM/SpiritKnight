@@ -81,7 +81,6 @@
                   maxHeight="2"
                   styleClass="ending-divider"/>
 
-
             <Label fx:id="storyText"
                    maxWidth="860"
                    minHeight="78"
@@ -89,8 +88,6 @@
                    wrapText="true"
                    styleClass="ending-text"/>
 
-
-            <!-- Footer -->
             <HBox alignment="CENTER"
                   prefWidth="860"
                   spacing="10">
@@ -158,9 +155,59 @@
                visible="false"
                managed="false"
                mouseTransparent="true"/>
+    <VBox fx:id="creditsContainer"
+          alignment="CENTER"
+          spacing="22"
+          maxWidth="700"
+          prefWidth="700"
+          visible="false"
+          managed="false"
+          mouseTransparent="true"
+          StackPane.alignment="TOP_CENTER"
+          styleClass="credits-container">
 
+        <Label text="SOUL KNIGHT: NEXUS" styleClass="credits-game-title"/>
+        <Label text="— CREATED BY —" styleClass="credits-header"/>
 
-    <!-- Skip tach khoi dialogue de giong Intro -->
+        <VBox alignment="CENTER" spacing="5">
+            <Label text="LEAD DEVELOPER AND DESIGNER" styleClass="credits-role"/>
+            <Label text="CUONGPLUSS - VITDUNG - TUANKIETTM" styleClass="credits-name"/>
+        </VBox>
+        <VBox alignment="CENTER" spacing="5">
+            <Label text="INITIAL IDEA" styleClass="credits-role"/>
+            <Label text="VITDUNG - TUANKIETTM (BASEGAME)" styleClass="credits-name"/>
+        </VBox>
+        <VBox alignment="CENTER" spacing="5">
+            <Label text="INNOVATIVE IDEA" styleClass="credits-role"/>
+            <Label text="CUONGPLUSS - VDSA" styleClass="credits-name"/>
+        </VBox>
+        <VBox alignment="CENTER" spacing="5">
+            <Label text="GAME ENGINE AND MECHANICS" styleClass="credits-role"/>
+            <Label text="CUONGPLUSS - VITDUNG - TUANKIETTM" styleClass="credits-name"/>
+        </VBox>
+        <VBox alignment="CENTER" spacing="5">
+            <Label text="MAP DESIGNER" styleClass="credits-role"/>
+            <Label text="TITLED - VITDUNG - CUONG PLUSS" styleClass="credits-name"/>
+        </VBox>
+        <VBox alignment="CENTER" spacing="5">
+            <Label text="ART AND GRAPHICS" styleClass="credits-role"/>
+            <Label text="Pixel - Assets Source GEMINI,WIKI - CUONG- KIET" styleClass="credits-name"/>
+        </VBox>
+        <VBox alignment="CENTER" spacing="5">
+            <Label text="DATABASE" styleClass="credits-role"/>
+            <Label text="AVIEN - CUONGPLUSS" styleClass="credits-name"/>
+        </VBox>
+        <VBox alignment="CENTER" spacing="5">
+            <Label text="AUDIO AND SOUNDTRACK" styleClass="credits-role"/>
+            <Label text="PIXABAY - CUONGPLUSS" styleClass="credits-name"/>
+        </VBox>
+        <VBox alignment="CENTER" spacing="5">
+            <Label text="DEBUGGER" styleClass="credits-role"/>
+            <Label text="VITDUNG - CUONGPLUSS - TUANKIETTM" styleClass="credits-name"/>
+        </VBox>
+
+        <Label text="THANK YOU FOR PLAYING!" styleClass="credits-footer"/>
+    </VBox>
     <Button text="SKIP  »"
             onAction="#skipEnding"
             StackPane.alignment="TOP_RIGHT"

@@ -596,6 +596,7 @@ public final class UIManager {
                 sound.playSFX("button");
                 menuRoot.setVisible(true);
                 settingRoot.setVisible(true);
+                settingRoot.setManaged(true);
                 settingRoot.toFront();
 
                 if (settingController != null) {
@@ -605,6 +606,7 @@ public final class UIManager {
                             () -> {
                                 sound.playSFX("button");
                                 settingRoot.setVisible(false);
+                                settingRoot.setManaged(false);
                                 menuRoot.setVisible(true);
                                 menuRoot.toFront();
                             },
@@ -722,6 +724,7 @@ public final class UIManager {
                         sound.playSFX("button");
                         pauseRoot.setVisible(false);
                         settingRoot.setVisible(true);
+                        settingRoot.setManaged(true);
                         settingRoot.toFront();
 
                         if (settingController != null) {
@@ -731,6 +734,7 @@ public final class UIManager {
                                     () -> {
                                         sound.playSFX("button");
                                         settingRoot.setVisible(false);
+                                        settingRoot.setManaged(false);
                                         pauseRoot.setVisible(true);
                                         pauseRoot.toFront();
                                     },
