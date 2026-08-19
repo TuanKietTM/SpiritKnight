@@ -136,6 +136,7 @@ public final class Menu {
         if (menuBackground != null) {
             menuBackground.start();
         }
+        SoundManager.getInstance().playBGM("/assets/Audio/main_menu.mp3");
     }
 
 
@@ -143,6 +144,7 @@ public final class Menu {
         if (menuBackground != null) {
             menuBackground.stop();
         }
+        SoundManager.getInstance().stopBGM();
     }
 
     @FXML

@@ -8,8 +8,8 @@
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
-<StackPane prefHeight="600.0" prefWidth="1024.0" styleClass="pause-screen-overlay" stylesheets="@../CSS/PauseScreen.css" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.soulknight.ui.SettingScreen">
-    <VBox alignment="TOP_CENTER" maxHeight="380" maxWidth="420" spacing="20" styleClass="pause-dialog">
+<StackPane alignment="CENTER" prefHeight="600.0" prefWidth="1024.0" styleClass="pause-screen-overlay" stylesheets="@../CSS/PauseScreen.css" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.soulknight.ui.SettingScreen">
+    <VBox alignment="TOP_CENTER" maxHeight="380" maxWidth="420" spacing="20" styleClass="pause-dialog" StackPane.alignment="CENTER">
         <HBox alignment="CENTER" styleClass="header-container">
             <StackPane style="-fx-background-radius: 0px;" styleClass="pause-banner" HBox.hgrow="ALWAYS">
                 <Label styleClass="pause-title" text="SETTINGS" />
