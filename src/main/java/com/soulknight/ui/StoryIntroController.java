@@ -84,7 +84,7 @@ public final class StoryIntroController {
         initializeVisualNovelScene();
         configureCinematic();
         startCursor();
-        cinematicPlayer.play();
+        cinematicPlayer.play();// chay hieu ung cinematic
     }
 
     private void stopAllSounds() {
@@ -107,7 +107,7 @@ public final class StoryIntroController {
             throw new IllegalStateException("FXML Visual Novel chua khai bao day du.");
         }
     }
-//them cac khung canh vao intro
+//them cac khung canh vao intro , cac man hinh chay theo dung thu thu them vao
     private void configureCinematic() {
         cinematicPlayer
                 .addScene(this::playBootScene)

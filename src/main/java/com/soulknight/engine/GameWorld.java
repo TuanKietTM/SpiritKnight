@@ -440,7 +440,7 @@ public final class GameWorld {
                     break;
                 }
 
-                // Kiem tra va cahm coi enemy player
+                // Kiem tra va cham  voi enemy player
                 if (processEntityCollision(bullet, checkPos)) {
                     bulletDeactivated = true;
                     break;
@@ -497,7 +497,7 @@ public final class GameWorld {
             Vector2D originalPos = bullet.getPosition().copy();
             bullet.getPosition().set(checkPos);
 
-            // Dung truc tiep ham intersects moi (AABB) - "1 phat an ngay" giong Enemy
+            // Dung truc tiep ham intersects moi (AABB) - giong Enemy
             boolean isHit = obstacle.intersects(bullet);
 
             // Tra lai vi tri ban dau neu khong trung (de khong anh huong logic khac)
@@ -695,7 +695,7 @@ public final class GameWorld {
         soundWaves.removeIf(soundWave -> !soundWave.isActive());
     }
 
-    //    gay vu no
+    //    gay vu no cho hieu ung buff no
     public void triggerDeathExplosion(Vector2D center, int damage) {
         if (center == null || damage <= 0) {
             return;
@@ -1418,6 +1418,11 @@ public final class GameWorld {
     }
 
     //(vitdung) chỉnh lại hàm này để test loadMap từ txt
+
+    /**
+     * Trung tam khoi tao tai thiet lap toan bo trang tahi cua man choi
+     * @param freshRun
+     */
     private void loadCurrentLevel(boolean freshRun) {
         String mapPath = "/maps/primeMap_1.json";
         this.mapManager = new MapManager(mapPath);
@@ -1449,7 +1454,7 @@ public final class GameWorld {
 //        truong hop phong da luu
 //        tim phong da luu va dat player o phong do sao cho tranh vat can
 
-        // 4. Khởi tạo Pet đi theo
+        //  Khởi tạo Pet đi theo
         createSelectedPet();
 //        tao hieu ung spawn
         this.playerSpawnEffect = new SpawnEffect(spawnPoint, 0.4, 0.7);
@@ -1460,7 +1465,7 @@ public final class GameWorld {
             this.petSpawnEffect = new SpawnEffect(petSpawnPos, 0.55, 0.7);
         }
 
-        // 5. Trang bị vũ khí cho lượt chơi mới
+        //  Trang bị vũ khí cho lượt chơi mới
         if (freshRun) {
 
             activeRunWeaponSlot = 0;
@@ -1468,7 +1473,7 @@ public final class GameWorld {
             equipActiveRunWeapon();
         }
 
-        // 6. Reset toàn bộ danh sách Thực thể & Hiệu ứng của màn cũ
+        //  Reset toàn bộ danh sách Thực thể & Hiệu ứng của màn cũ
         this.enemies.clear();
         this.enemySpawnEffects.clear();
         this.enemyDeathEffects.clear();
@@ -1486,17 +1491,13 @@ public final class GameWorld {
         this.enemySpawnTimer = 0.0;
         floatingTextManager.clear();
 
-        // Thêm 3 dòng này vào cuối hàm khởi tạo/reset của GameWorld.java:
         if (player != null) {
             // Spawn Boss đứng cách Player 200px về bên phải
             Vector2D spawnPos = new Vector2D(player.getPosition().getX() + 200, player.getPosition().getY());
             Enemy boss = enemyFactory.createGrandKnight(spawnPos);
-
-            // Thêm vào danh sách quái
-            //addEnemyWithSpawnEffect(boss, 0.0);
         }
 
-        // 7. Tạo nhiệm vụ cho Level hiện tại
+        //  Tạo nhiệm vụ cho Level hiện tại
         if (this.missionManager != null && this.levelManager != null) {
             this.missionManager.setMission(this.levelManager.createMissionForCurrentLevel());
         }
@@ -1505,7 +1506,7 @@ public final class GameWorld {
         this.rewardPicker = null;
         this.lastRewardRoom = null;
 
-        // 9. Sinh Boss nếu đây là Màn Boss
+        //  Sinh Boss nếu đây là Màn Boss
         if (this.levelManager != null
                 && this.levelManager.getCurrentLevel().bossLevel()
                 && this.mapManager.getBossSpawnPoint() != null) {
@@ -1932,20 +1933,18 @@ public final class GameWorld {
         this.playerEnergy = Math.max(0.0, playerEnergy);
     }
 
+    /**
+     * Chon slot vu khi
+     */
     public void switchPlayerWeapon() {
-
-        if (player == null ||
-                !player.isAlive()) {
-
+        if (player == null || !player.isAlive()) {
             return;
         }
 
         /*
          * Khong co weapon nao.
          */
-        if (runWeaponSlot1 == null &&
-                runWeaponSlot2 == null) {
-
+        if (runWeaponSlot1 == null && runWeaponSlot2 == null) {
             return;
         }
 
@@ -2085,7 +2084,7 @@ public final class GameWorld {
         }
 
         // sinh quái tùy theo wave
-        // 3. KHỞI TẠO ĐA DẠNG LOẠI QUÁI DỰA TRÊN WAVE
+        //  KHỞI TẠO ĐA DẠNG LOẠI QUÁI DỰA TRÊN WAVE
         for (int i = 0; i < roomSpawnPoints.size(); i++) {
             Vector2D spawnPt = roomSpawnPoints.get(i);
             Enemy enemy = enemyFactory.createEnemyByWave(random, spawnPt, waveNumber);
