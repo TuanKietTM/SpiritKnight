@@ -4,7 +4,7 @@ import com.soulknight.buff.BuffType;
 
 public final class BuffVisualEffectFactory {
     /**
-     * class nay quyet dinh loai buff nao tao hieu ung nao
+     * class nay quyet dinh loai buff nao tao hieu ung nao co che nay tuong tu voi debuff
      */
     private BuffVisualEffectFactory() {
     }

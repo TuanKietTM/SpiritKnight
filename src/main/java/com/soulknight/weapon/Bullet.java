@@ -20,7 +20,7 @@ public final class Bullet {
     private static final String SPRITE_PATH = "/assets/effects/dan.png";
     private static final Image SPRITE = ResourceLoader.image(SPRITE_PATH);
 
-    // Anh vien dan cua Quai (Tuy chon: neu ban co file anh dan_quai.png)
+    // Anh vien dan cua Quai
     private static final String ENEMY_SPRITE_PATH = "/assets/effects/dan_quai.png";
     private static final Image ENEMY_SPRITE = ResourceLoader.image(ENEMY_SPRITE_PATH);
 

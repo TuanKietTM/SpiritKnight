@@ -2,6 +2,9 @@ package com.soulknight.buff;
 
 import com.soulknight.entity.Player;
 
+/**
+ * Buff hoi the rong tao ra chum particle hinh quat lam quai bong , gay sat thuong
+ */
 public final class DragonBreathBuff extends Buff {
     private static final double ATTACK_INTERVAL = 3.0;
     private double attackTimer;

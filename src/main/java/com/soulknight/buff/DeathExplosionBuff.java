@@ -4,6 +4,9 @@ import com.soulknight.engine.GameWorld;
 import com.soulknight.entity.Enemy;
 import com.soulknight.entity.Player;
 
+/**
+ * Buff quai no 50% khi tan cong su dung buff nay
+ */
 public final class DeathExplosionBuff extends Buff {
     private static final double EXPLOSION_CHANCE = 0.50;
 

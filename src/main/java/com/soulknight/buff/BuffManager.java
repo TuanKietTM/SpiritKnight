@@ -5,8 +5,6 @@ import com.soulknight.engine.Camera;
 import com.soulknight.entity.Player;
 import com.soulknight.engine.GameWorld;
 import com.soulknight.entity.Enemy;
-import com.soulknight.engine.GameWorld;
-import com.soulknight.entity.Enemy;
 import javafx.scene.canvas.GraphicsContext;
 
 import java.util.EnumMap;

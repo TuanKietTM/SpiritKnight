@@ -8,7 +8,7 @@ import javafx.scene.paint.Color;
 import java.util.Random;
 
 /**
- * Hieu ung cot sang trieu hoi
+ * Hieu ung cot sang trieu hoi cho player va pet
  */
 public class SpawnEffect {
 

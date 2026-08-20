@@ -136,6 +136,10 @@ public enum BuffType {
         return instant;
     }
 
+    /**
+     * Gan cac buff voi cac class quan li tuong ung
+     * @return
+     */
     public Buff createBuff() {
         return switch (this) {
             case SHIELD -> new ShieldBuff(this);

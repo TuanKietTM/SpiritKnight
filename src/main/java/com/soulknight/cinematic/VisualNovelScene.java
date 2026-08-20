@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * Hieu ung cinematic nay la hieu ung cai man hinh cot truyn roi chu duoc typin gra
+ * Hieu ung cinematic nay la hieu ung cai man hinh cot truyen roi chu duoc typin ra - cac canh chay anh
  * o ca phan intro va ending
  */
 public final class VisualNovelScene {

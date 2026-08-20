@@ -1,18 +1,40 @@
-.gameover-container {
-    -fx-background-color: rgba(0, 0, 0, 0.5);
+@font-face {
+    font-family: "Press Start 2P";
+    src: url("../fonts/PressStart2P-Regular.ttf");
+}
+.gameover-root {
+    -fx-background-color: #08060a;
+}
+
+.gameover-box {
+    -fx-background-color: rgba(15, 11, 20, 0.92);
+    -fx-border-color: #3a1928;
+    -fx-border-width: 3px;
+    -fx-padding: 45px 55px;
     -fx-alignment: center;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.9), 18, 0, 0, 8);
+}
+
+.gameover-subtitle {
+    -fx-font-family: "Press Start 2P";
+    -fx-font-size: 11px;
+    -fx-text-fill: #6e5875;
 }
 
 .gameover-title {
-    -fx-font-family: "Arial";
-    -fx-font-size: 54px;
-    -fx-text-fill: #DC143C;
-    -fx-font-weight: bold;
-    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.8), 8, 0, 0, 2);
+    -fx-font-family: "Press Start 2P";
+    -fx-font-size: 40px;
+    -fx-text-fill: #d62828;
+    -fx-effect: dropshadow(one-pass-box, #4a000d, 0, 0, 4, 4);
 }
 
 .gameover-prompt {
-    -fx-font-family: "Arial";
-    -fx-font-size: 24px;
-    -fx-text-fill: #FFFFFF;
+    -fx-font-family: "Press Start 2P";
+    -fx-font-size: 10px;
+    -fx-text-fill: #a095a8;
+    -fx-cursor: hand;
+}
+.gameover-prompt:hover {
+    -fx-text-fill: #ffb703;
+    -fx-effect: dropshadow(one-pass-box, #855200, 0, 0, 2, 2);
 }
